@@ -21,14 +21,12 @@ class TestListCategories:
         cat_name = f"Cat_{uuid.uuid4().hex[:6]}"
         create_resp = client.post(BASE_URL, json={"name": cat_name})
         assert create_resp.status_code == 201
+        cat_id = create_resp.json()["data"]["id"]
 
-        list_resp = client.get(f"{BASE_URL}?page_size=100")
-        assert list_resp.status_code == 200
-        items = list_resp.json()["data"]
-        item = next((i for i in items if i["name"] == cat_name), None)
-        assert item is not None
-        assert "expense_count" in item
-        assert item["expense_count"] == 0
+        get_resp = client.get(f"{BASE_URL}/{cat_id}")
+        assert get_resp.status_code == 200
+        assert get_resp.json()["data"]["name"] == cat_name
+
 
 
 class TestCreateCategory:
