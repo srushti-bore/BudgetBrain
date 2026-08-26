@@ -2,9 +2,9 @@
 
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { budgetApi, categoryApi } from '@/lib/api';
-import { Budget, Category } from '@/types';
-import { formatCurrency } from '@/lib/utils';
+import { budgetApi, categoryApi } from '../../lib/api';
+import { Budget, Category } from '../../types';
+import { formatCurrency } from '../../lib/utils';
 import { Target, Plus, CheckCircle, AlertTriangle, Flame, Edit2, ShieldAlert } from 'lucide-react';
 
 export default function BudgetsPage() {

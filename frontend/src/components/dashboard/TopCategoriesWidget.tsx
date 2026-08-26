@@ -1,44 +1,59 @@
 'use client';
 
 import React from 'react';
-import { TopCategory } from '@/types';
-import { formatCurrency } from '@/lib/utils';
+import { TopCategory } from '../../types';
+import { formatCurrency } from '../../lib/utils';
 import { Trophy } from 'lucide-react';
 
 interface TopCategoriesWidgetProps {
   categories: TopCategory[];
 }
 
-export default function TopCategoriesWidget({ categories }: TopCategoriesWidgetProps) {
-  if (!categories || categories.length === 0) return null;
+export default function TopCategoriesWidget({ categories = [] }: TopCategoriesWidgetProps) {
+  if (categories.length === 0) {
+    return (
+      <div className="glass-card glass-card-hover p-6 flex flex-col justify-between h-full min-h-[180px]">
+        <div>
+          <h3 className="font-display font-bold text-lg text-ink">Top Spend Categories</h3>
+          <p className="text-xs text-ink-muted">Highest spending areas</p>
+        </div>
+        <p className="text-xs text-ink-muted my-auto">No category spend data available yet.</p>
+      </div>
+    );
+  }
 
-  const maxSpent = Math.max(...categories.map((c) => c.total_spent), 1);
+  const maxSpent = categories[0]?.total_spent || 1;
 
   return (
-    <div className="glass-card p-5 flex flex-col justify-between">
+    <div className="glass-card glass-card-hover p-6 flex flex-col justify-between h-full min-h-[180px]">
       <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <Trophy className="w-4 h-4 text-honey" />
-          <h4 className="font-display font-bold text-sm text-ink">Top Spend Categories</h4>
+        <div>
+          <h3 className="font-display font-bold text-lg text-ink">Top Spend Categories</h3>
+          <p className="text-xs text-ink-muted">Highest spending drivers this month</p>
         </div>
-        <span className="text-[11px] text-ink-muted">Ranked</span>
+        <div className="w-8 h-8 rounded-xl bg-honey/15 flex items-center justify-center text-honey border border-honey/30">
+          <Trophy className="w-4 h-4" />
+        </div>
       </div>
 
-      <div className="space-y-2.5">
-        {categories.map((cat, idx) => {
-          const widthPercent = Math.min(Math.round((cat.total_spent / maxSpent) * 100), 100);
+      <div className="space-y-2.5 my-auto">
+        {categories.slice(0, 3).map((item, idx) => {
+          const barWidth = Math.min(Math.round((item.total_spent / maxSpent) * 100), 100);
           return (
-            <div key={cat.category_id} className="space-y-1">
-              <div className="flex items-center justify-between text-xs font-medium">
-                <span className="text-ink truncate max-w-[150px]">
-                  {idx + 1}. {cat.category_name}
+            <div key={item.category_id} className="space-y-1">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-semibold text-ink flex items-center gap-1.5">
+                  <span className="text-[10px] font-mono text-ink-muted bg-ink/5 dark:bg-white/10 px-1.5 py-0.5 rounded">
+                    #{idx + 1}
+                  </span>
+                  {item.category_name}
                 </span>
-                <span className="text-ink font-semibold">{formatCurrency(cat.total_spent)}</span>
+                <span className="font-bold text-coral">{formatCurrency(item.total_spent)}</span>
               </div>
-              <div className="h-1.5 w-full bg-ink/5 rounded-full overflow-hidden">
+              <div className="h-1.5 w-full bg-ink/5 dark:bg-white/10 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-sage to-honey rounded-full transition-all duration-500"
-                  style={{ width: `${widthPercent}%` }}
+                  className="h-full bg-sage rounded-full transition-all duration-500"
+                  style={{ width: `${barWidth}%` }}
                 />
               </div>
             </div>

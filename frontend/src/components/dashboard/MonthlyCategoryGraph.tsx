@@ -2,8 +2,8 @@
 
 import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts';
-import { CategorySpend } from '@/types';
-import { formatCurrency } from '@/lib/utils';
+import { CategorySpend } from '../../types';
+import { formatCurrency } from '../../lib/utils';
 import { BarChart3 } from 'lucide-react';
 
 interface MonthlyCategoryGraphProps {

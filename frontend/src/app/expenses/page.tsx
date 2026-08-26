@@ -2,10 +2,10 @@
 
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { expenseApi, categoryApi, ExpenseQueryParams } from '@/lib/api';
-import { Expense } from '@/types';
-import { formatCurrency, formatDate } from '@/lib/utils';
-import ExpenseModal from '@/components/expenses/ExpenseModal';
+import { expenseApi, categoryApi, ExpenseQueryParams } from '../../lib/api';
+import { Expense, Category } from '../../types';
+import { formatCurrency, formatDate } from '../../lib/utils';
+import ExpenseModal from '../../components/expenses/ExpenseModal';
 import {
   Search,
   Plus,
@@ -17,7 +17,6 @@ import {
   Receipt,
   RotateCcw,
   Repeat,
-  AlertTriangle,
 } from 'lucide-react';
 
 export default function ExpensesPage() {
@@ -41,7 +40,6 @@ export default function ExpensesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [isDeleteAllModalOpen, setIsDeleteAllModalOpen] = useState(false);
 
   // Fetch categories for dropdown
   const { data: categories = [] } = useQuery({
@@ -162,25 +160,13 @@ export default function ExpensesPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-          {(meta.total ?? 0) > 0 && (
-            <button
-              onClick={() => setIsDeleteAllModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-coral/10 hover:bg-coral-light text-coral font-bold text-xs md:text-sm rounded-xl border border-coral/30 transition-all"
-            >
-              <Trash2 className="w-4 h-4" />
-              <span>Delete All</span>
-            </button>
-          )}
-
-          <button
-            onClick={handleOpenAdd}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-sage hover:bg-[#2D5A45] text-white font-semibold text-xs md:text-sm rounded-xl shadow-md transition-all"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Add Expense</span>
-          </button>
-        </div>
+        <button
+          onClick={handleOpenAdd}
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-sage hover:bg-[#2D5A45] text-white font-semibold text-xs md:text-sm rounded-xl shadow-md transition-all self-start sm:self-auto"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Add Expense</span>
+        </button>
       </div>
 
       {/* Glassmorphic Search & Multi-Filter Bar */}
@@ -448,14 +434,14 @@ export default function ExpensesPage() {
         )}
       </div>
 
-      {/* Expense Modal */}
+      {/* Modal */}
       <ExpenseModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleSaveExpense}
         initialData={editingExpense}
         categories={categories}
-        onCategoryCreated={() => {
+        onCategoryCreated={(newCat) => {
           queryClient.invalidateQueries({ queryKey: ['categories'] });
         }}
       />

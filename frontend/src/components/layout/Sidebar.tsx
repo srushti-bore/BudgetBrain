@@ -4,8 +4,8 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LayoutDashboard, Receipt, Tag, Target, Menu, X, Brain, Sun, Moon } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { useTheme } from '@/providers/ThemeProvider';
+import { cn } from '../../lib/utils';
+import { useTheme } from '../../providers/ThemeProvider';
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },

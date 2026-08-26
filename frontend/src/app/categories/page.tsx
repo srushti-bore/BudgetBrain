@@ -2,8 +2,8 @@
 
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { categoryApi } from '@/lib/api';
-import { Category } from '@/types';
+import { categoryApi } from '../../lib/api';
+import { Category } from '../../types';
 import { Tag, Plus, Edit2, Trash2, Shield, AlertTriangle, X } from 'lucide-react';
 
 export default function CategoriesPage() {
