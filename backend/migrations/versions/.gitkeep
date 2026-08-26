@@ -1,0 +1,2 @@
+# migrations/versions — Alembic migration files will be generated here.
+# First migration: alembic revision --autogenerate -m "initial schema"

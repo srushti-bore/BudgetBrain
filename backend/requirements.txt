@@ -1,0 +1,28 @@
+# BudgetBrain Backend — Python Dependencies
+
+# Web framework
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+
+# Database — async SQLAlchemy + asyncpg driver
+# asyncpg 0.30.0 ships prebuilt wheels for Python 3.12 and 3.13 on Windows
+sqlalchemy[asyncio]==2.0.36
+asyncpg==0.30.0
+
+# Migrations
+alembic==1.14.0
+
+# Config — env-variable driven
+pydantic-settings==2.6.1
+pydantic==2.10.3
+
+# HTTP utilities
+python-multipart==0.0.12
+
+# Testing
+pytest==8.3.4
+pytest-asyncio==0.24.0
+httpx==0.28.0
+
+# Dev utilities
+python-dotenv==1.0.1
