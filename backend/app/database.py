@@ -24,7 +24,7 @@ _engine_cache = {}
 def get_engine_and_factory():
     """
     Returns (engine, session_factory) bound to the current running event loop.
-    Prevents cross-loop / cross-thread asyncpg connection crashes.
+    Normalizes DATABASE_URL prefix for asyncpg driver compatibility.
     """
     try:
         loop = asyncio.get_running_loop()
@@ -33,8 +33,14 @@ def get_engine_and_factory():
 
     if loop not in _engine_cache:
         settings = get_settings()
+        db_url = settings.DATABASE_URL
+        if db_url.startswith("postgres://"):
+            db_url = db_url.replace("postgres://", "postgresql+asyncpg://", 1)
+        elif db_url.startswith("postgresql://") and not db_url.startswith("postgresql+asyncpg://"):
+            db_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+
         engine = create_async_engine(
-            settings.DATABASE_URL,
+            db_url,
             echo=settings.APP_DEBUG,
             future=True,
         )

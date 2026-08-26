@@ -5,6 +5,12 @@ Configured for async SQLAlchemy with asyncpg.
 DATABASE_URL is read from app config (environment variable) — never hardcoded.
 """
 
+import sys
+from pathlib import Path
+
+# Automatically ensure backend root directory is in sys.path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 import asyncio
 from logging.config import fileConfig
 
@@ -25,7 +31,13 @@ from app.config import get_settings  # noqa: E402
 
 # Override the sqlalchemy.url with the value from app settings (env-driven)
 settings = get_settings()
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+db_url = settings.DATABASE_URL
+if db_url.startswith("postgres://"):
+    db_url = db_url.replace("postgres://", "postgresql+asyncpg://", 1)
+elif db_url.startswith("postgresql://") and not db_url.startswith("postgresql+asyncpg://"):
+    db_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+
+config.set_main_option("sqlalchemy.url", db_url)
 
 target_metadata = Base.metadata
 

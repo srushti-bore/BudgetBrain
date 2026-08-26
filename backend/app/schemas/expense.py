@@ -20,6 +20,7 @@ class ExpenseCreate(BaseModel):
     date: dt_date = Field(..., description="Expense date — cannot be in the future")
     notes: str | None = Field(default=None, max_length=1000)
     payment_mode: PaymentMode | None = Field(default=None)
+    is_recurring: bool = Field(default=False)
 
     @field_validator("date")
     @classmethod
@@ -42,6 +43,7 @@ class ExpenseUpdate(BaseModel):
     date: dt_date | None = Field(default=None)
     notes: str | None = Field(default=None, max_length=1000)
     payment_mode: PaymentMode | None = Field(default=None)
+    is_recurring: bool | None = Field(default=None)
 
     @field_validator("date")
     @classmethod
@@ -61,6 +63,7 @@ class ExpenseOut(BaseModel):
     date: dt_date
     notes: str | None
     payment_mode: str | None
+    is_recurring: bool = False
     created_at: datetime
     updated_at: datetime
 
@@ -79,6 +82,7 @@ class ExpenseFilters(BaseModel):
     amount_min: Decimal | None = Field(default=None, ge=0)
     amount_max: Decimal | None = Field(default=None, ge=0)
     payment_mode: PaymentMode | None = Field(default=None)
+    is_recurring: bool | None = Field(default=None)
     sort_by: str | None = Field(
         default="date",
         pattern="^(amount|date|category)$",

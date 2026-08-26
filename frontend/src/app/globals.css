@@ -1,0 +1,131 @@
+@import "tailwindcss";
+
+:root {
+  /* Human Psychology Muted Mineral Palette - Ultra Eye Comfort */
+  --sage: #3E7259;
+  --sage-dark: #2D5A45;
+  --sage-light: #EBF3EE;
+  --coral: #C85A48;
+  --coral-dark: #A94332;
+  --coral-light: #FDF2F0;
+  --honey: #C68A28;
+  --honey-light: #FDF8EE;
+  --sky: #4A8AB7;
+  --sky-light: #F0F6FA;
+  
+  --cream: #F6F8F6;
+  --ink: #1E2824;
+  --ink-muted: #52635B;
+
+  --background: #F6F8F6;
+  --foreground: #1E2824;
+  --card-bg: rgba(255, 255, 255, 0.95);
+  --card-border: rgba(30, 40, 36, 0.08);
+  --sidebar-bg: #FFFFFF;
+}
+
+.dark {
+  --background: #121916;
+  --foreground: #F6F8F6;
+  --ink: #F6F8F6;
+  --ink-muted: #95A59E;
+  --card-bg: rgba(23, 33, 29, 0.9);
+  --card-border: rgba(255, 255, 255, 0.08);
+  --sidebar-bg: #16201C;
+  --sage-light: rgba(62, 114, 89, 0.18);
+  --coral-light: rgba(200, 90, 72, 0.18);
+  --honey-light: rgba(198, 138, 40, 0.18);
+  --sky-light: rgba(74, 138, 183, 0.18);
+}
+
+@theme inline {
+  --color-sage: var(--sage);
+  --color-sage-light: var(--sage-light);
+  --color-coral: var(--coral);
+  --color-coral-light: var(--coral-light);
+  --color-honey: var(--honey);
+  --color-honey-light: var(--honey-light);
+  --color-sky: var(--sky);
+  --color-sky-light: var(--sky-light);
+  --color-cream: #F6F8F6;
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --font-display: 'Fraunces', serif;
+  --font-sans: 'Plus Jakarta Sans', sans-serif;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), sans-serif;
+  min-height: 100vh;
+  transition: background-color 0.25s ease, color 0.25s ease;
+  letter-spacing: -0.01em;
+}
+
+/* Eye-soothing Card & Glass Utilities */
+.glass-card {
+  background: var(--card-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--card-border);
+  box-shadow: 0 4px 16px -2px rgba(30, 40, 36, 0.04);
+  border-radius: 1rem;
+  transition: all 0.2s ease-in-out;
+}
+
+.glass-card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px -4px rgba(30, 40, 36, 0.08);
+  border-color: rgba(62, 114, 89, 0.25);
+}
+
+.glass-modal {
+  background: var(--background);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--card-border);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
+}
+
+/* Soothing Inputs */
+input, select, textarea {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  color: var(--ink) !important;
+  border-color: rgba(30, 40, 36, 0.12) !important;
+  transition: all 0.2s ease;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--sage) !important;
+  box-shadow: 0 0 0 3px rgba(62, 114, 89, 0.15) !important;
+}
+
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  color: #F6F8F6 !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+.dark select option {
+  background-color: #16201C;
+  color: #F6F8F6;
+}
+
+/* Soft Scrollbars */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(30, 40, 36, 0.15);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(62, 114, 89, 0.4);
+}

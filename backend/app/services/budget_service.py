@@ -5,7 +5,7 @@ from decimal import Decimal
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
-from app.exceptions import ConflictException, NotFoundException
+from app.exceptions import NotFoundException
 from app.models.budget import Budget
 from app.repositories.budget_repository import BudgetRepository
 from app.repositories.category_repository import CategoryRepository
@@ -100,19 +100,19 @@ class BudgetService:
 
     async def create_budget(self, data: BudgetCreate) -> BudgetOut:
         """
-        Create a budget goal.
+        Create or update a budget goal (Seamless Upsert).
         - One overall budget per period (category_id = None).
         - One per-category budget per period.
-        - Raises ConflictException on duplicate.
         """
+        today = date.today()
+        period_start = data.period_start or date(today.year, today.month, 1)
+
         existing = await self.repo.get_by_category_and_period(
-            data.category_id, data.period_start
+            data.category_id, period_start
         )
         if existing:
-            target = "Overall monthly budget" if data.category_id is None else "Category budget"
-            raise ConflictException(
-                f"{target} already exists for period starting {data.period_start}."
-            )
+            updated = await self.repo.update(existing, limit_amount=data.limit_amount)
+            return await self._enrich_budget(updated)
 
         if data.category_id:
             cat = await self.category_repo.get_by_id(data.category_id)
@@ -122,7 +122,7 @@ class BudgetService:
         created = await self.repo.create(
             category_id=data.category_id,
             period_type=data.period_type,
-            period_start=data.period_start,
+            period_start=period_start,
             limit_amount=data.limit_amount,
         )
         return await self._enrich_budget(created)
@@ -138,4 +138,3 @@ class BudgetService:
 
         updated = await self.repo.update(b, limit_amount=data.limit_amount)
         return await self._enrich_budget(updated)
-

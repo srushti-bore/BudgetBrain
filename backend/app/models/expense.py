@@ -9,6 +9,7 @@ SRS §4.2:
   date          DATE         Required, cannot be in future
   notes         TEXT         Optional
   payment_mode  VARCHAR(20)  Optional: cash / card / upi / other
+  is_recurring  BOOLEAN      Optional: true for recurring expenses
   created_at    TIMESTAMPTZ  Auto-managed
   updated_at    TIMESTAMPTZ  Auto-managed
 
@@ -18,7 +19,7 @@ Indexed on: date, category_id, amount, full-text (trigram) on title + notes.
 import enum
 from datetime import date
 
-from sqlalchemy import Date, ForeignKey, Index, Numeric, String, Text
+from sqlalchemy import Boolean, Date, ForeignKey, Index, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin, new_uuid
@@ -56,6 +57,9 @@ class Expense(Base, TimestampMixin):
     payment_mode: Mapped[str | None] = mapped_column(
         String(20), nullable=True
     )
+    is_recurring: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False
+    )
 
     # Relationships
     category: Mapped["Category"] = relationship(  # noqa: F821
@@ -66,15 +70,10 @@ class Expense(Base, TimestampMixin):
     __table_args__ = (
         Index("ix_expenses_date_category", "date", "category_id"),
         Index("ix_expenses_amount", "amount"),
-        # NOTE: Trigram (GIN) index for full-text search on title + notes
-        # is handled in an Alembic migration using raw SQL:
-        #   CREATE INDEX ix_expenses_fts ON expenses USING gin(
-        #       to_tsvector('english', title || ' ' || coalesce(notes, ''))
-        #   );
     )
 
     def __repr__(self) -> str:
         return (
             f"<Expense id={self.id!r} title={self.title!r} "
-            f"amount={self.amount} date={self.date}>"
+            f"amount={self.amount} date={self.date} is_recurring={self.is_recurring}>"
         )

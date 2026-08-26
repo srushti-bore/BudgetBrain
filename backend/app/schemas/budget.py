@@ -8,7 +8,7 @@ import enum
 from datetime import date, datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.models.budget import PeriodType
 
@@ -24,8 +24,19 @@ class BudgetCreate(BaseModel):
         description="Category UUID for per-category budget; null for overall budget.",
     )
     period_type: PeriodType = Field(default=PeriodType.MONTHLY)
-    period_start: date = Field(..., description="Start date of the budget period (e.g. 2024-08-01)")
+    period_start: date | None = Field(
+        default=None,
+        description="Start date of the budget period (defaults to 1st of current month).",
+    )
     limit_amount: Decimal = Field(..., gt=0, decimal_places=2)
+
+    @field_validator("period_start", mode="before")
+    @classmethod
+    def default_period_start(cls, v):
+        if v is None or v == "":
+            today = date.today()
+            return date(today.year, today.month, 1)
+        return v
 
 
 class BudgetUpdate(BaseModel):
@@ -34,7 +45,6 @@ class BudgetUpdate(BaseModel):
 
 
 class BudgetStatus(str, enum.Enum):
-
     ON_TRACK = "on_track"
     NEAR_LIMIT = "near_limit"
     OVER_BUDGET = "over_budget"
