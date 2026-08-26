@@ -23,23 +23,21 @@ import asyncio
 import uuid
 from datetime import date, timedelta
 from app.config import get_settings
-from scripts.create_db import parse_url
 
 async def seed_data():
     import asyncpg
     settings = get_settings()
-    user, password, host, port, dbname = parse_url(settings.DATABASE_URL)
+    
+    # Normalize DATABASE_URL for asyncpg DSN connection (supports Supabase SNI & SSL)
+    db_url = settings.DATABASE_URL
+    if db_url.startswith("postgresql+asyncpg://"):
+        db_url = db_url.replace("postgresql+asyncpg://", "postgresql://", 1)
 
-    conn = await asyncpg.connect(
-        user=user,
-        password=password,
-        host=host,
-        port=port,
-        database=dbname,
-    )
+    print(f"Connecting to database via asyncpg DSN...")
+    conn = await asyncpg.connect(dsn=db_url)
 
     try:
-        print(f"Connected to database '{dbname}'. Starting category cleanup & seeding...")
+        print("Connected to database. Starting category cleanup & seeding...")
 
         # 1. Ensure Uncategorized system category exists
         uncat_row = await conn.fetchrow(
