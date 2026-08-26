@@ -2,10 +2,10 @@
 
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { expenseApi, categoryApi, ExpenseQueryParams } from '../../lib/api';
-import { Expense, Category } from '../../types';
-import { formatCurrency, formatDate } from '../../lib/utils';
-import ExpenseModal from '../../components/expenses/ExpenseModal';
+import { expenseApi, categoryApi, ExpenseQueryParams } from '@/lib/api';
+import { Expense, Category } from '@/types';
+import { formatCurrency, formatDate } from '@/lib/utils';
+import ExpenseModal from '@/components/expenses/ExpenseModal';
 import {
   Search,
   Plus,

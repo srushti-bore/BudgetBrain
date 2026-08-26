@@ -2,10 +2,10 @@
 
 import React, { useState } from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { SpendTrendItem } from '../../types';
-import { formatCurrency, formatDate } from '../../lib/utils';
+import { SpendTrendItem } from '@/types';
+import { formatCurrency, formatDate } from '@/lib/utils';
 import { TrendingUp } from 'lucide-react';
-import { dashboardApi } from '../../lib/api';
+import { dashboardApi } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
 
 interface SpendTrendChartProps {

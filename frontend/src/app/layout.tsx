@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 import { Plus_Jakarta_Sans, Fraunces } from 'next/font/google';
-import './globals.css';
-import QueryProvider from '../providers/QueryProvider';
-import { ThemeProvider } from '../providers/ThemeProvider';
-import Sidebar from '../components/layout/Sidebar';
+import '@/app/globals.css';
+import QueryProvider from '@/providers/QueryProvider';
+import { ThemeProvider } from '@/providers/ThemeProvider';
+import Sidebar from '@/components/layout/Sidebar';
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ['latin'],

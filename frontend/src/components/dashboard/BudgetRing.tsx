@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { formatCurrency } from '../../lib/utils';
+import { formatCurrency } from '@/lib/utils';
 import { AlertTriangle, CheckCircle, Flame, Target } from 'lucide-react';
 
 interface BudgetRingProps {

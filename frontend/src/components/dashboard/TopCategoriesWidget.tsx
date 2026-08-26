@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-import { TopCategory } from '../../types';
-import { formatCurrency } from '../../lib/utils';
+import { TopCategory } from '@/types';
+import { formatCurrency } from '@/lib/utils';
 import { Trophy } from 'lucide-react';
 
 interface TopCategoriesWidgetProps {

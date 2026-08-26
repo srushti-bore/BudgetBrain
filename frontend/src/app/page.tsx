@@ -3,15 +3,15 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion, Variants } from 'framer-motion';
-import { dashboardApi } from '../lib/api';
-import BudgetRing from '../components/dashboard/BudgetRing';
-import CategoryDonutChart from '../components/dashboard/CategoryDonutChart';
-import SpendTrendChart from '../components/dashboard/SpendTrendChart';
-import MonthlyCategoryGraph from '../components/dashboard/MonthlyCategoryGraph';
-import MonthComparisonCard from '../components/dashboard/MonthComparisonCard';
-import TopCategoriesWidget from '../components/dashboard/TopCategoriesWidget';
-import RecentExpensesSnapshot from '../components/dashboard/RecentExpensesSnapshot';
-import { formatCurrency } from '../lib/utils';
+import { dashboardApi } from '@/lib/api';
+import BudgetRing from '@/components/dashboard/BudgetRing';
+import CategoryDonutChart from '@/components/dashboard/CategoryDonutChart';
+import SpendTrendChart from '@/components/dashboard/SpendTrendChart';
+import MonthlyCategoryGraph from '@/components/dashboard/MonthlyCategoryGraph';
+import MonthComparisonCard from '@/components/dashboard/MonthComparisonCard';
+import TopCategoriesWidget from '@/components/dashboard/TopCategoriesWidget';
+import RecentExpensesSnapshot from '@/components/dashboard/RecentExpensesSnapshot';
+import { formatCurrency } from '@/lib/utils';
 import { Wallet, Calendar, PlusCircle, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 

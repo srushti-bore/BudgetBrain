@@ -2,8 +2,8 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Expense } from '../../types';
-import { formatCurrency, formatDate } from '../../lib/utils';
+import { Expense } from '@/types';
+import { formatCurrency, formatDate } from '@/lib/utils';
 import { ArrowRight, Receipt } from 'lucide-react';
 
 interface RecentExpensesSnapshotProps {

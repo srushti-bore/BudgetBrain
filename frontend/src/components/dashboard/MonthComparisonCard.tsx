@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-import { MonthComparison } from '../../types';
-import { formatCurrency } from '../../lib/utils';
+import { MonthComparison } from '@/types';
+import { formatCurrency } from '@/lib/utils';
 import { TrendingDown, TrendingUp, Minus } from 'lucide-react';
 
 interface MonthComparisonCardProps {

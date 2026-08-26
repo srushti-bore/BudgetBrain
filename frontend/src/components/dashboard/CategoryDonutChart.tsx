@@ -2,10 +2,10 @@
 
 import React, { useState } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { CategorySpend } from '../../types';
-import { formatCurrency, getTodayDateString } from '../../lib/utils';
+import { CategorySpend } from '@/types';
+import { formatCurrency, getTodayDateString } from '@/lib/utils';
 import { PieChart as PieIcon, Calendar } from 'lucide-react';
-import { dashboardApi } from '../../lib/api';
+import { dashboardApi } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
 
 interface CategoryDonutChartProps {

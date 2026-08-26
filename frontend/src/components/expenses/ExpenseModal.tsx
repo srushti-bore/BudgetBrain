@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Expense, Category, PaymentMode } from '../../types';
-import { getTodayDateString } from '../../lib/utils';
+import { Expense, Category, PaymentMode } from '@/types';
+import { getTodayDateString } from '@/lib/utils';
 import { X, Plus, AlertCircle, Repeat } from 'lucide-react';
-import { categoryApi } from '../../lib/api';
+import { categoryApi } from '@/lib/api';
 
 interface ExpenseModalProps {
   isOpen: boolean;
