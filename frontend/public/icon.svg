@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg-grad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#16201C"/>
+      <stop offset="100%" stop-color="#0e1412"/>
+    </linearGradient>
+    <linearGradient id="brain-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7CA391"/>
+      <stop offset="100%" stop-color="#3E7259"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+  <!-- Background Card -->
+  <rect width="512" height="512" rx="128" fill="url(#bg-grad)"/>
+  <rect x="24" y="24" width="464" height="464" rx="104" fill="none" stroke="#3E7259" stroke-width="6" stroke-opacity="0.3"/>
+  
+  <!-- 3D brain graphic container -->
+  <g transform="translate(256, 256)" filter="url(#shadow)">
+    <!-- 3D shadow layer -->
+    <path d="M-100,-70 C-100,-130 -30,-150 0,-150 C30,-150 100,-130 100,-70 C100,-40 80,0 80,40 C80,80 50,110 0,110 C-50,110 -80,80 -80,40 C-80,0 -100,-40 -100,-70 Z" fill="#203328" transform="translate(0, 10)" opacity="0.8"/>
+    <!-- Main brain graphic -->
+    <path d="M-100,-70 C-100,-130 -30,-150 0,-150 C30,-150 100,-130 100,-70 C100,-40 80,0 80,40 C80,80 50,110 0,110 C-50,110 -80,80 -80,40 C-80,0 -100,-40 -100,-70 Z" fill="url(#brain-grad)"/>
+    <!-- Brain details / highlights -->
+    <!-- Left Hemisphere curve -->
+    <path d="M-10,-120 C-60,-120 -80,-90 -80,-60 C-80,-30 -60,-10 -20,10" fill="none" stroke="#A7C7B7" stroke-width="8" stroke-linecap="round" opacity="0.6"/>
+    <!-- Right Hemisphere curve -->
+    <path d="M10,-120 C60,-120 80,-90 80,-60 C80,-30 60,-10 20,10" fill="none" stroke="#A7C7B7" stroke-width="8" stroke-linecap="round" opacity="0.6"/>
+    <!-- Central dividing fissure -->
+    <line x1="0" y1="-140" x2="0" y2="90" stroke="#16201C" stroke-width="8" stroke-linecap="round"/>
+    <!-- Nodes / Glowing stats dots representing "Brain" connections -->
+    <circle cx="-50" cy="-60" r="10" fill="#E6BF70"/>
+    <circle cx="50" cy="-30" r="10" fill="#E6BF70"/>
+    <circle cx="-30" cy="20" r="12" fill="#E6BF70"/>
+    <circle cx="40" cy="30" r="8" fill="#E6BF70"/>
+    <!-- Connection lines -->
+    <line x1="-50" y1="-60" x2="-30" y2="20" stroke="#E6BF70" stroke-width="3" opacity="0.6"/>
+    <line x1="50" y1="-30" x2="40" y2="30" stroke="#E6BF70" stroke-width="3" opacity="0.6"/>
+    <line x1="-30" y1="20" x2="40" y2="30" stroke="#E6BF70" stroke-width="3" opacity="0.6"/>
+  </g>
+</svg>

@@ -21,6 +21,12 @@ const fraunces = Fraunces({
 export const metadata: Metadata = {
   title: 'BudgetBrain — Your Financial Control Center',
   description: 'Smart, single-user personal finance control center with zero friction and dynamic expense tracking.',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'BudgetBrain',
+  },
 };
 
 export default function RootLayout({
@@ -43,6 +49,22 @@ export default function RootLayout({
             </CurrencyProvider>
           </QueryProvider>
         </ThemeProvider>
+        {/* Service Worker Loader */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js').then(function(reg) {
+                    console.log('SW registered successfully:', reg.scope);
+                  }, function(err) {
+                    console.log('SW registration failed:', err);
+                  });
+                });
+              }
+            `
+          }}
+        />
       </body>
     </html>
   );
