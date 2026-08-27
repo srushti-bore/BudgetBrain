@@ -49,7 +49,7 @@ export default function BudgetRing({
   };
 
   return (
-    <div className="glass-card glass-card-hover p-8 flex flex-col justify-between h-full min-h-[340px] relative overflow-hidden">
+    <div className="glass-card glass-card-hover p-7 flex flex-col justify-between h-full min-h-[340px] relative overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>

@@ -12,7 +12,7 @@ interface TopCategoriesWidgetProps {
 export default function TopCategoriesWidget({ categories = [] }: TopCategoriesWidgetProps) {
   if (categories.length === 0) {
     return (
-      <div className="glass-card glass-card-hover p-8 flex flex-col justify-between h-full min-h-[180px]">
+      <div className="glass-card glass-card-hover p-7 flex flex-col justify-between h-full min-h-[180px]">
         <div>
           <h3 className="font-display font-bold text-lg text-ink">Top Spend Categories</h3>
           <p className="text-xs text-ink-muted">Highest spending areas</p>
@@ -25,7 +25,7 @@ export default function TopCategoriesWidget({ categories = [] }: TopCategoriesWi
   const maxSpent = categories[0]?.total_spent || 1;
 
   return (
-    <div className="glass-card glass-card-hover p-8 flex flex-col justify-between h-full min-h-[180px]">
+    <div className="glass-card glass-card-hover p-7 flex flex-col justify-between h-full min-h-[180px]">
       <div className="flex items-center justify-between mb-3">
         <div>
           <h3 className="font-display font-bold text-lg text-ink">Top Spend Categories</h3>
