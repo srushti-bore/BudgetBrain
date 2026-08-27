@@ -12,6 +12,7 @@ import MonthComparisonCard from '@/components/dashboard/MonthComparisonCard';
 import TopCategoriesWidget from '@/components/dashboard/TopCategoriesWidget';
 import RecentExpensesSnapshot from '@/components/dashboard/RecentExpensesSnapshot';
 import { useFormatCurrency } from '@/providers/CurrencyProvider';
+import MonthlyStatsReport from '@/components/dashboard/MonthlyStatsReport';
 import { Wallet, Calendar, PlusCircle, AlertCircle, Target, CheckCircle, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 
@@ -101,7 +102,7 @@ export default function DashboardPage() {
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="space-y-9 max-w-7xl mx-auto pb-18"
+      className="space-y-12 md:space-y-16 max-w-7xl mx-auto pb-24"
     >
       {/* Dashboard Top Header */}
       <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-3">
@@ -212,7 +213,7 @@ export default function DashboardPage() {
       ) : null}
 
       {/* Bento Grid Layer 1: Budget Ring & Weekly/Monthly Category Pie Chart */}
-      <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-12">
         <BudgetRing
           limitAmount={summary?.budget_limit || 0}
           spentAmount={summary?.total_spent || 0}
@@ -222,19 +223,20 @@ export default function DashboardPage() {
       </motion.div>
 
       {/* Bento Grid Layer 2: Spend Velocity Trend & Monthly Category Graph */}
-      <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-12">
         <SpendTrendChart initialData={trendData} />
         <MonthlyCategoryGraph data={categorySpend} />
       </motion.div>
 
-      {/* Bento Grid Layer 3: MoM Comparison & Top Categories */}
-      <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      {/* Bento Grid Layer 3: MoM Comparison, Budget Stats Report, & Top Categories */}
+      <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 lg:gap-12">
         <MonthComparisonCard comparison={comparison} />
+        <MonthlyStatsReport summary={summary} topCategories={topCategories} />
         <TopCategoriesWidget categories={topCategories} />
       </motion.div>
 
       {/* Bento Grid Layer 4: Recent Expenses Snapshot */}
-      <motion.div variants={itemVariants}>
+      <motion.div variants={itemVariants} className="pt-2">
         <RecentExpensesSnapshot expenses={summary?.recent_expenses || []} />
       </motion.div>
     </motion.div>
