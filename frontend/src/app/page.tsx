@@ -102,7 +102,7 @@ export default function DashboardPage() {
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="space-y-12 md:space-y-16 max-w-7xl mx-auto pb-24"
+      className="space-y-9 md:space-y-11 max-w-7xl mx-auto pb-20"
     >
       {/* Dashboard Top Header */}
       <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-3">
@@ -213,7 +213,7 @@ export default function DashboardPage() {
       ) : null}
 
       {/* Bento Grid Layer 1: Budget Ring & Weekly/Monthly Category Pie Chart */}
-      <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-12">
+      <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-9">
         <BudgetRing
           limitAmount={summary?.budget_limit || 0}
           spentAmount={summary?.total_spent || 0}
@@ -223,13 +223,13 @@ export default function DashboardPage() {
       </motion.div>
 
       {/* Bento Grid Layer 2: Spend Velocity Trend & Monthly Category Graph */}
-      <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-12">
+      <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-9">
         <SpendTrendChart initialData={trendData} />
         <MonthlyCategoryGraph data={categorySpend} />
       </motion.div>
 
       {/* Bento Grid Layer 3: MoM Comparison, Budget Stats Report, & Top Categories */}
-      <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 lg:gap-12">
+      <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-9">
         <MonthComparisonCard comparison={comparison} />
         <MonthlyStatsReport summary={summary} topCategories={topCategories} />
         <TopCategoriesWidget categories={topCategories} />
