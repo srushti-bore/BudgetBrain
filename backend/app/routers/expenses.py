@@ -40,6 +40,7 @@ async def list_expenses(
     amount_min: float | None = Query(default=None, ge=0),
     amount_max: float | None = Query(default=None, ge=0),
     payment_mode: PaymentMode | None = Query(default=None),
+    is_recurring: bool | None = Query(default=None),
     # Sort
     sort_by: str = Query(default="date", pattern="^(amount|date|category)$"),
     sort_order: str = Query(default="desc", pattern="^(asc|desc)$"),
@@ -58,6 +59,7 @@ async def list_expenses(
         amount_min=amount_min,
         amount_max=amount_max,
         payment_mode=payment_mode,
+        is_recurring=is_recurring,
         sort_by=sort_by,
         sort_order=sort_order,
     )

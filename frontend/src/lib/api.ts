@@ -73,7 +73,26 @@ export interface ExpenseQueryParams {
 
 export const expenseApi = {
   list: async (params?: ExpenseQueryParams): Promise<APIEnvelope<Expense[]>> => {
-    const response = await apiClient.get<APIEnvelope<Expense[]>>('/expenses', { params });
+    const backendParams: any = { ...params };
+    if (params) {
+      if (params.start_date !== undefined) {
+        backendParams.date_from = params.start_date;
+        delete backendParams.start_date;
+      }
+      if (params.end_date !== undefined) {
+        backendParams.date_to = params.end_date;
+        delete backendParams.end_date;
+      }
+      if (params.min_amount !== undefined) {
+        backendParams.amount_min = params.min_amount;
+        delete backendParams.min_amount;
+      }
+      if (params.max_amount !== undefined) {
+        backendParams.amount_max = params.max_amount;
+        delete backendParams.max_amount;
+      }
+    }
+    const response = await apiClient.get<APIEnvelope<Expense[]>>('/expenses', { params: backendParams });
     return response.data;
   },
   getById: async (id: string): Promise<Expense> => {

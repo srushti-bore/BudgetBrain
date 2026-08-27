@@ -53,6 +53,8 @@ class ExpenseRepository(BaseRepository[Expense]):
             conditions.append(Expense.amount <= filters.amount_max)
         if filters.payment_mode:
             conditions.append(Expense.payment_mode == filters.payment_mode)
+        if filters.is_recurring is not None:
+            conditions.append(Expense.is_recurring == filters.is_recurring)
 
         # Count total matching rows
         count_stmt = select(func.count()).select_from(Expense)
