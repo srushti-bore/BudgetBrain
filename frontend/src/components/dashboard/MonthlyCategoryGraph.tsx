@@ -85,7 +85,7 @@ export default function MonthlyCategoryGraph({ data = [] }: MonthlyCategoryGraph
                 tick={{ fill: '#52635B', fontSize: 11 }}
                 tickLine={false}
                 axisLine={false}
-                tickFormatter={(v) => `₹${v}`}
+                tickFormatter={(v) => formatCurrency(Number(v) || 0)}
               />
               <Tooltip
                 formatter={(val: any) => [formatCurrency(Number(val) || 0), 'Monthly Spend']}
