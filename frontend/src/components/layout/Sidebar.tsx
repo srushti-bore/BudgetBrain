@@ -29,7 +29,7 @@ export default function Sidebar() {
           </div>
           <div>
             <span className="font-display font-bold text-base text-ink dark:text-cream leading-none block">BudgetBrain</span>
-            <span className="text-[10px] text-ink-muted leading-none">Your financial center</span>
+            <span className="text-[10px] text-ink-muted leading-none">Your Financial Control Center</span>
           </div>
         </Link>
         <div className="flex items-center gap-2">
@@ -75,7 +75,7 @@ export default function Sidebar() {
             </div>
             <div>
               <h1 className="font-display font-bold text-lg text-ink dark:text-cream tracking-tight">BudgetBrain</h1>
-              <p className="text-xs text-ink-muted font-medium">Your financial center</p>
+              <p className="text-xs text-ink-muted font-medium">Your Financial Control Center</p>
             </div>
           </Link>
 

@@ -18,8 +18,8 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: 'BudgetBrain — Your financial center',
-  description: 'Smart, single-user personal finance center with zero friction and dynamic tracking.',
+  title: 'BudgetBrain — Your Financial Control Center',
+  description: 'Smart, single-user personal finance control center with zero friction and dynamic expense tracking.',
 };
 
 export default function RootLayout({

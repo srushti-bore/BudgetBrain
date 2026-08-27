@@ -87,7 +87,7 @@ export default function DashboardPage() {
         </p>
         <button
           onClick={() => refetchSummary()}
-          className="px-4 py-2 bg-sage hover:bg-[#3E7259] text-white text-xs font-semibold rounded-xl shadow-md transition-colors"
+          className="px-4 py-2 bg-sage hover:bg-sage-dark text-white text-xs font-semibold rounded-xl shadow-md transition-colors duration-200"
         >
           Retry Connection
         </button>
@@ -105,17 +105,17 @@ export default function DashboardPage() {
       {/* Dashboard Top Header */}
       <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="font-display font-extrabold text-2xl md:text-3xl text-ink tracking-tight">
+          <h1 className="font-display font-extrabold text-2xl md:text-[1.85rem] text-ink tracking-tight leading-tight">
             Dashboard Overview
           </h1>
-          <p className="text-xs md:text-sm text-ink-muted mt-0.5">
+          <p className="text-xs md:text-sm text-ink-muted mt-1 tracking-wide font-medium">
             Log expense → See impact → Track remaining budget
           </p>
         </div>
 
         <Link
           href="/expenses?action=new"
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-sage hover:bg-[#3E7259] text-white font-semibold text-xs md:text-sm rounded-xl shadow-md shadow-sage/20 transition-all self-start md:self-auto hover:scale-102 active:scale-98"
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-sage hover:bg-sage-dark text-white font-semibold text-xs md:text-sm rounded-xl shadow-md shadow-sage/20 transition-all duration-200 self-start md:self-auto hover:scale-[1.02] active:scale-[0.98]"
         >
           <PlusCircle className="w-4 h-4" />
           <span>Log Expense</span>
