@@ -100,15 +100,15 @@ export default function DashboardPage() {
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="space-y-6 max-w-7xl mx-auto pb-12"
+      className="space-y-8 max-w-7xl mx-auto pb-16"
     >
       {/* Dashboard Top Header */}
-      <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2">
         <div>
           <h1 className="font-display font-extrabold text-2xl md:text-[1.85rem] text-ink tracking-tight leading-tight">
             Dashboard Overview
           </h1>
-          <p className="text-xs md:text-sm text-ink-muted mt-1 tracking-wide font-medium">
+          <p className="text-xs md:text-sm text-ink-muted mt-1.5 tracking-wide font-medium">
             Log expense → See impact → Track remaining budget
           </p>
         </div>
@@ -123,25 +123,25 @@ export default function DashboardPage() {
       </motion.div>
 
       {/* Top Metrics Banner */}
-      <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="glass-card glass-card-hover p-5 flex items-center gap-4">
+      <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <div className="glass-card glass-card-hover p-6 flex items-center gap-4">
           <div className="w-12 h-12 rounded-2xl bg-sage-light flex items-center justify-center text-sage shrink-0 border border-sage/30">
             <Calendar className="w-6 h-6 text-ink font-bold" />
           </div>
           <div>
-            <span className="text-xs text-ink-muted font-medium block">Current Month Spend</span>
+            <span className="text-xs text-ink-muted font-medium block mb-1">Current Month Spend</span>
             <span className="font-display font-extrabold text-2xl text-ink block">
               {formatCurrency(summary?.total_spent)}
             </span>
           </div>
         </div>
 
-        <div className="glass-card glass-card-hover p-5 flex items-center gap-4">
+        <div className="glass-card glass-card-hover p-6 flex items-center gap-4">
           <div className="w-12 h-12 rounded-2xl bg-sky-light flex items-center justify-center text-sky shrink-0 border border-sky/30">
             <Wallet className="w-6 h-6 text-ink font-bold" />
           </div>
           <div>
-            <span className="text-xs text-ink-muted font-medium block">Total Transactions</span>
+            <span className="text-xs text-ink-muted font-medium block mb-1">Total Transactions</span>
             <span className="font-display font-extrabold text-2xl text-ink block">
               {summary?.expense_count ?? 0} logged
             </span>
@@ -150,7 +150,7 @@ export default function DashboardPage() {
       </motion.div>
 
       {/* Bento Grid Layer 1: Budget Ring & Weekly/Monthly Category Pie Chart */}
-      <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-7">
         <BudgetRing
           limitAmount={summary?.budget_limit || 0}
           spentAmount={summary?.total_spent || 0}
@@ -160,13 +160,13 @@ export default function DashboardPage() {
       </motion.div>
 
       {/* Bento Grid Layer 2: Spend Velocity Trend & Monthly Category Graph */}
-      <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-7">
         <SpendTrendChart initialData={trendData} />
         <MonthlyCategoryGraph data={categorySpend} />
       </motion.div>
 
       {/* Bento Grid Layer 3: MoM Comparison & Top Categories */}
-      <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 gap-7">
         <MonthComparisonCard comparison={comparison} />
         <TopCategoriesWidget categories={topCategories} />
       </motion.div>
