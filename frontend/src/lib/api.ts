@@ -12,16 +12,22 @@ import {
 } from '@/types';
 
 const getApiBaseUrl = () => {
-  if (process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL;
+  let url = process.env.NEXT_PUBLIC_API_URL || '';
+  if (!url) {
+    if (typeof window !== 'undefined' && !window.location.hostname.includes('localhost')) {
+      url = 'https://budgetbrain-ojnr.onrender.com/api/v1';
+    } else {
+      url = 'http://localhost:8000/api/v1';
+    }
   }
-  if (typeof window !== 'undefined' && !window.location.hostname.includes('localhost')) {
-    return 'https://budgetbrain-ojnr.onrender.com/api/v1';
+  url = url.replace(/\/+$/, '');
+  if (!url.endsWith('/api/v1')) {
+    url = `${url}/api/v1`;
   }
-  return 'http://localhost:8000/api/v1';
+  return url;
 };
 
-const API_BASE_URL = getApiBaseUrl();
+export const API_BASE_URL = getApiBaseUrl();
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
