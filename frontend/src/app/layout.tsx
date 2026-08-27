@@ -5,6 +5,7 @@ import QueryProvider from '@/providers/QueryProvider';
 import { ThemeProvider } from '@/providers/ThemeProvider';
 import { CurrencyProvider } from '@/providers/CurrencyProvider';
 import Sidebar from '@/components/layout/Sidebar';
+import PWAInstallPrompt from '@/components/layout/PWAInstallPrompt';
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -46,6 +47,7 @@ export default function RootLayout({
                   {children}
                 </main>
               </div>
+              <PWAInstallPrompt />
             </CurrencyProvider>
           </QueryProvider>
         </ThemeProvider>
