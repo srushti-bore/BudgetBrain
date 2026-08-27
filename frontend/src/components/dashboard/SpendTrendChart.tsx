@@ -38,7 +38,7 @@ export default function SpendTrendChart({ initialData = [] }: SpendTrendChartPro
   });
 
   return (
-    <div className="glass-card glass-card-hover p-6 flex flex-col justify-between h-full min-h-[360px] border-sage/20">
+    <div className="glass-card glass-card-hover p-8 flex flex-col justify-between h-full min-h-[360px] border-sage/20">
       {/* Header with GroupBy Toggles */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <div>

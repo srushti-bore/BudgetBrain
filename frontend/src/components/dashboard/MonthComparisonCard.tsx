@@ -12,7 +12,7 @@ interface MonthComparisonCardProps {
 export default function MonthComparisonCard({ comparison }: MonthComparisonCardProps) {
   if (!comparison) {
     return (
-      <div className="glass-card glass-card-hover p-6 flex flex-col justify-between h-full min-h-[180px]">
+      <div className="glass-card glass-card-hover p-8 flex flex-col justify-between h-full min-h-[180px]">
         <div>
           <h3 className="font-display font-bold text-lg text-ink">Month-over-Month Comparison</h3>
           <p className="text-xs text-ink-muted">Spend delta vs last month</p>
@@ -25,7 +25,7 @@ export default function MonthComparisonCard({ comparison }: MonthComparisonCardP
   const { current_month_spent, previous_month_spent, percentage_change, is_increase } = comparison;
 
   return (
-    <div className="glass-card glass-card-hover p-6 flex flex-col justify-between h-full min-h-[180px]">
+    <div className="glass-card glass-card-hover p-8 flex flex-col justify-between h-full min-h-[180px]">
       <div className="flex items-center justify-between">
         <div>
           <h3 className="font-display font-bold text-lg text-ink">Month-over-Month</h3>

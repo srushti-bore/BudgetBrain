@@ -12,7 +12,7 @@ interface RecentExpensesSnapshotProps {
 
 export default function RecentExpensesSnapshot({ expenses = [] }: RecentExpensesSnapshotProps) {
   return (
-    <div className="glass-card glass-card-hover p-6 space-y-4">
+    <div className="glass-card glass-card-hover p-8 space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <h3 className="font-display font-bold text-lg text-ink">Recent Expenses</h3>

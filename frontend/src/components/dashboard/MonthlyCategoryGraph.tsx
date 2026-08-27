@@ -30,7 +30,7 @@ export default function MonthlyCategoryGraph({ data = [] }: MonthlyCategoryGraph
 
   if (!categoryList || categoryList.length === 0) {
     return (
-      <div className="glass-card glass-card-hover p-6 flex flex-col items-center justify-center text-center h-full min-h-[360px] border-sage/20">
+      <div className="glass-card glass-card-hover p-8 flex flex-col items-center justify-center text-center h-full min-h-[360px] border-sage/20">
         <div className="w-12 h-12 rounded-2xl bg-sage/15 flex items-center justify-center text-sage mb-3">
           <BarChart3 className="w-6 h-6" />
         </div>
@@ -46,7 +46,7 @@ export default function MonthlyCategoryGraph({ data = [] }: MonthlyCategoryGraph
   }));
 
   return (
-    <div className="glass-card glass-card-hover p-6 flex flex-col justify-between h-full min-h-[360px] border-sage/20">
+    <div className="glass-card glass-card-hover p-8 flex flex-col justify-between h-full min-h-[360px] border-sage/20">
       <div className="flex items-center justify-between mb-4">
         <div>
           <div className="flex items-center gap-2">

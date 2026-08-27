@@ -68,7 +68,7 @@ export default function CategoryDonutChart({ initialData = [] }: CategoryDonutCh
   });
 
   return (
-    <div className="glass-card glass-card-hover p-6 flex flex-col justify-between h-full min-h-[360px] border-sage/20">
+    <div className="glass-card glass-card-hover p-8 flex flex-col justify-between h-full min-h-[360px] border-sage/20">
       <div className="flex items-center justify-between mb-4">
         <div>
           <div className="flex items-center gap-2">
