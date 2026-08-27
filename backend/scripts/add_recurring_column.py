@@ -1,15 +1,25 @@
 import asyncio
 import asyncpg
-from app.config import get_settings
-from scripts.create_db import parse_url
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 async def main():
-    settings = get_settings()
-    user, password, host, port, dbname = parse_url(settings.DATABASE_URL)
-    conn = await asyncpg.connect(user=user, password=password, host=host, port=port, database=dbname)
+    db_url = os.getenv("DATABASE_URL")
+    if not db_url:
+        print("DATABASE_URL not set in environment!")
+        return
+
+    # Convert postgresql+asyncpg:// to postgresql:// for raw asyncpg connection
+    if db_url.startswith("postgresql+asyncpg://"):
+        db_url = db_url.replace("postgresql+asyncpg://", "postgresql://", 1)
+
+    print("Connecting to database...")
+    conn = await asyncpg.connect(dsn=db_url)
     try:
         await conn.execute("ALTER TABLE expenses ADD COLUMN IF NOT EXISTS is_recurring BOOLEAN DEFAULT FALSE;")
-        print("Column 'is_recurring' verified/added in database!")
+        print("SUCCESS: Column 'is_recurring' verified/added to Supabase 'expenses' table!")
     finally:
         await conn.close()
 
