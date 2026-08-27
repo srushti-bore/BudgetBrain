@@ -79,8 +79,11 @@ export default function DashboardPage() {
       <div className="glass-card p-8 text-center max-w-lg mx-auto my-12 border-coral/30">
         <AlertCircle className="w-10 h-10 text-coral mx-auto mb-3" />
         <h3 className="font-display font-bold text-lg text-ink mb-1">Backend Connection Error</h3>
-        <p className="text-xs text-ink-muted mb-4">
-          Unable to connect to FastAPI backend at <code className="bg-ink/5 px-1.5 py-0.5 rounded">http://localhost:8000/api/v1</code>.
+        <p className="text-xs text-ink-muted mb-2">
+          Unable to connect to FastAPI backend at <code className="bg-ink/5 dark:bg-white/10 px-1.5 py-0.5 rounded font-mono text-[11px]">{process.env.NEXT_PUBLIC_API_URL || 'https://budgetbrain-ojnr.onrender.com/api/v1'}</code>.
+        </p>
+        <p className="text-[11px] text-ink-muted/80 mb-4 italic">
+          Note: Render free server takes 30-50s to wake up on first visit. Please wait and retry.
         </p>
         <button
           onClick={() => refetchSummary()}
