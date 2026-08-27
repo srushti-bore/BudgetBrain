@@ -32,6 +32,7 @@ export interface Budget {
   period_type: 'monthly' | 'weekly';
   period_start: string;
   limit_amount: number;
+  daily_limit?: number | null;
   spent_amount?: number;
   remaining_amount?: number;
   status?: BudgetStatus;
@@ -50,6 +51,8 @@ export interface DashboardSummary {
   recent_expenses: Expense[];
   avg_daily_spend?: number;
   avg_weekly_spend?: number;
+  today_spent?: number;
+  daily_limit?: number | null;
 }
 
 export interface CategorySpend {

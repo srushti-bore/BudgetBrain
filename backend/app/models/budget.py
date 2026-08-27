@@ -48,6 +48,9 @@ class Budget(Base, TimestampMixin):
     limit_amount: Mapped[float] = mapped_column(
         Numeric(10, 2), nullable=False
     )
+    daily_limit: Mapped[float | None] = mapped_column(
+        Numeric(10, 2), nullable=True
+    )
 
     # Relationships
     category: Mapped["Category | None"] = relationship(  # noqa: F821
@@ -66,5 +69,5 @@ class Budget(Base, TimestampMixin):
         return (
             f"<Budget id={self.id!r} category_id={self.category_id!r} "
             f"period={self.period_type} start={self.period_start} "
-            f"limit={self.limit_amount}>"
+            f"limit={self.limit_amount} daily_limit={self.daily_limit}>"
         )

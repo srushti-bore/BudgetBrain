@@ -140,6 +140,7 @@ export const budgetApi = {
   createOrUpdate: async (data: {
     category_id?: string | null;
     limit_amount: number;
+    daily_limit?: number | null;
     period_type?: 'monthly' | 'weekly';
     period_start?: string;
   }): Promise<Budget> => {
@@ -148,13 +149,14 @@ export const budgetApi = {
     const payload = {
       category_id: data.category_id ?? null,
       limit_amount: data.limit_amount,
+      daily_limit: data.daily_limit,
       period_type: data.period_type || 'monthly',
       period_start: data.period_start || defaultStart,
     };
     const response = await apiClient.post<APIEnvelope<Budget>>('/budgets', payload);
     return response.data.data;
   },
-  update: async (id: string, data: { limit_amount: number }): Promise<Budget> => {
+  update: async (id: string, data: { limit_amount?: number; daily_limit?: number | null }): Promise<Budget> => {
     const response = await apiClient.patch<APIEnvelope<Budget>>(`/budgets/${id}`, data);
     return response.data.data;
   },

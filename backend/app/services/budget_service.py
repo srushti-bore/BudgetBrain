@@ -65,6 +65,7 @@ class BudgetService:
             period_type=budget.period_type,
             period_start=budget.period_start,
             limit_amount=budget.limit_amount,
+            daily_limit=budget.daily_limit,
             spent_amount=spent,
             remaining_amount=remaining,
             status=status,
@@ -111,7 +112,11 @@ class BudgetService:
             data.category_id, period_start
         )
         if existing:
-            updated = await self.repo.update(existing, limit_amount=data.limit_amount)
+            updated = await self.repo.update(
+                existing,
+                limit_amount=data.limit_amount,
+                daily_limit=data.daily_limit,
+            )
             return await self._enrich_budget(updated)
 
         if data.category_id:
@@ -124,17 +129,19 @@ class BudgetService:
             period_type=data.period_type,
             period_start=period_start,
             limit_amount=data.limit_amount,
+            daily_limit=data.daily_limit,
         )
         return await self._enrich_budget(created)
 
     async def update_budget(self, budget_id: str, data: BudgetUpdate) -> BudgetOut:
         """
-        Update the limit_amount of an existing budget.
+        Update the limit_amount or daily_limit of an existing budget.
         Raises NotFoundException if not found.
         """
         b = await self.repo.get_by_id(budget_id)
         if not b:
             raise NotFoundException("Budget")
 
-        updated = await self.repo.update(b, limit_amount=data.limit_amount)
+        update_data = data.model_dump(exclude_unset=True)
+        updated = await self.repo.update(b, **update_data)
         return await self._enrich_budget(updated)

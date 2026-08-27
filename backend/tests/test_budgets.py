@@ -90,6 +90,22 @@ class TestUpdateBudget:
         assert update_res.status_code == 200
         assert update_res.json()["data"]["limit_amount"] == "20000.00"
 
+    def test_update_daily_limit_returns_200(self, client: TestClient):
+        period_start = random_period_start()
+        create_res = client.post(BASE_URL, json={
+            "category_id": None,
+            "period_type": "monthly",
+            "period_start": period_start,
+            "limit_amount": 30000.00,
+            "daily_limit": 1000.00
+        })
+        budget_id = create_res.json()["data"]["id"]
+
+        update_res = client.patch(f"{BASE_URL}/{budget_id}", json={"daily_limit": 1500.00})
+        assert update_res.status_code == 200
+        data = update_res.json()["data"]
+        assert data["daily_limit"] == "1500.00"
+
     def test_update_nonexistent_returns_404(self, client: TestClient):
         res = client.patch(f"{BASE_URL}/00000000-0000-0000-0000-000000000000", json={"limit_amount": 1000.00})
         assert res.status_code == 404

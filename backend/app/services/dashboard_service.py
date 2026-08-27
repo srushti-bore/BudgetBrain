@@ -76,8 +76,10 @@ class DashboardService:
         if overall_budget_tuple:
             budget_obj, _ = overall_budget_tuple
             limit_amt = budget_obj.limit_amount
+            daily_limit = budget_obj.daily_limit
         else:
             limit_amt = Decimal("0.00")
+            daily_limit = None
 
         total_spent = summary_data["total_spent"]
         remaining_amt = max(Decimal("0.00"), limit_amt - total_spent)
@@ -93,6 +95,11 @@ class DashboardService:
         else:
             budget_status = "no_budget"
 
+        today_spent = await self.expense_repo.get_total_spent(
+            date_from=date.today(),
+            date_to=date.today()
+        )
+
         avg = await self.dashboard_repo.get_average_spend(date_from=first_day, date_to=last_day)
 
         return {
@@ -106,6 +113,8 @@ class DashboardService:
             "recent_expenses": recent_expenses,
             "avg_daily_spend": avg["avg_daily"],
             "avg_weekly_spend": avg["avg_weekly"],
+            "today_spent": today_spent,
+            "daily_limit": daily_limit,
         }
 
     async def get_by_category(

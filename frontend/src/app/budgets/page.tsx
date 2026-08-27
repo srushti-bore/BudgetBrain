@@ -13,6 +13,7 @@ export default function BudgetsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCatId, setSelectedCatId] = useState<string | 'overall'>('overall');
   const [limitAmount, setLimitAmount] = useState('');
+  const [dailyLimitAmount, setDailyLimitAmount] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -37,9 +38,10 @@ export default function BudgetsPage() {
     },
   });
 
-  const handleOpenModal = (catId: string | 'overall', existingLimit?: number) => {
+  const handleOpenModal = (catId: string | 'overall', existingLimit?: number, existingDailyLimit?: number | null) => {
     setSelectedCatId(catId);
     setLimitAmount(existingLimit ? existingLimit.toString() : '');
+    setDailyLimitAmount(existingDailyLimit ? existingDailyLimit.toString() : '');
     setErrorMsg('');
     setIsModalOpen(true);
   };
@@ -47,9 +49,15 @@ export default function BudgetsPage() {
   const handleSaveBudget = async (e: React.FormEvent) => {
     e.preventDefault();
     const amount = parseFloat(limitAmount);
+    const dailyLimit = dailyLimitAmount ? parseFloat(dailyLimitAmount) : null;
 
     if (isNaN(amount) || amount <= 0) {
       setErrorMsg('Limit amount must be a positive number greater than ₹0');
+      return;
+    }
+
+    if (dailyLimit !== null && (isNaN(dailyLimit) || dailyLimit <= 0)) {
+      setErrorMsg('Daily limit must be a positive number greater than ₹0');
       return;
     }
 
@@ -59,6 +67,7 @@ export default function BudgetsPage() {
       await budgetMutation.mutateAsync({
         category_id: selectedCatId === 'overall' ? null : selectedCatId,
         limit_amount: amount,
+        daily_limit: selectedCatId === 'overall' ? dailyLimit : null,
         period_type: 'monthly',
       });
       setIsModalOpen(false);
@@ -105,7 +114,7 @@ export default function BudgetsPage() {
         </div>
 
         <button
-          onClick={() => handleOpenModal('overall', overallBudget?.limit_amount)}
+          onClick={() => handleOpenModal('overall', overallBudget?.limit_amount, overallBudget?.daily_limit)}
           className="inline-flex items-center gap-2 px-5 py-2.5 bg-sage hover:bg-[#3E7259] text-white font-semibold text-xs md:text-sm rounded-xl shadow-md shadow-sage/20 transition-all self-start sm:self-auto"
         >
           <Target className="w-4 h-4" />
@@ -139,27 +148,41 @@ export default function BudgetsPage() {
         </div>
 
         {overallBudget ? (
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white/60 dark:bg-white/5 p-4 rounded-xl border border-ink/5 dark:border-white/10">
-              <span className="text-xs text-ink-muted font-medium block">Monthly Limit</span>
-              <span className="font-display font-extrabold text-2xl text-ink block mt-0.5">
-                {formatCurrency(overallBudget.limit_amount)}
-              </span>
+          <div className="mt-6 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-white/60 dark:bg-white/5 p-4 rounded-xl border border-ink/5 dark:border-white/10">
+                <span className="text-xs text-ink-muted font-medium block">Monthly Limit</span>
+                <span className="font-display font-extrabold text-2xl text-ink block mt-0.5">
+                  {formatCurrency(overallBudget.limit_amount)}
+                </span>
+              </div>
+
+              <div className="bg-white/60 dark:bg-white/5 p-4 rounded-xl border border-ink/5 dark:border-white/10">
+                <span className="text-xs text-ink-muted font-medium block">Spent So Far</span>
+                <span className="font-display font-extrabold text-2xl text-coral block mt-0.5">
+                  {formatCurrency(overallBudget.spent_amount || 0)}
+                </span>
+              </div>
+
+              <div className="bg-white/60 dark:bg-white/5 p-4 rounded-xl border border-ink/5 dark:border-white/10">
+                <span className="text-xs text-ink-muted font-medium block">Remaining Limit</span>
+                <span className="font-display font-extrabold text-2xl text-sage block mt-0.5">
+                  {formatCurrency(overallBudget.remaining_amount || 0)}
+                </span>
+              </div>
             </div>
 
-            <div className="bg-white/60 dark:bg-white/5 p-4 rounded-xl border border-ink/5 dark:border-white/10">
-              <span className="text-xs text-ink-muted font-medium block">Spent So Far</span>
-              <span className="font-display font-extrabold text-2xl text-coral block mt-0.5">
-                {formatCurrency(overallBudget.spent_amount || 0)}
-              </span>
-            </div>
-
-            <div className="bg-white/60 dark:bg-white/5 p-4 rounded-xl border border-ink/5 dark:border-white/10">
-              <span className="text-xs text-ink-muted font-medium block">Remaining Limit</span>
-              <span className="font-display font-extrabold text-2xl text-sage block mt-0.5">
-                {formatCurrency(overallBudget.remaining_amount || 0)}
-              </span>
-            </div>
+            {overallBudget.daily_limit && (
+              <div className="bg-white/40 dark:bg-white/5 p-4 rounded-xl border border-ink/5 dark:border-white/10 flex items-center justify-between">
+                <div>
+                  <span className="text-xs text-ink-muted font-semibold block">Configured Daily Limit</span>
+                  <span className="text-xs text-ink-muted mt-0.5">Target cap for daily transaction volume</span>
+                </div>
+                <span className="font-display font-bold text-xl text-honey">
+                  {formatCurrency(overallBudget.daily_limit)} / day
+                </span>
+              </div>
+            )}
           </div>
         ) : (
           <div className="py-8 text-center">
@@ -271,6 +294,21 @@ export default function BudgetsPage() {
                   required
                 />
               </div>
+
+              {selectedCatId === 'overall' && (
+                <div>
+                  <label className="block text-xs font-semibold text-ink-muted mb-1">Daily Limit (Optional) (₹)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    placeholder="e.g. 1500 (leave blank for none)"
+                    value={dailyLimitAmount}
+                    onChange={(e) => setDailyLimitAmount(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-white/5 border border-ink/15 dark:border-white/15 text-sm font-bold text-ink focus:outline-none focus:border-sage"
+                  />
+                </div>
+              )}
 
               <div className="flex items-center justify-end gap-3 pt-3">
                 <button

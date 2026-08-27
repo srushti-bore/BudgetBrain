@@ -12,7 +12,7 @@ import MonthComparisonCard from '@/components/dashboard/MonthComparisonCard';
 import TopCategoriesWidget from '@/components/dashboard/TopCategoriesWidget';
 import RecentExpensesSnapshot from '@/components/dashboard/RecentExpensesSnapshot';
 import { formatCurrency } from '@/lib/utils';
-import { Wallet, Calendar, PlusCircle, AlertCircle } from 'lucide-react';
+import { Wallet, Calendar, PlusCircle, AlertCircle, Target, CheckCircle, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 
 const containerVariants: Variants = {
@@ -148,6 +148,51 @@ export default function DashboardPage() {
           </div>
         </div>
       </motion.div>
+
+      {/* Daily Spend Limit Card (Conditional) */}
+      {summary?.daily_limit ? (
+        <motion.div variants={itemVariants} className="glass-card p-6 border-sage/35 bg-gradient-to-br from-white/95 to-honey-light/25 dark:from-[#17211d] dark:to-honey/10">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-honey/10 flex items-center justify-center text-honey border border-honey/20 shrink-0">
+                <Target className="w-5 h-5 text-honey" />
+              </div>
+              <div>
+                <h3 className="font-display font-bold text-base text-ink">Daily Spending Limit</h3>
+                <p className="text-xs text-ink-muted mt-0.5">Control daily transaction caps to keep spending low</p>
+              </div>
+            </div>
+
+            {/* Status Badge */}
+            {(summary.today_spent || 0) > summary.daily_limit ? (
+              <span className="px-3 py-1 rounded-full bg-coral-light text-coral border border-coral/30 text-xs font-bold flex items-center gap-1.5 self-start sm:self-auto animate-pulse">
+                <AlertTriangle className="w-3.5 h-3.5" /> Daily Limit Exceeded!
+              </span>
+            ) : (
+              <span className="px-3 py-1 rounded-full bg-sage-light text-sage border border-sage/30 text-xs font-bold flex items-center gap-1.5 self-start sm:self-auto">
+                <CheckCircle className="w-3.5 h-3.5" /> Within Limit
+              </span>
+            )}
+          </div>
+
+          <div className="mt-4 space-y-2">
+            <div className="flex items-center justify-between text-xs font-medium">
+              <span className="text-ink-muted">Today's Spend: <strong className="text-ink font-extrabold">{formatCurrency(summary.today_spent || 0)}</strong></span>
+              <span className="text-ink font-semibold">Daily Cap: {formatCurrency(summary.daily_limit)}</span>
+            </div>
+            
+            {/* Progress Bar */}
+            <div className="h-2.5 w-full bg-ink/5 dark:bg-white/10 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${
+                  (summary.today_spent || 0) > summary.daily_limit ? 'bg-coral' : 'bg-honey'
+                }`}
+                style={{ width: `${Math.min(Math.round(((summary.today_spent || 0) / summary.daily_limit) * 100), 100)}%` }}
+              />
+            </div>
+          </div>
+        </motion.div>
+      ) : null}
 
       {/* Bento Grid Layer 1: Budget Ring & Weekly/Monthly Category Pie Chart */}
       <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-8">

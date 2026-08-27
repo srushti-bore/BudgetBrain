@@ -29,6 +29,7 @@ class BudgetCreate(BaseModel):
         description="Start date of the budget period (defaults to 1st of current month).",
     )
     limit_amount: Decimal = Field(..., gt=0, decimal_places=2)
+    daily_limit: Decimal | None = Field(default=None, ge=0, decimal_places=2)
 
     @field_validator("period_start", mode="before")
     @classmethod
@@ -41,7 +42,8 @@ class BudgetCreate(BaseModel):
 
 class BudgetUpdate(BaseModel):
     """Request body for PATCH /budgets/{id}."""
-    limit_amount: Decimal = Field(..., gt=0, decimal_places=2)
+    limit_amount: Decimal | None = Field(default=None, gt=0, decimal_places=2)
+    daily_limit: Decimal | None = Field(default=None, ge=0, decimal_places=2)
 
 
 class BudgetStatus(str, enum.Enum):
@@ -58,6 +60,7 @@ class BudgetOut(BaseModel):
     period_type: str
     period_start: date
     limit_amount: Decimal
+    daily_limit: Decimal | None = None
     # Live tracking — computed in service layer
     spent_amount: Decimal = Decimal("0.00")
     remaining_amount: Decimal = Decimal("0.00")
