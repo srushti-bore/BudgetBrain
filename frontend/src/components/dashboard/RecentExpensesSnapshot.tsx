@@ -3,7 +3,8 @@
 import React from 'react';
 import Link from 'next/link';
 import { Expense } from '@/types';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
+import { useFormatCurrency } from '@/providers/CurrencyProvider';
 import { ArrowRight, Receipt } from 'lucide-react';
 
 interface RecentExpensesSnapshotProps {
@@ -11,6 +12,7 @@ interface RecentExpensesSnapshotProps {
 }
 
 export default function RecentExpensesSnapshot({ expenses = [] }: RecentExpensesSnapshotProps) {
+  const formatCurrency = useFormatCurrency();
   return (
     <div className="glass-card glass-card-hover p-7 space-y-4">
       <div className="flex items-center justify-between">

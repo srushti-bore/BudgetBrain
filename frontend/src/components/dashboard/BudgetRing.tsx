@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { formatCurrency } from '@/lib/utils';
+import { useFormatCurrency } from '@/providers/CurrencyProvider';
 import { AlertTriangle, CheckCircle, Flame, Target } from 'lucide-react';
 
 interface BudgetRingProps {
@@ -16,6 +16,7 @@ export default function BudgetRing({
   spentAmount = 0,
   status = 'on_track',
 }: BudgetRingProps) {
+  const formatCurrency = useFormatCurrency();
   const percentage =
     limitAmount > 0 ? Math.min(Math.round((spentAmount / limitAmount) * 100), 999) : 0;
   const strokeDashoffset = 283 - (283 * Math.min(percentage, 100)) / 100;

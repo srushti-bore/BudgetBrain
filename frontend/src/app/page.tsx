@@ -11,7 +11,7 @@ import MonthlyCategoryGraph from '@/components/dashboard/MonthlyCategoryGraph';
 import MonthComparisonCard from '@/components/dashboard/MonthComparisonCard';
 import TopCategoriesWidget from '@/components/dashboard/TopCategoriesWidget';
 import RecentExpensesSnapshot from '@/components/dashboard/RecentExpensesSnapshot';
-import { formatCurrency } from '@/lib/utils';
+import { useFormatCurrency } from '@/providers/CurrencyProvider';
 import { Wallet, Calendar, PlusCircle, AlertCircle, Target, CheckCircle, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 
@@ -35,6 +35,7 @@ const itemVariants: Variants = {
 };
 
 export default function DashboardPage() {
+  const formatCurrency = useFormatCurrency();
   const {
     data: summary,
     isLoading: isSummaryLoading,

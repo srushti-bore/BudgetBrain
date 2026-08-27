@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { LayoutDashboard, Receipt, Tag, Target, Menu, X, Brain, Sun, Moon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/providers/ThemeProvider';
+import { useCurrency } from '@/providers/CurrencyProvider';
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -18,6 +19,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
+  const { currency, setCurrency } = useCurrency();
 
   return (
     <>
@@ -124,9 +126,22 @@ export default function Sidebar() {
             </span>
           </button>
 
-          <div className="bg-cream dark:bg-white/5 border border-ink/5 dark:border-white/10 rounded-xl p-3 text-xs text-ink-muted">
-            <span className="font-semibold text-ink dark:text-cream block mb-0.5">₹ Single Currency (INR)</span>
-            <span>Authentication Free MVP</span>
+          <div className="bg-cream dark:bg-white/5 border border-ink/5 dark:border-white/10 rounded-xl p-3 text-xs text-ink-muted space-y-2">
+            <div className="flex flex-col gap-1">
+              <label htmlFor="currency-select" className="font-semibold text-ink dark:text-cream text-[10px] uppercase tracking-wider">Base Currency</label>
+              <select
+                id="currency-select"
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value as any)}
+                className="w-full mt-0.5 px-2 py-1 rounded-lg bg-white dark:bg-[#16201C] border border-ink/15 dark:border-white/15 text-xs font-bold text-ink dark:text-cream focus:outline-none focus:border-sage transition-all cursor-pointer"
+              >
+                <option value="INR">INR (₹)</option>
+                <option value="USD">USD ($)</option>
+                <option value="EUR">EUR (€)</option>
+                <option value="GBP">GBP (£)</option>
+              </select>
+            </div>
+            <span className="block text-[10px] text-ink-muted leading-tight">Authentication Free MVP</span>
           </div>
         </div>
       </aside>

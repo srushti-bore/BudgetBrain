@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
+import { useFormatCurrency } from '@/providers/CurrencyProvider';
 import { TrendingUp } from 'lucide-react';
 import { dashboardApi } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
@@ -12,6 +13,7 @@ interface SpendTrendChartProps {
 }
 
 export default function SpendTrendChart({ initialData = [] }: SpendTrendChartProps) {
+  const formatCurrency = useFormatCurrency();
   const [groupBy, setGroupBy] = useState<'day' | 'week' | 'month'>('day');
   const [isMounted, setIsMounted] = useState(false);
 

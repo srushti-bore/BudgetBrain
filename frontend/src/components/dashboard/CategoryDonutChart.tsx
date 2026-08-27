@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { formatCurrency, getTodayDateString } from '@/lib/utils';
+import { getTodayDateString } from '@/lib/utils';
+import { useFormatCurrency } from '@/providers/CurrencyProvider';
 import { PieChart as PieIcon } from 'lucide-react';
 import { dashboardApi } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
@@ -23,6 +24,7 @@ const COLORS = [
 ];
 
 export default function CategoryDonutChart({ initialData = [] }: CategoryDonutChartProps) {
+  const formatCurrency = useFormatCurrency();
   const [period, setPeriod] = useState<'weekly' | 'monthly'>('monthly');
   const [isMounted, setIsMounted] = useState(false);
 

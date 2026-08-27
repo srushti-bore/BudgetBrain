@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { TopCategory } from '@/types';
-import { formatCurrency } from '@/lib/utils';
+import { useFormatCurrency } from '@/providers/CurrencyProvider';
 import { Trophy } from 'lucide-react';
 
 interface TopCategoriesWidgetProps {
@@ -10,6 +10,7 @@ interface TopCategoriesWidgetProps {
 }
 
 export default function TopCategoriesWidget({ categories = [] }: TopCategoriesWidgetProps) {
+  const formatCurrency = useFormatCurrency();
   if (categories.length === 0) {
     return (
       <div className="glass-card glass-card-hover p-7 flex flex-col justify-between h-full min-h-[180px]">

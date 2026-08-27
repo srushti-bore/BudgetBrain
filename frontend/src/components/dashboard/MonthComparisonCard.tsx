@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { MonthComparison } from '@/types';
-import { formatCurrency } from '@/lib/utils';
+import { useFormatCurrency } from '@/providers/CurrencyProvider';
 import { TrendingDown, TrendingUp, Minus } from 'lucide-react';
 
 interface MonthComparisonCardProps {
@@ -10,6 +10,7 @@ interface MonthComparisonCardProps {
 }
 
 export default function MonthComparisonCard({ comparison }: MonthComparisonCardProps) {
+  const formatCurrency = useFormatCurrency();
   if (!comparison) {
     return (
       <div className="glass-card glass-card-hover p-7 flex flex-col justify-between h-full min-h-[180px]">

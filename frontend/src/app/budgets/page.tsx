@@ -4,10 +4,11 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { budgetApi, categoryApi } from '@/lib/api';
 import { Budget, Category } from '@/types';
-import { formatCurrency } from '@/lib/utils';
+import { useFormatCurrency } from '@/providers/CurrencyProvider';
 import { Target, Plus, CheckCircle, AlertTriangle, Flame, Edit2, ShieldAlert } from 'lucide-react';
 
 export default function BudgetsPage() {
+  const formatCurrency = useFormatCurrency();
   const queryClient = useQueryClient();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
