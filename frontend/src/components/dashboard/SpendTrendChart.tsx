@@ -2,17 +2,16 @@
 
 import React, { useState, useEffect } from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { SpendTrendItem } from '@/types';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { TrendingUp } from 'lucide-react';
 import { dashboardApi } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
 
 interface SpendTrendChartProps {
-  initialData: SpendTrendItem[];
+  initialData?: any[];
 }
 
-export default function SpendTrendChart({ initialData }: SpendTrendChartProps) {
+export default function SpendTrendChart({ initialData = [] }: SpendTrendChartProps) {
   const [groupBy, setGroupBy] = useState<'day' | 'week' | 'month'>('day');
   const [isMounted, setIsMounted] = useState(false);
 
@@ -20,17 +19,23 @@ export default function SpendTrendChart({ initialData }: SpendTrendChartProps) {
     setIsMounted(true);
   }, []);
 
-  const { data: trendData = initialData, isLoading } = useQuery({
+  const { data: rawTrendData = initialData, isLoading } = useQuery({
     queryKey: ['spendTrend', groupBy],
     queryFn: () => dashboardApi.getTrend(groupBy),
-    initialData: groupBy === 'day' ? initialData : undefined,
+    initialData: groupBy === 'day' && initialData.length > 0 ? initialData : undefined,
   });
 
-  const formattedData = trendData.map((item) => ({
-    date: item.date_period,
-    formattedDate: groupBy === 'day' ? formatDate(item.date_period) : item.date_period,
-    amount: item.total_spent,
-  }));
+  const trendData: any[] = Array.isArray(rawTrendData) ? rawTrendData : [];
+
+  const formattedData = trendData.map((item) => {
+    const periodVal = item.period ?? item.date_period ?? '';
+    const amountVal = Number(item.total ?? item.total_spent ?? 0);
+    return {
+      date: periodVal,
+      formattedDate: groupBy === 'day' ? formatDate(periodVal) : periodVal,
+      amount: amountVal,
+    };
+  });
 
   return (
     <div className="glass-card glass-card-hover p-6 flex flex-col justify-between h-full min-h-[360px] border-sage/20">

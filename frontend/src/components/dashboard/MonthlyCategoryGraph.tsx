@@ -2,12 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts';
-import { CategorySpend } from '@/types';
 import { formatCurrency } from '@/lib/utils';
 import { BarChart3 } from 'lucide-react';
 
 interface MonthlyCategoryGraphProps {
-  data: CategorySpend[];
+  data?: any[];
 }
 
 const COLORS = [
@@ -20,14 +19,16 @@ const COLORS = [
   '#E67E22', // Orange
 ];
 
-export default function MonthlyCategoryGraph({ data }: MonthlyCategoryGraphProps) {
+export default function MonthlyCategoryGraph({ data = [] }: MonthlyCategoryGraphProps) {
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  if (!data || data.length === 0) {
+  const categoryList: any[] = Array.isArray(data) ? data : [];
+
+  if (!categoryList || categoryList.length === 0) {
     return (
       <div className="glass-card glass-card-hover p-6 flex flex-col items-center justify-center text-center h-full min-h-[360px] border-sage/20">
         <div className="w-12 h-12 rounded-2xl bg-sage/15 flex items-center justify-center text-sage mb-3">
@@ -39,10 +40,9 @@ export default function MonthlyCategoryGraph({ data }: MonthlyCategoryGraphProps
     );
   }
 
-  const chartData = data.map((item) => ({
+  const chartData = categoryList.map((item) => ({
     category: item.category_name,
-    amount: item.total_spent,
-    percentage: item.percentage,
+    amount: Number(item.total ?? item.total_spent ?? 0),
   }));
 
   return (
@@ -69,15 +69,16 @@ export default function MonthlyCategoryGraph({ data }: MonthlyCategoryGraphProps
       ) : (
         <div className="h-64 w-full min-h-[240px] relative">
           <ResponsiveContainer width="100%" height="100%" minHeight={240}>
-            <BarChart data={chartData} margin={{ top: 10, right: 10, left: -15, bottom: 25 }}>
+            <BarChart data={chartData} margin={{ top: 10, right: 10, left: -15, bottom: 35 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(62, 114, 89, 0.15)" vertical={false} />
               <XAxis
                 dataKey="category"
-                tick={{ fill: '#52635B', fontSize: 11 }}
+                tick={{ fill: '#52635B', fontSize: 10, fontWeight: 600 }}
                 tickLine={false}
                 axisLine={false}
-                angle={-15}
+                angle={-20}
                 textAnchor="end"
+                interval={0}
               />
               <YAxis
                 tick={{ fill: '#52635B', fontSize: 11 }}

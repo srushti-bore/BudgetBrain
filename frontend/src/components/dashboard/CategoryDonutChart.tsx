@@ -2,21 +2,20 @@
 
 import React, { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { CategorySpend } from '@/types';
 import { formatCurrency, getTodayDateString } from '@/lib/utils';
 import { PieChart as PieIcon } from 'lucide-react';
 import { dashboardApi } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
 
 interface CategoryDonutChartProps {
-  initialData?: CategorySpend[];
+  initialData?: any[];
 }
 
 const COLORS = [
   '#3E7259', // Sage Green
+  '#4A8AB7', // Sky Blue
   '#C85A48', // Coral Red
   '#C68A28', // Honey Gold
-  '#4A8AB7', // Sky Blue
   '#8E44AD', // Purple
   '#16A085', // Teal
   '#E67E22', // Orange
@@ -48,17 +47,25 @@ export default function CategoryDonutChart({ initialData = [] }: CategoryDonutCh
     dateFrom = `${year}-${month}-01`;
   }
 
-  const { data: categoryData = initialData, isLoading } = useQuery({
+  const { data: rawCategoryData = initialData, isLoading } = useQuery({
     queryKey: ['categorySpend', period, dateFrom, today],
     queryFn: () => dashboardApi.getByCategory(dateFrom, today),
     initialData: period === 'monthly' && initialData.length > 0 ? initialData : undefined,
   });
 
-  const chartData = categoryData.map((item) => ({
-    name: item.category_name,
-    value: item.total_spent,
-    percentage: item.percentage,
-  }));
+  const categoryData: any[] = Array.isArray(rawCategoryData) ? rawCategoryData : [];
+
+  const totalSum = categoryData.reduce((acc, item) => acc + Number(item.total ?? item.total_spent ?? 0), 0);
+
+  const chartData = categoryData.map((item) => {
+    const amount = Number(item.total ?? item.total_spent ?? 0);
+    const pct = totalSum > 0 ? Math.round((amount / totalSum) * 100) : (item.percentage || 0);
+    return {
+      name: item.category_name,
+      value: amount,
+      percentage: pct,
+    };
+  });
 
   return (
     <div className="glass-card glass-card-hover p-6 flex flex-col justify-between h-full min-h-[360px] border-sage/20">
@@ -119,7 +126,7 @@ export default function CategoryDonutChart({ initialData = [] }: CategoryDonutCh
                   data={chartData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={55}
+                  innerRadius={50}
                   outerRadius={85}
                   paddingAngle={4}
                   dataKey="value"
