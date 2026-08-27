@@ -15,6 +15,25 @@ const navItems = [
   { href: '/budgets', label: 'Budget Goals', icon: Target },
 ];
 
+const BrainLogo3D = () => {
+  return (
+    <div className="relative w-10 h-10 [perspective:1000px] group cursor-pointer shrink-0">
+      <div className="w-full h-full rounded-2xl bg-gradient-to-tr from-sage to-sage-light flex items-center justify-center border border-sage/35 shadow-md transition-all duration-700 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)_rotateX(15deg)]">
+        {/* Front Face */}
+        <div className="absolute inset-0 flex items-center justify-center [backface-visibility:hidden] [transform:translateZ(6px)]">
+          <Brain className="w-5 h-5 text-white" />
+        </div>
+        {/* Back Face */}
+        <div className="absolute inset-0 flex items-center justify-center [backface-visibility:hidden] [transform:rotateY(180deg)_translateZ(6px)]">
+          <Brain className="w-5 h-5 text-honey animate-pulse" />
+        </div>
+        {/* Inner 3D depth block */}
+        <div className="absolute inset-0 rounded-2xl bg-[#2a4d3c] [transform:translateZ(-2px)] opacity-60 blur-[1px]" />
+      </div>
+    </div>
+  );
+};
+
 export default function Sidebar() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
@@ -26,9 +45,7 @@ export default function Sidebar() {
       {/* Mobile Top Navbar */}
       <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-cream/90 dark:bg-[#121916]/90 backdrop-blur-md border-b border-ink/5 dark:border-white/10 z-40 px-4 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-sage/15 flex items-center justify-center text-sage border border-sage/20">
-            <Brain className="w-5 h-5 text-sage" />
-          </div>
+          <BrainLogo3D />
           <div>
             <span className="font-display font-bold text-base text-ink dark:text-cream leading-none block">BudgetBrain</span>
             <span className="text-[10px] text-ink-muted leading-none">Your Financial Control Center</span>
@@ -72,9 +89,7 @@ export default function Sidebar() {
         <div>
           {/* Brand Header */}
           <Link href="/" onClick={() => setIsOpen(false)} className="flex items-center gap-3 mb-8 px-2 group">
-            <div className="w-10 h-10 rounded-xl bg-sage/15 flex items-center justify-center text-sage border border-sage/20 group-hover:scale-102 transition-transform">
-              <Brain className="w-5 h-5 text-sage" />
-            </div>
+            <BrainLogo3D />
             <div>
               <h1 className="font-display font-bold text-lg text-ink dark:text-cream tracking-tight">BudgetBrain</h1>
               <p className="text-xs text-ink-muted font-medium">Your Financial Control Center</p>

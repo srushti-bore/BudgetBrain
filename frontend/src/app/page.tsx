@@ -125,7 +125,12 @@ export default function DashboardPage() {
 
       {/* Top Metrics Banner */}
       <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-        <div className="glass-card glass-card-hover p-6 flex items-center gap-4">
+        <motion.div
+          whileHover={{ y: -4, scale: 1.015, boxShadow: '0 12px 30px -10px rgba(0,0,0,0.06)' }}
+          whileTap={{ scale: 0.995 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 22 }}
+          className="glass-card glass-card-hover p-6 flex items-center gap-4 cursor-pointer"
+        >
           <div className="w-12 h-12 rounded-2xl bg-sage-light flex items-center justify-center text-sage shrink-0 border border-sage/30">
             <Calendar className="w-6 h-6 text-ink font-bold" />
           </div>
@@ -135,9 +140,14 @@ export default function DashboardPage() {
               {formatCurrency(summary?.total_spent)}
             </span>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="glass-card glass-card-hover p-6 flex items-center gap-4">
+        <motion.div
+          whileHover={{ y: -4, scale: 1.015, boxShadow: '0 12px 30px -10px rgba(0,0,0,0.06)' }}
+          whileTap={{ scale: 0.995 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 22 }}
+          className="glass-card glass-card-hover p-6 flex items-center gap-4 cursor-pointer"
+        >
           <div className="w-12 h-12 rounded-2xl bg-sky-light flex items-center justify-center text-sky shrink-0 border border-sky/30">
             <Wallet className="w-6 h-6 text-ink font-bold" />
           </div>
@@ -147,12 +157,18 @@ export default function DashboardPage() {
               {summary?.expense_count ?? 0} logged
             </span>
           </div>
-        </div>
+        </motion.div>
       </motion.div>
 
       {/* Daily Spend Limit Card (Conditional) */}
       {summary?.daily_limit ? (
-        <motion.div variants={itemVariants} className="glass-card p-6 border-sage/35 bg-gradient-to-br from-white/95 to-honey-light/25 dark:from-[#17211d] dark:to-honey/10">
+        <motion.div
+          variants={itemVariants}
+          whileHover={{ y: -4, scale: 1.012, boxShadow: '0 12px 30px -10px rgba(0,0,0,0.06)' }}
+          whileTap={{ scale: 0.995 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 22 }}
+          className="glass-card p-6 border-sage/35 bg-gradient-to-br from-white/95 to-honey-light/25 dark:from-[#17211d] dark:to-honey/10 cursor-pointer"
+        >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-honey/10 flex items-center justify-center text-honey border border-honey/20 shrink-0">

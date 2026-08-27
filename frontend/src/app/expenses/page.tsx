@@ -5,7 +5,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { expenseApi, categoryApi, ExpenseQueryParams } from '@/lib/api';
 import { Expense, Category } from '@/types';
 import { formatDate } from '@/lib/utils';
-import { useFormatCurrency } from '@/providers/CurrencyProvider';
+import { useFormatCurrency, useCurrency } from '@/providers/CurrencyProvider';
+import { motion, AnimatePresence } from 'framer-motion';
 import ExpenseModal from '@/components/expenses/ExpenseModal';
 import {
   Search,
@@ -22,6 +23,7 @@ import {
 
 export default function ExpensesPage() {
   const formatCurrency = useFormatCurrency();
+  const { currency, convertToBase } = useCurrency();
   const queryClient = useQueryClient();
 
   // Filter & Search states
@@ -55,8 +57,8 @@ export default function ExpensesPage() {
     category_id: categoryId || undefined,
     start_date: startDate || undefined,
     end_date: endDate || undefined,
-    min_amount: minAmount ? parseFloat(minAmount) : undefined,
-    max_amount: maxAmount ? parseFloat(maxAmount) : undefined,
+    min_amount: minAmount ? convertToBase(parseFloat(minAmount)) : undefined,
+    max_amount: maxAmount ? convertToBase(parseFloat(maxAmount)) : undefined,
     payment_mode: paymentMode || undefined,
     is_recurring: isRecurringFilter === 'true' ? true : isRecurringFilter === 'false' ? false : undefined,
     sort_by: sortBy,
@@ -273,7 +275,7 @@ export default function ExpensesPage() {
           </div>
 
           <div className="flex items-center gap-1.5">
-            <span className="text-ink-muted font-medium">Min ₹:</span>
+            <span className="text-ink-muted font-medium">Min {currency}:</span>
             <input
               type="number"
               placeholder="0"
@@ -287,7 +289,7 @@ export default function ExpensesPage() {
           </div>
 
           <div className="flex items-center gap-1.5">
-            <span className="text-ink-muted font-medium">Max ₹:</span>
+            <span className="text-ink-muted font-medium">Max {currency}:</span>
             <input
               type="number"
               placeholder="Max"
@@ -343,9 +345,18 @@ export default function ExpensesPage() {
                   <th className="py-3 px-4 text-center">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-ink/5 dark:divide-white/5">
+              <tbody className="divide-y divide-ink/5 dark:divide-white/5 relative">
+                <AnimatePresence mode="popLayout">
                 {expenses.map((expense) => (
-                  <tr key={expense.id} className="hover:bg-white/50 dark:hover:bg-white/5 transition-colors">
+                  <motion.tr
+                    key={expense.id}
+                    layout
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, x: -15 }}
+                    transition={{ duration: 0.2 }}
+                    className="hover:bg-white/50 dark:hover:bg-white/5 transition-colors"
+                  >
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-sm text-ink">{expense.title}</span>
@@ -400,8 +411,9 @@ export default function ExpensesPage() {
                         </button>
                       </div>
                     </td>
-                  </tr>
+                  </motion.tr>
                 ))}
+                </AnimatePresence>
               </tbody>
             </table>
           </div>

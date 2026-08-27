@@ -5,6 +5,7 @@ import { Expense, Category, PaymentMode } from '@/types';
 import { getTodayDateString } from '@/lib/utils';
 import { X, Plus, AlertCircle, Repeat } from 'lucide-react';
 import { categoryApi } from '@/lib/api';
+import { useCurrency } from '@/providers/CurrencyProvider';
 
 interface ExpenseModalProps {
   isOpen: boolean;
@@ -46,10 +47,13 @@ export default function ExpenseModal({
   const [newCatName, setNewCatName] = useState('');
   const [catCreating, setCatCreating] = useState(false);
 
+  const { currency, convertToView, convertToBase } = useCurrency();
+
   useEffect(() => {
     if (initialData) {
       setTitle(initialData.title);
-      setAmount(initialData.amount.toString());
+      const viewAmount = convertToView(initialData.amount);
+      setAmount(Number(viewAmount.toFixed(2)).toString());
       setCategoryId(initialData.category_id);
       setDate(initialData.date);
       setPaymentMode(initialData.payment_mode || '');
@@ -65,7 +69,7 @@ export default function ExpenseModal({
       setIsRecurring(false);
     }
     setErrorMsg('');
-  }, [initialData, isOpen, categories]);
+  }, [initialData, isOpen, categories, currency]);
 
   if (!isOpen) return null;
 
@@ -73,13 +77,13 @@ export default function ExpenseModal({
     e.preventDefault();
     setErrorMsg('');
 
-    const parsedAmount = parseFloat(amount);
+    const parsedAmountInView = parseFloat(amount);
     if (!title.trim()) {
       setErrorMsg('Expense title is required');
       return;
     }
-    if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      setErrorMsg('Amount must be a positive number greater than ₹0');
+    if (isNaN(parsedAmountInView) || parsedAmountInView <= 0) {
+      setErrorMsg(`Amount must be a positive number greater than ${currency === 'INR' ? '₹0' : '0'}`);
       return;
     }
     if (!categoryId) {
@@ -91,11 +95,13 @@ export default function ExpenseModal({
       return;
     }
 
+    const parsedAmountInBase = Number(convertToBase(parsedAmountInView).toFixed(2));
+
     setIsSubmitting(true);
     try {
       await onSubmit({
         title: title.trim(),
-        amount: parsedAmount,
+        amount: parsedAmountInBase,
         category_id: categoryId,
         date,
         payment_mode: (paymentMode as PaymentMode) || null,
@@ -169,7 +175,7 @@ export default function ExpenseModal({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-ink-muted mb-1">
-                Amount (₹) <span className="text-coral">*</span>
+                Amount ({currency}) <span className="text-coral">*</span>
               </label>
               <input
                 type="number"

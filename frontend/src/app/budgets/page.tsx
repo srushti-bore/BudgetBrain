@@ -4,11 +4,12 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { budgetApi, categoryApi } from '@/lib/api';
 import { Budget, Category } from '@/types';
-import { useFormatCurrency } from '@/providers/CurrencyProvider';
+import { useFormatCurrency, useCurrency } from '@/providers/CurrencyProvider';
 import { Target, Plus, CheckCircle, AlertTriangle, Flame, Edit2, ShieldAlert } from 'lucide-react';
 
 export default function BudgetsPage() {
   const formatCurrency = useFormatCurrency();
+  const { currency, convertToView, convertToBase } = useCurrency();
   const queryClient = useQueryClient();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -41,34 +42,45 @@ export default function BudgetsPage() {
 
   const handleOpenModal = (catId: string | 'overall', existingLimit?: number, existingDailyLimit?: number | null) => {
     setSelectedCatId(catId);
-    setLimitAmount(existingLimit ? existingLimit.toString() : '');
-    setDailyLimitAmount(existingDailyLimit ? existingDailyLimit.toString() : '');
+    if (catId === 'overall') {
+      const viewLimit = existingLimit ? convertToView(existingLimit) : 0;
+      const viewDailyLimit = existingDailyLimit ? convertToView(existingDailyLimit) : 0;
+      setLimitAmount(viewLimit > 0 ? Number(viewLimit.toFixed(2)).toString() : '');
+      setDailyLimitAmount(viewDailyLimit > 0 ? Number(viewDailyLimit.toFixed(2)).toString() : '');
+    } else {
+      const viewLimit = existingLimit ? convertToView(existingLimit) : 0;
+      setLimitAmount(viewLimit > 0 ? Number(viewLimit.toFixed(2)).toString() : '');
+      setDailyLimitAmount('');
+    }
     setErrorMsg('');
     setIsModalOpen(true);
   };
 
   const handleSaveBudget = async (e: React.FormEvent) => {
     e.preventDefault();
-    const amount = parseFloat(limitAmount);
-    const dailyLimit = dailyLimitAmount ? parseFloat(dailyLimitAmount) : null;
+    const amountInView = parseFloat(limitAmount);
+    const dailyLimitInView = dailyLimitAmount ? parseFloat(dailyLimitAmount) : null;
 
-    if (isNaN(amount) || amount <= 0) {
-      setErrorMsg('Limit amount must be a positive number greater than ₹0');
+    if (isNaN(amountInView) || amountInView <= 0) {
+      setErrorMsg(`Limit amount must be a positive number greater than ${currency === 'INR' ? '₹0' : '0'}`);
       return;
     }
 
-    if (dailyLimit !== null && (isNaN(dailyLimit) || dailyLimit <= 0)) {
-      setErrorMsg('Daily limit must be a positive number greater than ₹0');
+    if (dailyLimitInView !== null && (isNaN(dailyLimitInView) || dailyLimitInView <= 0)) {
+      setErrorMsg(`Daily limit must be a positive number greater than ${currency === 'INR' ? '₹0' : '0'}`);
       return;
     }
+
+    const limitAmountInBase = Number(convertToBase(amountInView).toFixed(2));
+    const dailyLimitInBase = dailyLimitInView !== null ? Number(convertToBase(dailyLimitInView).toFixed(2)) : null;
 
     setIsSubmitting(true);
     setErrorMsg('');
     try {
       await budgetMutation.mutateAsync({
         category_id: selectedCatId === 'overall' ? null : selectedCatId,
-        limit_amount: amount,
-        daily_limit: selectedCatId === 'overall' ? dailyLimit : null,
+        limit_amount: limitAmountInBase,
+        daily_limit: selectedCatId === 'overall' ? dailyLimitInBase : null,
         period_type: 'monthly',
       });
       setIsModalOpen(false);
@@ -272,7 +284,7 @@ export default function BudgetsPage() {
                 : `Set Budget Limit for ${categories.find((c) => c.id === selectedCatId)?.name}`}
             </h2>
             <p className="text-xs text-ink-muted mb-4">
-              Enter maximum allowed spending limit per month (₹)
+              Enter maximum allowed spending limit per month ({currency})
             </p>
 
             {errorMsg && (
@@ -283,12 +295,12 @@ export default function BudgetsPage() {
 
             <form onSubmit={handleSaveBudget} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-ink-muted mb-1">Monthly Limit (₹)</label>
+                <label className="block text-xs font-semibold text-ink-muted mb-1">Monthly Limit ({currency})</label>
                 <input
                   type="number"
                   step="0.01"
                   min="0.01"
-                  placeholder="e.g. 50000"
+                  placeholder={`e.g. ${currency === 'INR' ? '50000' : '600'}`}
                   value={limitAmount}
                   onChange={(e) => setLimitAmount(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-white/5 border border-ink/15 dark:border-white/15 text-sm font-bold text-ink focus:outline-none focus:border-sage"
@@ -298,12 +310,12 @@ export default function BudgetsPage() {
 
               {selectedCatId === 'overall' && (
                 <div>
-                  <label className="block text-xs font-semibold text-ink-muted mb-1">Daily Limit (Optional) (₹)</label>
+                  <label className="block text-xs font-semibold text-ink-muted mb-1">Daily Limit (Optional) ({currency})</label>
                   <input
                     type="number"
                     step="0.01"
                     min="0.01"
-                    placeholder="e.g. 1500 (leave blank for none)"
+                    placeholder={`e.g. ${currency === 'INR' ? '1500' : '20'} (leave blank for none)`}
                     value={dailyLimitAmount}
                     onChange={(e) => setDailyLimitAmount(e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-white/5 border border-ink/15 dark:border-white/15 text-sm font-bold text-ink focus:outline-none focus:border-sage"
