@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { CategorySpend } from '@/types';
 import { formatCurrency, getTodayDateString } from '@/lib/utils';
-import { PieChart as PieIcon, Calendar } from 'lucide-react';
+import { PieChart as PieIcon } from 'lucide-react';
 import { dashboardApi } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
 
@@ -12,12 +12,25 @@ interface CategoryDonutChartProps {
   initialData?: CategorySpend[];
 }
 
-const COLORS = ['#4E8D6E', '#D96B50', '#D99B38', '#4A8AB7', '#A882DD', '#56B9B6', '#E87A90'];
+const COLORS = [
+  '#3E7259', // Sage Green
+  '#C85A48', // Coral Red
+  '#C68A28', // Honey Gold
+  '#4A8AB7', // Sky Blue
+  '#8E44AD', // Purple
+  '#16A085', // Teal
+  '#E67E22', // Orange
+  '#2C3E50', // Dark Slate
+];
 
 export default function CategoryDonutChart({ initialData = [] }: CategoryDonutChartProps) {
   const [period, setPeriod] = useState<'weekly' | 'monthly'>('monthly');
+  const [isMounted, setIsMounted] = useState(false);
 
-  // Compute dates for Weekly vs Monthly
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const today = getTodayDateString();
   let dateFrom: string | undefined = undefined;
 
@@ -48,11 +61,16 @@ export default function CategoryDonutChart({ initialData = [] }: CategoryDonutCh
   }));
 
   return (
-    <div className="glass-card glass-card-hover p-6 flex flex-col justify-between h-full min-h-[340px]">
-      <div className="flex items-center justify-between mb-2">
+    <div className="glass-card glass-card-hover p-6 flex flex-col justify-between h-full min-h-[360px] border-sage/20">
+      <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="font-display font-bold text-lg text-ink">Category Spend Pie</h3>
-          <p className="text-xs text-ink-muted">Distribution Breakdown</p>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-sage/15 flex items-center justify-center text-sage">
+              <PieIcon className="w-4 h-4" />
+            </div>
+            <h3 className="font-display font-bold text-lg text-ink">Category Spend Pie</h3>
+          </div>
+          <p className="text-xs text-ink-muted mt-0.5">Category distribution breakdown</p>
         </div>
 
         {/* Weekly / Monthly Toggle */}
@@ -61,7 +79,7 @@ export default function CategoryDonutChart({ initialData = [] }: CategoryDonutCh
             onClick={() => setPeriod('weekly')}
             className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
               period === 'weekly'
-                ? 'bg-sage text-white shadow-xs'
+                ? 'bg-sage text-white shadow-sm'
                 : 'text-ink-muted hover:text-ink dark:hover:text-cream'
             }`}
           >
@@ -71,7 +89,7 @@ export default function CategoryDonutChart({ initialData = [] }: CategoryDonutCh
             onClick={() => setPeriod('monthly')}
             className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
               period === 'monthly'
-                ? 'bg-sage text-white shadow-xs'
+                ? 'bg-sage text-white shadow-sm'
                 : 'text-ink-muted hover:text-ink dark:hover:text-cream'
             }`}
           >
@@ -80,28 +98,29 @@ export default function CategoryDonutChart({ initialData = [] }: CategoryDonutCh
         </div>
       </div>
 
-      {isLoading ? (
-        <div className="h-56 flex items-center justify-center">
-          <div className="w-6 h-6 border-2 border-sage border-t-transparent rounded-full animate-spin" />
+      {isLoading || !isMounted ? (
+        <div className="h-60 flex items-center justify-center">
+          <div className="w-8 h-8 border-3 border-sage border-t-transparent rounded-full animate-spin" />
         </div>
       ) : chartData.length === 0 ? (
-        <div className="h-56 flex flex-col items-center justify-center text-center">
-          <div className="w-12 h-12 rounded-2xl bg-sky/15 flex items-center justify-center text-sky mb-2">
+        <div className="h-60 flex flex-col items-center justify-center text-center">
+          <div className="w-12 h-12 rounded-2xl bg-sage/10 flex items-center justify-center text-sage mb-2">
             <PieIcon className="w-6 h-6" />
           </div>
-          <p className="text-xs font-semibold text-ink">No {period} spending recorded.</p>
+          <p className="text-xs font-semibold text-ink">No {period} spending recorded yet.</p>
+          <p className="text-[11px] text-ink-muted mt-0.5">Log expenses to see color breakdown.</p>
         </div>
       ) : (
         <>
-          <div className="h-56 w-full relative">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="h-60 w-full min-h-[220px] relative">
+            <ResponsiveContainer width="100%" height="100%" minHeight={220}>
               <PieChart>
                 <Pie
                   data={chartData}
                   cx="50%"
                   cy="50%"
                   innerRadius={55}
-                  outerRadius={80}
+                  outerRadius={85}
                   paddingAngle={4}
                   dataKey="value"
                 >
@@ -109,7 +128,7 @@ export default function CategoryDonutChart({ initialData = [] }: CategoryDonutCh
                     <Cell
                       key={`cell-${index}`}
                       fill={COLORS[index % COLORS.length]}
-                      stroke="rgba(255,255,255,0.8)"
+                      stroke="rgba(255,255,255,0.9)"
                       strokeWidth={2}
                     />
                   ))}
@@ -117,28 +136,28 @@ export default function CategoryDonutChart({ initialData = [] }: CategoryDonutCh
                 <Tooltip
                   formatter={(value: any) => [formatCurrency(Number(value) || 0), 'Spent']}
                   contentStyle={{
-                    backgroundColor: 'rgba(20, 28, 24, 0.95)',
+                    backgroundColor: 'rgba(30, 40, 36, 0.95)',
                     backdropFilter: 'blur(8px)',
                     borderRadius: '12px',
                     border: '1px solid rgba(255, 255, 255, 0.2)',
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
                     fontSize: '12px',
-                    color: '#FBF7EF',
+                    color: '#F6F8F6',
                   }}
                 />
               </PieChart>
             </ResponsiveContainer>
           </div>
 
-          {/* Legend list */}
-          <div className="grid grid-cols-2 gap-2 pt-3 border-t border-ink/5 dark:border-white/10 max-h-24 overflow-y-auto pr-1">
+          {/* Color Legend */}
+          <div className="grid grid-cols-2 gap-2 pt-3 border-t border-ink/5 dark:border-white/10 max-h-28 overflow-y-auto">
             {chartData.map((entry, index) => (
               <div key={entry.name} className="flex items-center gap-2 text-xs">
                 <span
-                  className="w-2.5 h-2.5 rounded-full shrink-0"
+                  className="w-3 h-3 rounded-full shrink-0 shadow-xs"
                   style={{ backgroundColor: COLORS[index % COLORS.length] }}
                 />
-                <span className="text-ink font-medium truncate flex-1">{entry.name}</span>
+                <span className="text-ink font-semibold truncate flex-1">{entry.name}</span>
                 <span className="text-ink-muted text-[11px] font-bold">{entry.percentage}%</span>
               </div>
             ))}
