@@ -16,7 +16,7 @@ Uniqueness: one budget per (category_id OR NULL) per period.
 import enum
 from datetime import date
 
-from sqlalchemy import Date, ForeignKey, Numeric, String, UniqueConstraint
+from sqlalchemy import Date, ForeignKey, Index, Numeric, String, UniqueConstraint, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin, new_uuid
@@ -62,6 +62,15 @@ class Budget(Base, TimestampMixin):
         UniqueConstraint(
             "category_id", "period_type", "period_start",
             name="uq_budget_category_period",
+        ),
+        # Partial unique index for overall budgets (category_id IS NULL)
+        # PostgreSQL treats NULL != NULL, so the UniqueConstraint above
+        # cannot prevent duplicate overall budgets — this index does.
+        Index(
+            "uq_budget_overall_period",
+            "period_type", "period_start",
+            unique=True,
+            postgresql_where=text("category_id IS NULL"),
         ),
     )
 

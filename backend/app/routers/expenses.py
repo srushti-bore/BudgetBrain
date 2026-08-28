@@ -8,6 +8,8 @@ All business logic is delegated to ExpenseService.
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from datetime import date as dt_date
+
 from app.database import get_db
 from app.models.expense import PaymentMode
 from app.schemas.common import DataResponse, PaginatedMeta, PaginatedResponse
@@ -50,12 +52,19 @@ async def list_expenses(
     FR-11 to FR-16: List expenses with combined search + filter + sort.
     All parameters are optional and can be used together.
     """
-    from datetime import date as dt_date
+    try:
+        parsed_date_from = dt_date.fromisoformat(date_from) if date_from else None
+        parsed_date_to = dt_date.fromisoformat(date_to) if date_to else None
+    except ValueError:
+        from app.exceptions import ValidationException
+        raise ValidationException(
+            "Invalid date format. Use YYYY-MM-DD.", field="date_from/date_to"
+        )
     filters = ExpenseFilters(
         search=search,
         category_id=category_id,
-        date_from=dt_date.fromisoformat(date_from) if date_from else None,
-        date_to=dt_date.fromisoformat(date_to) if date_to else None,
+        date_from=parsed_date_from,
+        date_to=parsed_date_to,
         amount_min=amount_min,
         amount_max=amount_max,
         payment_mode=payment_mode,

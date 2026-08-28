@@ -103,6 +103,16 @@ All 13 REST API endpoints across 5 core backend modules are fully functional wit
    - Framer Motion fade-in/slide-up animation after 2-second delay on page load.
    - Session-persistent dismissal via `sessionStorage` to avoid repeat prompts.
 
+### Phase 12 — Backend Bug Fixes & API Contract Normalization
+1. **`is_recurring` Propagation Fix**: Added missing `is_recurring` parameter to `ExpenseOut` constructors in `list_expenses` and `create_expense` methods in `expense_service.py`.
+2. **CORS Hardening**: Updated `main.py` to use `settings.allowed_origins_list` instead of open wildcard `["*"]`, enabling origin protection across development and production domains.
+3. **API Response Normalization**: Wrapped all 5 dashboard endpoints (`/summary`, `/by-category`, `/trend`, `/comparison`, `/top-categories`) with `DataResponse` to strictly conform to the `{ data, meta }` SRS envelope format.
+4. **Budget NULL Uniqueness Constraint**: Added partial unique index `uq_budget_overall_period` on `budgets (period_type, period_start) WHERE category_id IS NULL` to ensure PostgreSQL integrity for overall budgets.
+5. **Date Validation Resilience**: Added defensive `try/except` ISO date parsing in expenses, budgets, and dashboard routes to return clean 422 HTTP validation errors instead of unhandled 500 exceptions on malformed dates.
+6. **Average Spend Metric Accuracy**: Updated dashboard spend average calculations to divide by elapsed days up to current date rather than the whole month, avoiding mid-month metric deflation.
+7. **Frontend API Envelope Unwrapping**: Updated `frontend/src/lib/api.ts` `dashboardApi` client methods to unwrap `response.data.data`.
+8. **PEP 8 Compliance**: Resolved mid-function imports in `expenses.py`.
+
 ---
 
 ## Summary of Accomplishments
@@ -110,7 +120,7 @@ All 13 REST API endpoints across 5 core backend modules are fully functional wit
 | Metric / Feature | Target | Status |
 |---|---|---|
 | API Endpoints | 13 REST routes | 100% Complete & Verified |
-| Automated Backend Tests | 36 test cases | 36 / 36 Passing (100%) |
+| Automated Backend Tests | 37 test cases | 37 / 37 Passing (100%) |
 | Next.js Frontend | 4 Core App Pages | 100% Built & Verified |
 | Cloud Configs | Render, Vercel, Supabase | Configured & Documented |
 | Production Build | Zero Compiler Errors | `next build` Passed |

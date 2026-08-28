@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
+from app.schemas.common import DataResponse
 from app.services.dashboard_service import DashboardService
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
@@ -28,7 +29,8 @@ async def get_summary(db: AsyncSession = Depends(get_db)):
       - budget_status (overall monthly budget)
     """
     service = DashboardService(db)
-    return await service.get_summary()
+    result = await service.get_summary()
+    return DataResponse(data=result)
 
 
 @router.get(
@@ -44,11 +46,20 @@ async def get_by_category(
     FR-19: Return spending grouped by category.
     Default: current month.
     """
+    try:
+        parsed_from = date.fromisoformat(date_from) if date_from else None
+        parsed_to = date.fromisoformat(date_to) if date_to else None
+    except ValueError:
+        from app.exceptions import ValidationException
+        raise ValidationException(
+            "Invalid date format. Use YYYY-MM-DD.", field="date_from/date_to"
+        )
     service = DashboardService(db)
-    return await service.get_by_category(
-        date_from=date.fromisoformat(date_from) if date_from else None,
-        date_to=date.fromisoformat(date_to) if date_to else None,
+    result = await service.get_by_category(
+        date_from=parsed_from,
+        date_to=parsed_to,
     )
+    return DataResponse(data=result)
 
 
 @router.get(
@@ -68,12 +79,21 @@ async def get_trend(
     """
     FR-20, FR-22: Return spend grouped by day/week/month for trend chart.
     """
+    try:
+        parsed_from = date.fromisoformat(date_from) if date_from else None
+        parsed_to = date.fromisoformat(date_to) if date_to else None
+    except ValueError:
+        from app.exceptions import ValidationException
+        raise ValidationException(
+            "Invalid date format. Use YYYY-MM-DD.", field="date_from/date_to"
+        )
     service = DashboardService(db)
-    return await service.get_trend(
+    result = await service.get_trend(
         group_by=group_by,
-        date_from=date.fromisoformat(date_from) if date_from else None,
-        date_to=date.fromisoformat(date_to) if date_to else None,
+        date_from=parsed_from,
+        date_to=parsed_to,
     )
+    return DataResponse(data=result)
 
 
 @router.get(
@@ -85,7 +105,8 @@ async def get_comparison(db: AsyncSession = Depends(get_db)):
     FR-23: Return current month vs previous month spend with % change.
     """
     service = DashboardService(db)
-    return await service.get_comparison()
+    result = await service.get_comparison()
+    return DataResponse(data=result)
 
 
 @router.get(
@@ -100,4 +121,6 @@ async def get_top_categories(
     FR-24: Return top N categories by spend for the current month.
     """
     service = DashboardService(db)
-    return await service.get_top_categories(limit=limit)
+    result = await service.get_top_categories(limit=limit)
+    return DataResponse(data=result)
+

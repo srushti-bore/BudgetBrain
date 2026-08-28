@@ -34,7 +34,13 @@ async def list_budgets(
     FR-26: Return all budgets (overall + per-category) with live tracking.
     Each budget includes: spent_amount, remaining_amount, status.
     """
-    parsed_date = date.fromisoformat(period_start) if period_start else None
+    try:
+        parsed_date = date.fromisoformat(period_start) if period_start else None
+    except ValueError:
+        from app.exceptions import ValidationException
+        raise ValidationException(
+            "Invalid date format. Use YYYY-MM-DD.", field="period_start"
+        )
     service = BudgetService(db)
     items = await service.list_budgets(period_start=parsed_date)
     return PaginatedResponse(

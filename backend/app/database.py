@@ -9,6 +9,7 @@ and event loops (e.g. FastAPI dev server, pytest-asyncio, Starlette TestClient).
 import asyncio
 from collections.abc import AsyncGenerator
 
+from sqlalchemy.pool import NullPool
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
@@ -41,6 +42,7 @@ def get_engine_and_factory():
 
         engine = create_async_engine(
             db_url,
+            poolclass=NullPool,
             echo=settings.APP_DEBUG,
             future=True,
         )

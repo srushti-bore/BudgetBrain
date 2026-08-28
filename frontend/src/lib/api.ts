@@ -165,29 +165,29 @@ export const budgetApi = {
 // Dashboard API
 export const dashboardApi = {
   getSummary: async (): Promise<DashboardSummary> => {
-    const response = await apiClient.get<DashboardSummary>('/dashboard/summary');
-    return response.data;
+    const response = await apiClient.get<APIEnvelope<DashboardSummary>>('/dashboard/summary');
+    return response.data.data;
   },
   getByCategory: async (dateFrom?: string, dateTo?: string): Promise<CategorySpend[]> => {
-    const response = await apiClient.get<CategorySpend[]>('/dashboard/by-category', {
+    const response = await apiClient.get<APIEnvelope<CategorySpend[]>>('/dashboard/by-category', {
       params: { date_from: dateFrom, date_to: dateTo },
     });
-    return response.data;
+    return response.data.data;
   },
   getTrend: async (groupBy: 'day' | 'week' | 'month' = 'day'): Promise<SpendTrendItem[]> => {
-    const response = await apiClient.get<SpendTrendItem[]>('/dashboard/trend', {
+    const response = await apiClient.get<APIEnvelope<SpendTrendItem[]>>('/dashboard/trend', {
       params: { group_by: groupBy },
     });
-    return response.data;
+    return response.data.data;
   },
   getComparison: async (): Promise<MonthComparison> => {
-    const response = await apiClient.get<MonthComparison>('/dashboard/comparison');
-    return response.data;
+    const response = await apiClient.get<APIEnvelope<MonthComparison>>('/dashboard/comparison');
+    return response.data.data;
   },
   getTopCategories: async (limit: number = 5): Promise<TopCategory[]> => {
-    const response = await apiClient.get<TopCategory[]>('/dashboard/top-categories', {
+    const response = await apiClient.get<APIEnvelope<TopCategory[]>>('/dashboard/top-categories', {
       params: { limit },
     });
-    return response.data;
+    return response.data.data;
   },
 };

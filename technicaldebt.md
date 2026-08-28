@@ -61,9 +61,10 @@ The application is designed as a lightweight, single-user expense tracker using 
 
 ---
 
-### TD-7: Cross-Origin Resource Sharing (CORS) Policy for Vercel Monorepo Frontends
+### TD-7: Cross-Origin Resource Sharing (CORS) Policy for Vercel Monorepo Frontends — Resolved
 - **Context**: Browsers enforce CORS when Next.js hosted on Vercel (`https://budget-brain-eight.vercel.app`) queries Render FastAPI backend (`https://budgetbrain-ojnr.onrender.com`).
-- **Solution Implemented**: Configured `CORSMiddleware` in [`backend/app/main.py`](file:///d:/BudgetBrain/backend/app/main.py) with `allow_origins=["*"]`, `allow_methods=["*"]`, `allow_headers=["*"]`.
+- **Solution Implemented**: Configured `CORSMiddleware` in [`backend/app/main.py`](file:///d:/BudgetBrain/backend/app/main.py) to dynamically use `settings.allowed_origins_list` driven by the `ALLOWED_ORIGINS` environment variable, enabling fine-grained control and eliminating security risks of open wildcard permissions.
+- **Status**: **Resolved**.
 
 ---
 

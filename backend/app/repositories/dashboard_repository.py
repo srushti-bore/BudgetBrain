@@ -112,6 +112,8 @@ class DashboardRepository:
     ) -> dict:
         """
         Return average spend per day/week.
+        Uses elapsed days (up to today) instead of full period to avoid
+        deflating the average when queried mid-month.
         """
         stmt = (
             select(func.coalesce(func.sum(Expense.amount), 0))
@@ -121,7 +123,9 @@ class DashboardRepository:
         res = await self.session.execute(stmt)
         total = Decimal(str(res.scalar_one()))
 
-        num_days = max(1, (date_to - date_from).days + 1)
+        # Use elapsed days (up to today), not full period
+        effective_end = min(date_to, date.today())
+        num_days = max(1, (effective_end - date_from).days + 1)
         avg_daily = round(total / Decimal(num_days), 2)
         avg_weekly = round(avg_daily * Decimal(7), 2)
 

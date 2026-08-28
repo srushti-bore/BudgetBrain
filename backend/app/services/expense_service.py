@@ -46,6 +46,7 @@ class ExpenseService:
                 date=exp.date,
                 notes=exp.notes,
                 payment_mode=exp.payment_mode,
+                is_recurring=exp.is_recurring,
                 created_at=exp.created_at,
                 updated_at=exp.updated_at,
             )
@@ -101,6 +102,7 @@ class ExpenseService:
             date=exp.date,
             notes=exp.notes,
             payment_mode=exp.payment_mode,
+            is_recurring=exp.is_recurring,
             created_at=exp.created_at,
             updated_at=exp.updated_at,
         )
