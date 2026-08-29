@@ -117,13 +117,14 @@ All 13 REST API endpoints across 5 core backend modules are fully functional wit
 
 ## Summary of Accomplishments
 
-| Metric / Feature | Target | Status |
-|---|---|---|
-| API Endpoints | 13 REST routes | 100% Complete & Verified |
-| Automated Backend Tests | 37 test cases | 37 / 37 Passing (100%) |
-| Next.js Frontend | 4 Core App Pages | 100% Built & Verified |
-| Cloud Configs | Render, Vercel, Supabase | Configured & Documented |
-| Production Build | Zero Compiler Errors | `next build` Passed |
+### Phase 13: Production Deployment & Live CORS Resolution (2026-08-29)
+- **Problem Identified**: The live frontend on Vercel (`https://budget-brain-eight.vercel.app`) was encountering preflight CORS 400 errors across all endpoints because the backend settings on Render defaulted `ALLOWED_ORIGINS` to `http://localhost:3000`.
+- **Changes Applied**:
+  - Updated [`config.py`](file:///d:/BudgetBrain/backend/app/config.py) default `ALLOWED_ORIGINS` to include `http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001,https://budget-brain-eight.vercel.app`.
+  - Added `allow_origin_regex=r"^https:\/\/.*\.vercel\.app$"` to [`main.py`](file:///d:/BudgetBrain/backend/app/main.py) to automatically support all current and future Vercel deployment URLs and preview environments.
+- **Verification**:
+  - Live probe across all 8 endpoints (`/dashboard/*`, `/categories`, `/expenses`, `/budgets`) returned `OPTIONS 200` and `Access-Control-Allow-Origin: https://budget-brain-eight.vercel.app`.
+  - Production build `npx next build --webpack` succeeded with 0 errors.
 | Authentication Constraint | 0 Auth (Permanent) | Enforced |
 | Data Integrity Constraint | 0 Hardcoded Data | Enforced (100% DB driven) |
 | Multi-Currency Support | INR, USD, EUR, GBP | Live API rates + dynamic formatting |
