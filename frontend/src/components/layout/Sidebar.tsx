@@ -6,7 +6,6 @@ import { usePathname } from 'next/navigation';
 import { LayoutDashboard, Receipt, Tag, Target, Settings, Menu, X, Brain, Sun, Moon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/providers/ThemeProvider';
-import { useCurrency } from '@/providers/CurrencyProvider';
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -39,7 +38,6 @@ export default function Sidebar() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
-  const { currency, setCurrency } = useCurrency();
 
   return (
     <>
@@ -131,49 +129,6 @@ export default function Sidebar() {
               );
             })}
           </nav>
-        </div>
-
-        {/* Footer with Theme Switcher & Info */}
-        <div className="pt-4 border-t border-ink/5 dark:border-white/10 space-y-2.5 px-1">
-          {/* Light / Dark Mode Toggle */}
-          <button
-            onClick={toggleTheme}
-            className="w-full flex items-center justify-between px-3.5 py-2 rounded-xl bg-cream dark:bg-white/5 border border-ink/8 dark:border-white/10 text-xs font-medium text-ink dark:text-cream hover:bg-ink/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
-          >
-            <div className="flex items-center gap-2">
-              {theme === 'light' ? (
-                <Sun className="w-4 h-4 text-honey" />
-              ) : (
-                <Moon className="w-4 h-4 text-sky" />
-              )}
-              <span>{theme === 'light' ? 'Light Mode' : 'Dark Mode'}</span>
-            </div>
-            <span className="text-[10px] text-ink-muted font-mono uppercase bg-white dark:bg-white/10 px-2 py-0.5 rounded border border-ink/5 dark:border-white/10">
-              {theme}
-            </span>
-          </button>
-
-          <div className="bg-cream dark:bg-white/5 border border-ink/5 dark:border-white/10 rounded-xl p-3 text-xs text-ink-muted space-y-2">
-            <div className="flex flex-col gap-1">
-              <label htmlFor="currency-select" className="font-semibold text-ink dark:text-cream text-[10px] uppercase tracking-wider">
-                Base Currency
-              </label>
-              <select
-                id="currency-select"
-                value={currency}
-                onChange={(e) => setCurrency(e.target.value as any)}
-                className="w-full mt-0.5 px-2 py-1.5 rounded-lg bg-white dark:bg-[#16201C] border border-ink/15 dark:border-white/15 text-xs font-bold text-ink dark:text-cream focus:outline-none focus:border-sage transition-all cursor-pointer"
-              >
-                <option value="INR">INR (₹)</option>
-                <option value="USD">USD ($)</option>
-                <option value="EUR">EUR (€)</option>
-                <option value="GBP">GBP (£)</option>
-              </select>
-            </div>
-            <span className="block text-[10px] text-ink-muted leading-tight">
-              Authentication Free MVP
-            </span>
-          </div>
         </div>
       </aside>
     </>
