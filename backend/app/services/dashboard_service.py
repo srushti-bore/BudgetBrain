@@ -152,12 +152,24 @@ class DashboardService:
         """
         curr_start, curr_end = self._current_month_range()
         prev_start, prev_end = self._previous_month_range()
-        return await self.dashboard_repo.get_month_over_month(
+        data = await self.dashboard_repo.get_month_over_month(
             current_start=curr_start,
             current_end=curr_end,
             previous_start=prev_start,
             previous_end=prev_end,
         )
+        curr_total = data["current_month_total"]
+        prev_total = data["previous_month_total"]
+        diff = data["difference"]
+        return {
+            "current_month_total": curr_total,
+            "current_month_spent": curr_total,
+            "previous_month_total": prev_total,
+            "previous_month_spent": prev_total,
+            "difference": diff,
+            "percentage_change": data["percentage_change"],
+            "is_increase": diff > 0,
+        }
 
     async def get_top_categories(self, *, limit: int = 5) -> list[dict]:
         """

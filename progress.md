@@ -147,6 +147,14 @@ All 13 REST API endpoints across 5 core backend modules are fully functional wit
   - **Tab 4: System Health & About**: Live FastAPI and Supabase connectivity monitor with real-time ping latency, version info, and GitHub repository links.
 - **Navigation Integration**: Added Settings with gear icon to [`Sidebar.tsx`](file:///d:/BudgetBrain/frontend/src/components/layout/Sidebar.tsx) and wrapped root tree in [`layout.tsx`](file:///d:/BudgetBrain/frontend/src/app/layout.tsx).
 
+### Phase 16 — Month-over-Month Comparison Contract Normalization & UI Fix
+- **API Contract Discrepancy Resolved**: Fixed property mismatch between backend repository (`current_month_total`, `previous_month_total`) and frontend interface (`current_month_spent`, `previous_month_spent`).
+- **Backend Service Normalization** ([`dashboard_service.py`](file:///d:/BudgetBrain/backend/app/services/dashboard_service.py)): Normalized `get_comparison()` endpoint response to return both `_total` and `_spent` aliases alongside `is_increase` boolean flag.
+- **Frontend Card Robustness** ([`MonthComparisonCard.tsx`](file:///d:/BudgetBrain/frontend/src/components/dashboard/MonthComparisonCard.tsx)):
+  - Updated card to resolve both key naming styles with null-safe fallbacks.
+  - Handled first-month initial baseline with a clear `Initial Baseline` badge when previous month has zero recorded transactions.
+  - Added directional trend icons (`ArrowUpRight`, `ArrowDownRight`) with colored percentage pill indicators.
+
 ---
 
 ## Summary of Accomplishments
@@ -167,6 +175,7 @@ All 13 REST API endpoints across 5 core backend modules are fully functional wit
 | Daily Budget Limit | Per-month daily cap | DB column + modal + dashboard alert |
 | Settings & Backup Suite | 4 Tabs + Danger Zone | CSV export, JSON backup, live health monitor |
 | Dashboard UI/UX Polish | V1 Modernization | Spacing, enriched metrics, donut totals, ring glow |
+| MoM Comparison Fix | Resilient contract & UI | Dual key support, baseline badges |
 
 ---
 

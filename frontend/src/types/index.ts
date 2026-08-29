@@ -68,10 +68,13 @@ export interface SpendTrendItem {
 }
 
 export interface MonthComparison {
-  current_month_spent: number;
-  previous_month_spent: number;
+  current_month_total?: number;
+  current_month_spent?: number;
+  previous_month_total?: number;
+  previous_month_spent?: number;
+  difference?: number;
   percentage_change: number | null;
-  is_increase: boolean;
+  is_increase?: boolean;
 }
 
 export interface TopCategory {
