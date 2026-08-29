@@ -29,7 +29,11 @@ class Settings(BaseSettings):
     DATABASE_URL: str  # Required — no default (must be set in .env)
 
     # ── CORS ─────────────────────────────────────────────────────────────────
-    ALLOWED_ORIGINS: str = "http://localhost:3000"
+    ALLOWED_ORIGINS: str = (
+        "http://localhost:3000,http://localhost:3001,"
+        "http://127.0.0.1:3000,http://127.0.0.1:3001,"
+        "https://budget-brain-eight.vercel.app"
+    )
 
     @property
     def allowed_origins_list(self) -> list[str]:
