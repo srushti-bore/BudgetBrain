@@ -6,6 +6,7 @@ import { expenseApi, categoryApi, ExpenseQueryParams } from '@/lib/api';
 import { Expense, Category } from '@/types';
 import { formatDate } from '@/lib/utils';
 import { useFormatCurrency, useCurrency } from '@/providers/CurrencyProvider';
+import { useSettings } from '@/providers/SettingsProvider';
 import { motion, AnimatePresence } from 'framer-motion';
 import ExpenseModal from '@/components/expenses/ExpenseModal';
 import {
@@ -19,6 +20,9 @@ import {
   Receipt,
   RotateCcw,
   Repeat,
+  Flame,
+  AlertTriangle,
+  Check,
 } from 'lucide-react';
 
 export default function ExpensesPage() {
@@ -44,6 +48,14 @@ export default function ExpensesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'warning' | 'error' } | null>(null);
+
+  const { nearLimitThreshold = 80 } = useSettings();
+
+  const showToast = (text: string, type: 'success' | 'warning' | 'error' = 'success') => {
+    setToastMessage({ text, type });
+    setTimeout(() => setToastMessage(null), 4000);
+  };
 
   // Fetch categories for dropdown
   const { data: categories = [] } = useQuery({
@@ -121,8 +133,10 @@ export default function ExpensesPage() {
   const handleSaveExpense = async (formData: any) => {
     if (editingExpense) {
       await updateMutation.mutateAsync({ id: editingExpense.id, data: formData });
+      showToast('Expense updated successfully!');
     } else {
       await createMutation.mutateAsync(formData);
+      showToast('Expense logged successfully!');
     }
   };
 
@@ -152,7 +166,34 @@ export default function ExpensesPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12">
+    <div className="space-y-6 max-w-7xl mx-auto pb-12 relative">
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className={`fixed top-6 right-6 z-50 px-4 py-3 rounded-xl shadow-xl flex items-center gap-2.5 text-xs font-bold border backdrop-blur-md ${
+              toastMessage.type === 'success'
+                ? 'bg-sage-light text-sage border-sage/30 dark:bg-sage/20 dark:text-sage'
+                : toastMessage.type === 'warning'
+                ? 'bg-honey-light text-honey border-honey/30 dark:bg-honey/20 dark:text-honey'
+                : 'bg-coral-light text-coral border-coral/30 dark:bg-coral/20 dark:text-coral'
+            }`}
+          >
+            {toastMessage.type === 'success' ? (
+              <Check className="w-4 h-4" />
+            ) : toastMessage.type === 'warning' ? (
+              <AlertTriangle className="w-4 h-4" />
+            ) : (
+              <Flame className="w-4 h-4" />
+            )}
+            <span>{toastMessage.text}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

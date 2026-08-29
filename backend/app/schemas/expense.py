@@ -31,8 +31,11 @@ class ExpenseCreate(BaseModel):
 
     @field_validator("title")
     @classmethod
-    def strip_title(cls, v: str) -> str:
-        return v.strip()
+    def format_and_strip_title(cls, v: str) -> str:
+        s = v.strip()
+        if not s:
+            return s
+        return s[0].upper() + s[1:]
 
 
 class ExpenseUpdate(BaseModel):
@@ -44,6 +47,16 @@ class ExpenseUpdate(BaseModel):
     notes: str | None = Field(default=None, max_length=1000)
     payment_mode: PaymentMode | None = Field(default=None)
     is_recurring: bool | None = Field(default=None)
+
+    @field_validator("title")
+    @classmethod
+    def format_and_strip_title(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        s = v.strip()
+        if not s:
+            return s
+        return s[0].upper() + s[1:]
 
     @field_validator("date")
     @classmethod

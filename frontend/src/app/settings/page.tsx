@@ -449,30 +449,94 @@ export default function SettingsPage() {
               <p className="text-xs text-ink-muted mt-0.5">Control when budget warnings and color indicators trigger</p>
             </div>
 
-            {/* Threshold Selector */}
-            <div className="space-y-3">
-              <label className="text-xs font-bold text-ink uppercase tracking-wider block">
-                Near Limit Alert Threshold ({nearLimitThreshold}%)
-              </label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {[75, 80, 85, 90].map((val) => (
-                  <button
-                    key={val}
-                    onClick={() => setNearLimitThreshold(val)}
-                    className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${
-                      nearLimitThreshold === val
-                        ? 'bg-honey-light text-honey border-honey/40 dark:bg-honey/15 font-bold'
-                        : 'border-ink/10 dark:border-white/10 hover:bg-ink/5 dark:hover:bg-white/5 text-ink font-semibold'
-                    }`}
-                  >
-                    <span className="text-lg block font-display">{val}%</span>
-                    <span className="text-[10px] text-ink-muted">Warning Trigger</span>
-                  </button>
-                ))}
+            {/* Custom Editable Threshold Control */}
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <label htmlFor="custom-threshold-input" className="text-xs font-bold text-ink uppercase tracking-wider block">
+                    Near Limit Alert Threshold
+                  </label>
+                  <p className="text-[11px] text-ink-muted mt-0.5">
+                    Set the exact custom percentage when warning badges and alerts trigger
+                  </p>
+                </div>
+
+                {/* Direct Number Input & Percentage Display */}
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                  <div className="relative flex items-center">
+                    <input
+                      id="custom-threshold-input"
+                      type="number"
+                      min={1}
+                      max={99}
+                      value={nearLimitThreshold}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value);
+                        if (!isNaN(val)) {
+                          const clamped = Math.max(1, Math.min(99, val));
+                          setNearLimitThreshold(clamped);
+                        }
+                      }}
+                      className="w-20 px-3 py-1.5 rounded-xl bg-white dark:bg-white/10 border-2 border-honey/50 text-right font-display font-extrabold text-base text-ink focus:outline-none focus:border-honey transition-all"
+                    />
+                    <span className="ml-1.5 font-bold text-sm text-honey">%</span>
+                  </div>
+                </div>
               </div>
-              <p className="text-[11px] text-ink-muted">
-                When your spending reaches <strong className="text-ink">{nearLimitThreshold}%</strong> of your monthly budget or daily spending limit, cards dynamically switch to the amber Near Limit warning badge.
-              </p>
+
+              {/* Smooth Range Slider */}
+              <div className="space-y-1.5 pt-2">
+                <input
+                  type="range"
+                  min={1}
+                  max={99}
+                  step={1}
+                  value={nearLimitThreshold}
+                  onChange={(e) => setNearLimitThreshold(Number(e.target.value))}
+                  className="w-full h-2 bg-ink/10 dark:bg-white/10 rounded-lg appearance-none cursor-pointer accent-honey"
+                />
+                <div className="flex justify-between text-[10px] text-ink-muted font-bold">
+                  <span>1% (Early Warning)</span>
+                  <span className="text-honey font-bold">Custom Active: {nearLimitThreshold}%</span>
+                  <span>99% (Late Warning)</span>
+                </div>
+              </div>
+
+              {/* Quick Preset Options */}
+              <div className="pt-2">
+                <span className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-2">
+                  Quick Presets:
+                </span>
+                <div className="grid grid-cols-5 gap-2">
+                  {[50, 65, 75, 80, 90].map((val) => (
+                    <button
+                      key={val}
+                      type="button"
+                      onClick={() => setNearLimitThreshold(val)}
+                      className={`py-2 px-1 rounded-xl border text-center transition-all cursor-pointer ${
+                        nearLimitThreshold === val
+                          ? 'bg-honey-light text-honey border-honey/50 dark:bg-honey/20 font-bold shadow-xs'
+                          : 'border-ink/10 dark:border-white/10 hover:bg-ink/5 dark:hover:bg-white/5 text-ink font-semibold'
+                      }`}
+                    >
+                      <span className="text-sm block font-display">{val}%</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Live Preview Card */}
+              <div className="p-3.5 rounded-xl bg-honey-light/40 dark:bg-honey/10 border border-honey/30 space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-honey shrink-0" />
+                  <span className="text-xs font-bold text-ink">
+                    Live Warning Trigger Preview:
+                  </span>
+                </div>
+                <p className="text-[11px] text-ink-muted leading-relaxed">
+                  When your monthly or daily spending reaches <strong className="text-ink font-bold">{nearLimitThreshold}%</strong>, BudgetBrain will display the <span className="inline-flex items-center gap-1 font-bold text-honey bg-honey-light dark:bg-honey/20 px-2 py-0.5 rounded border border-honey/30 text-[10px]">⚠️ Near Limit (≥{nearLimitThreshold}%)</span> badge and show real-time popup alerts during expense logging.
+                </p>
+              </div>
             </div>
 
             <hr className="border-ink/5 dark:border-white/10" />

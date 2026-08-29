@@ -3,9 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import { Expense, Category, PaymentMode } from '@/types';
 import { getTodayDateString, capitalizeFirstLetter } from '@/lib/utils';
-import { X, Plus, AlertCircle, Repeat } from 'lucide-react';
-import { categoryApi } from '@/lib/api';
-import { useCurrency } from '@/providers/CurrencyProvider';
+import { X, Plus, AlertCircle, Repeat, Flame, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { categoryApi, dashboardApi } from '@/lib/api';
+import { useCurrency, useFormatCurrency } from '@/providers/CurrencyProvider';
+import { useSettings } from '@/providers/SettingsProvider';
+import { useQuery } from '@tanstack/react-query';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface ExpenseModalProps {
   isOpen: boolean;
@@ -32,6 +35,10 @@ export default function ExpenseModal({
   categories,
   onCategoryCreated,
 }: ExpenseModalProps) {
+  const formatCurrency = useFormatCurrency();
+  const { currency, convertToView, convertToBase } = useCurrency();
+  const { nearLimitThreshold = 80 } = useSettings();
+
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
   const [categoryId, setCategoryId] = useState('');
@@ -47,7 +54,12 @@ export default function ExpenseModal({
   const [newCatName, setNewCatName] = useState('');
   const [catCreating, setCatCreating] = useState(false);
 
-  const { currency, convertToView, convertToBase } = useCurrency();
+  // Fetch current dashboard summary to calculate budget impact in real time
+  const { data: summary } = useQuery({
+    queryKey: ['dashboardSummary'],
+    queryFn: dashboardApi.getSummary,
+    enabled: isOpen,
+  });
 
   useEffect(() => {
     if (initialData) {
@@ -73,16 +85,37 @@ export default function ExpenseModal({
 
   if (!isOpen) return null;
 
+  // Real-time Budget & Alert Threshold Computations
+  const parsedViewAmount = parseFloat(amount) || 0;
+  const parsedBaseAmount = parsedViewAmount > 0 ? Number(convertToBase(parsedViewAmount).toFixed(2)) : 0;
+  const initialBaseAmount = initialData ? initialData.amount : 0;
+  const amountDelta = parsedBaseAmount - initialBaseAmount;
+
+  // Monthly Budget Check
+  const budgetLimit = summary?.budget_limit || 0;
+  const projectedTotalSpent = Math.max((summary?.total_spent || 0) + amountDelta, 0);
+  const projectedMonthlyPercent = budgetLimit > 0 ? Math.round((projectedTotalSpent / budgetLimit) * 100) : 0;
+  const isOverMonthly = budgetLimit > 0 && projectedTotalSpent > budgetLimit;
+  const isNearMonthly = budgetLimit > 0 && !isOverMonthly && projectedMonthlyPercent >= nearLimitThreshold;
+
+  // Daily Limit Check
+  const isToday = date === getTodayDateString();
+  const dailyLimit = summary?.daily_limit || 0;
+  const projectedTodaySpent = Math.max((summary?.today_spent || 0) + (isToday ? amountDelta : 0), 0);
+  const projectedDailyPercent = dailyLimit > 0 ? Math.round((projectedTodaySpent / dailyLimit) * 100) : 0;
+  const isOverDaily = isToday && dailyLimit > 0 && projectedTodaySpent > dailyLimit;
+  const isNearDaily = isToday && dailyLimit > 0 && !isOverDaily && projectedDailyPercent >= nearLimitThreshold;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
 
-    const parsedAmountInView = parseFloat(amount);
-    if (!title.trim()) {
+    const formattedTitle = capitalizeFirstLetter(title);
+    if (!formattedTitle) {
       setErrorMsg('Expense title is required');
       return;
     }
-    if (isNaN(parsedAmountInView) || parsedAmountInView <= 0) {
+    if (parsedViewAmount <= 0) {
       setErrorMsg(`Amount must be a positive number greater than ${currency === 'INR' ? '₹0' : '0'}`);
       return;
     }
@@ -95,13 +128,11 @@ export default function ExpenseModal({
       return;
     }
 
-    const parsedAmountInBase = Number(convertToBase(parsedAmountInView).toFixed(2));
-
     setIsSubmitting(true);
     try {
       await onSubmit({
-        title: title.trim(),
-        amount: parsedAmountInBase,
+        title: formattedTitle,
+        amount: parsedBaseAmount,
         category_id: categoryId,
         date,
         payment_mode: (paymentMode as PaymentMode) || null,
@@ -136,14 +167,19 @@ export default function ExpenseModal({
 
   return (
     <div className="fixed inset-0 z-50 bg-ink/40 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="glass-modal w-full max-w-lg rounded-2xl p-6 shadow-2xl relative">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.96 }}
+        className="glass-modal w-full max-w-lg rounded-2xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto"
+      >
         <div className="flex items-center justify-between pb-4 border-b border-ink/10 dark:border-white/10">
           <h2 className="font-display font-bold text-xl text-ink">
             {initialData ? 'Edit Expense' : 'Log New Expense'}
           </h2>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-xl hover:bg-ink/5 dark:hover:bg-white/10 text-ink-muted hover:text-ink transition-colors"
+            className="p-1.5 rounded-xl hover:bg-ink/5 dark:hover:bg-white/10 text-ink-muted hover:text-ink transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -166,7 +202,7 @@ export default function ExpenseModal({
               type="text"
               placeholder="e.g. Grocery Shopping, House Rent, Fuel"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => setTitle(capitalizeFirstLetter(e.target.value))}
               className="w-full px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-white/5 border border-ink/15 dark:border-white/15 text-sm text-ink focus:outline-none focus:border-sage transition-all"
               required
             />
@@ -205,6 +241,75 @@ export default function ExpenseModal({
             </div>
           </div>
 
+          {/* Live Real-time Budget Threshold Alert Banner */}
+          <AnimatePresence>
+            {parsedViewAmount > 0 && (isOverMonthly || isNearMonthly || isOverDaily || isNearDaily) && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="space-y-2"
+              >
+                {/* Monthly Threshold Alert */}
+                {(isOverMonthly || isNearMonthly) && (
+                  <div
+                    className={`p-3 rounded-xl border flex items-start gap-2.5 text-xs ${
+                      isOverMonthly
+                        ? 'bg-coral-light/80 dark:bg-coral/20 border-coral/40 text-coral'
+                        : 'bg-honey-light/80 dark:bg-honey/20 border-honey/40 text-honey'
+                    }`}
+                  >
+                    {isOverMonthly ? (
+                      <Flame className="w-4 h-4 mt-0.5 shrink-0 animate-pulse text-coral" />
+                    ) : (
+                      <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-honey" />
+                    )}
+                    <div>
+                      <span className="font-bold block">
+                        {isOverMonthly
+                          ? '🔥 Monthly Budget Exceeded Alert!'
+                          : `⚠️ Near Monthly Budget Limit Alert (≥${nearLimitThreshold}%)`}
+                      </span>
+                      <p className="mt-0.5 leading-relaxed text-[11px]">
+                        Adding this expense will bring your total monthly spend to{' '}
+                        <strong>{formatCurrency(projectedTotalSpent)}</strong> (
+                        <strong>{projectedMonthlyPercent}%</strong> of your{' '}
+                        {formatCurrency(budgetLimit)} cap).
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Daily Cap Threshold Alert */}
+                {(isOverDaily || isNearDaily) && (
+                  <div
+                    className={`p-3 rounded-xl border flex items-start gap-2.5 text-xs ${
+                      isOverDaily
+                        ? 'bg-coral-light/80 dark:bg-coral/20 border-coral/40 text-coral'
+                        : 'bg-honey-light/80 dark:bg-honey/20 border-honey/40 text-honey'
+                    }`}
+                  >
+                    {isOverDaily ? (
+                      <Flame className="w-4 h-4 mt-0.5 shrink-0 animate-pulse text-coral" />
+                    ) : (
+                      <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-honey" />
+                    )}
+                    <div>
+                      <span className="font-bold block">
+                        {isOverDaily ? '🔥 Daily Spending Limit Exceeded!' : `⚡ Daily Cap Warning (≥${nearLimitThreshold}%)`}
+                      </span>
+                      <p className="mt-0.5 leading-relaxed text-[11px]">
+                        Today&apos;s spending will reach{' '}
+                        <strong>{formatCurrency(projectedTodaySpent)}</strong> (
+                        <strong>{projectedDailyPercent}%</strong> of {formatCurrency(dailyLimit)} daily limit).
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* Category Dropdown with inline creation */}
           <div>
             <div className="flex items-center justify-between mb-1">
@@ -214,7 +319,7 @@ export default function ExpenseModal({
               <button
                 type="button"
                 onClick={() => setIsAddingCategory(!isAddingCategory)}
-                className="text-[11px] font-bold text-sage hover:text-sage/80 flex items-center gap-0.5"
+                className="text-[11px] font-bold text-sage hover:text-sage/80 flex items-center gap-0.5 cursor-pointer"
               >
                 <Plus className="w-3 h-3" /> New Category
               </button>
@@ -233,7 +338,7 @@ export default function ExpenseModal({
                   type="button"
                   onClick={handleCreateCategory}
                   disabled={catCreating}
-                  className="px-3 py-1.5 bg-sage hover:bg-[#2D5A45] text-white text-xs font-semibold rounded-lg shadow-xs"
+                  className="px-3 py-1.5 bg-sage hover:bg-sage-dark text-white text-xs font-semibold rounded-lg shadow-xs cursor-pointer"
                 >
                   Save
                 </button>
@@ -243,52 +348,33 @@ export default function ExpenseModal({
             <select
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-white/5 border border-ink/15 dark:border-white/15 text-sm text-ink focus:outline-none focus:border-sage transition-all"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-white/5 border border-ink/15 dark:border-white/15 text-sm text-ink focus:outline-none focus:border-sage transition-all cursor-pointer"
               required
             >
               <option value="" disabled>
                 Select Category
               </option>
-              {categories.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name} {cat.is_system ? '(System)' : ''}
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
                 </option>
               ))}
             </select>
           </div>
 
-          {/* Recurring Expense Checkbox Toggle */}
-          <div className="p-3 bg-sage-light/50 dark:bg-sage/10 rounded-xl border border-sage/20 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Repeat className="w-4 h-4 text-sage" />
-              <div>
-                <span className="text-xs font-bold text-ink block">Recurring Monthly Expense</span>
-                <span className="text-[10px] text-ink-muted">Rent, Wifi, Gym, Subscriptions</span>
-              </div>
-            </div>
-            <input
-              type="checkbox"
-              checked={isRecurring}
-              onChange={(e) => setIsRecurring(e.target.checked)}
-              className="w-4 h-4 accent-sage rounded cursor-pointer"
-            />
-          </div>
-
-          {/* Payment Mode */}
+          {/* Payment Mode Selection */}
           <div>
-            <label className="block text-xs font-semibold text-ink-muted mb-1">
-              Payment Mode (Optional)
-            </label>
+            <label className="block text-xs font-semibold text-ink-muted mb-1.5">Payment Mode</label>
             <div className="grid grid-cols-4 gap-2">
               {(['upi', 'card', 'cash', 'other'] as const).map((mode) => (
                 <button
                   key={mode}
                   type="button"
                   onClick={() => setPaymentMode(paymentMode === mode ? '' : mode)}
-                  className={`py-2 rounded-xl text-xs font-bold uppercase tracking-wider border transition-all ${
+                  className={`py-2 text-xs font-bold capitalize rounded-xl border transition-all cursor-pointer ${
                     paymentMode === mode
-                      ? 'bg-sage text-white border-sage shadow-xs'
-                      : 'bg-white/60 dark:bg-white/5 text-ink-muted border-ink/10 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 hover:text-ink'
+                      ? 'bg-sage-light text-sage border-sage/40 dark:bg-sage/20 shadow-xs'
+                      : 'border-ink/10 dark:border-white/10 text-ink-muted hover:text-ink hover:bg-ink/5'
                   }`}
                 >
                   {mode}
@@ -297,39 +383,70 @@ export default function ExpenseModal({
             </div>
           </div>
 
-          {/* Notes */}
-          <div>
-            <label className="block text-xs font-semibold text-ink-muted mb-1">
-              Notes (Optional)
+          {/* Recurring Expense Checkbox */}
+          <div className="flex items-center gap-2.5 p-3 rounded-xl bg-ink/5 dark:bg-white/5 border border-ink/5 dark:border-white/10">
+            <input
+              type="checkbox"
+              id="is_recurring_checkbox"
+              checked={isRecurring}
+              onChange={(e) => setIsRecurring(e.target.checked)}
+              className="w-4 h-4 rounded text-sage focus:ring-sage border-ink/20 cursor-pointer"
+            />
+            <label htmlFor="is_recurring_checkbox" className="text-xs font-medium text-ink flex items-center gap-1.5 cursor-pointer">
+              <Repeat className="w-3.5 h-3.5 text-sage" />
+              <span>Mark as Recurring Monthly Subscription (Rent, Netflix, WiFi, etc.)</span>
             </label>
+          </div>
+
+          {/* Notes Input */}
+          <div>
+            <label className="block text-xs font-semibold text-ink-muted mb-1">Notes (Optional)</label>
             <textarea
-              rows={2}
-              placeholder="Add details, receipt numbers, etc."
+              placeholder="Add extra context or details..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
+              rows={2}
               className="w-full px-3.5 py-2 rounded-xl bg-white/80 dark:bg-white/5 border border-ink/15 dark:border-white/15 text-xs text-ink focus:outline-none focus:border-sage transition-all resize-none"
             />
           </div>
 
-          {/* Buttons */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-ink/10 dark:border-white/10">
+          {/* Modal Actions */}
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-ink/10 dark:border-white/10">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl border border-ink/15 dark:border-white/15 text-xs font-semibold text-ink hover:bg-white dark:hover:bg-white/10 transition-colors"
+              className="px-4 py-2.5 rounded-xl border border-ink/15 dark:border-white/15 text-xs font-semibold text-ink hover:bg-white dark:hover:bg-white/10 transition-colors cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-5 py-2 bg-sage hover:bg-[#2D5A45] text-white text-xs font-semibold rounded-xl shadow-md transition-colors disabled:opacity-50"
+              className={`px-5 py-2.5 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50 ${
+                isOverMonthly || isOverDaily
+                  ? 'bg-coral hover:bg-coral-dark shadow-coral/20'
+                  : 'bg-sage hover:bg-sage-dark shadow-sage/20'
+              }`}
             >
-              {isSubmitting ? 'Saving...' : initialData ? 'Update Expense' : 'Create Expense'}
+              {isSubmitting ? (
+                <span>Saving...</span>
+              ) : isOverMonthly ? (
+                <>
+                  <Flame className="w-3.5 h-3.5" />
+                  <span>Log Expense Anyway</span>
+                </>
+              ) : isNearMonthly ? (
+                <>
+                  <AlertTriangle className="w-3.5 h-3.5" />
+                  <span>Log Expense</span>
+                </>
+              ) : (
+                <span>{initialData ? 'Update Expense' : 'Log Expense'}</span>
+              )}
             </button>
           </div>
         </form>
-      </div>
+      </motion.div>
     </div>
   );
 }
