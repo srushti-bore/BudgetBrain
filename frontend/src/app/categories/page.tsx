@@ -5,7 +5,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { categoryApi } from '@/lib/api';
 import { Category } from '@/types';
 import { capitalizeFirstLetter } from '@/lib/utils';
-import { Tag, Plus, Edit2, Trash2, Shield, AlertTriangle, X } from 'lucide-react';
+import { Tag, Plus, Edit2, Trash2, Shield, AlertTriangle, X, Check } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function CategoriesPage() {
   const queryClient = useQueryClient();
@@ -16,10 +17,17 @@ export default function CategoriesPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Deletion Warn-and-Reassign dialog state (FR-8)
+  // Delete Category Confirmation Modal State
   const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
-  const [warnDialogInfo, setWarnDialogInfo] = useState<{ linkedCount: number } | null>(null);
-  const [isForceDeleting, setIsForceDeleting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Toast Notification State
+  const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+
+  const showToast = (text: string, type: 'success' | 'error' = 'success') => {
+    setToastMessage({ text, type });
+    setTimeout(() => setToastMessage(null), 4000);
+  };
 
   const { data: categories = [], isLoading } = useQuery({
     queryKey: ['categories'],
@@ -59,16 +67,22 @@ export default function CategoriesPage() {
 
   const handleSaveCategory = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMsg('');
+
     const formattedName = capitalizeFirstLetter(catName);
-    if (!formattedName) return;
+    if (!formattedName) {
+      setErrorMsg('Category name cannot be empty');
+      return;
+    }
 
     setIsSubmitting(true);
-    setErrorMsg('');
     try {
       if (editingCategory) {
         await updateMutation.mutateAsync({ id: editingCategory.id, name: formattedName });
+        showToast('Category renamed successfully!');
       } else {
         await createMutation.mutateAsync({ name: formattedName });
+        showToast('Category created successfully!');
       }
       setIsAddModalOpen(false);
     } catch (err: any) {
@@ -78,50 +92,60 @@ export default function CategoriesPage() {
     }
   };
 
-  // Safe Category Deletion Flow (FR-8)
-  const handleDeleteAttempt = async (category: Category) => {
+  // Open Delete Confirmation Modal
+  const handleDeleteClick = (category: Category) => {
     if (category.is_system) return;
     setDeletingCategory(category);
-    setErrorMsg('');
-
-    try {
-      // First attempt normal deletion without force
-      await categoryApi.delete(category.id, false);
-      queryClient.invalidateQueries({ queryKey: ['categories'] });
-      queryClient.invalidateQueries({ queryKey: ['expenses'] });
-      setDeletingCategory(null);
-    } catch (err: any) {
-      const errResponse = err?.response?.data;
-      // If linked expenses conflict (409)
-      if (err?.response?.status === 409 || errResponse?.error?.code === 'CATEGORY_HAS_EXPENSES') {
-        const count = errResponse?.error?.field ? parseInt(errResponse.error.field) || 1 : 1;
-        setWarnDialogInfo({ linkedCount: count });
-      } else {
-        alert(errResponse?.error?.message || 'Failed to delete category');
-        setDeletingCategory(null);
-      }
-    }
   };
 
-  const handleConfirmForceDelete = async () => {
+  // Confirm Delete Handler
+  const handleConfirmDelete = async () => {
     if (!deletingCategory) return;
-    setIsForceDeleting(true);
+    setIsDeleting(true);
     try {
       await categoryApi.delete(deletingCategory.id, true);
       queryClient.invalidateQueries({ queryKey: ['categories'] });
       queryClient.invalidateQueries({ queryKey: ['expenses'] });
       queryClient.invalidateQueries({ queryKey: ['dashboardSummary'] });
-      setWarnDialogInfo(null);
+      showToast(`Category "${deletingCategory.name}" deleted successfully!`);
       setDeletingCategory(null);
     } catch (err: any) {
-      alert(err?.response?.data?.error?.message || 'Failed to force delete category');
+      showToast(err?.response?.data?.error?.message || 'Failed to delete category', 'error');
     } finally {
-      setIsForceDeleting(false);
+      setIsDeleting(false);
     }
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12">
+    <div className="space-y-6 max-w-7xl mx-auto pb-12 relative">
+      {/* Toast Notification (Exact Screen Center) */}
+      <AnimatePresence>
+        {toastMessage && (
+          <div className="fixed inset-0 z-50 pointer-events-none flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.85, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.85, y: -15 }}
+              transition={{ type: 'spring', damping: 22, stiffness: 320 }}
+              className={`px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3.5 text-sm sm:text-base font-bold border backdrop-blur-xl pointer-events-auto ${
+                toastMessage.type === 'success'
+                  ? 'bg-white/95 dark:bg-[#16221C]/95 text-sage border-sage/40 shadow-sage/20'
+                  : 'bg-white/95 dark:bg-[#251818]/95 text-coral border-coral/40 shadow-coral/20'
+              }`}
+            >
+              <div
+                className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                  toastMessage.type === 'success' ? 'bg-sage-light text-sage' : 'bg-coral-light text-coral'
+                }`}
+              >
+                {toastMessage.type === 'success' ? <Check className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />}
+              </div>
+              <span className="text-ink dark:text-cream">{toastMessage.text}</span>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -135,7 +159,7 @@ export default function CategoriesPage() {
 
         <button
           onClick={handleOpenAdd}
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-sage hover:bg-[#3E7259] text-white font-semibold text-xs md:text-sm rounded-xl shadow-md shadow-sage/20 transition-all self-start sm:self-auto"
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-sage hover:bg-[#3E7259] text-white font-semibold text-xs md:text-sm rounded-xl shadow-md shadow-sage/20 transition-all self-start sm:self-auto cursor-pointer"
         >
           <Plus className="w-4 h-4" />
           <span>New Category</span>
@@ -192,13 +216,13 @@ export default function CategoriesPage() {
                   <div className="flex items-center gap-2 ml-auto">
                     <button
                       onClick={() => handleOpenEdit(category)}
-                      className="px-3 py-1 rounded-lg border border-ink/15 dark:border-white/15 hover:bg-white/60 dark:hover:bg-white/10 text-ink text-xs font-semibold flex items-center gap-1 transition-colors"
+                      className="px-3 py-1.5 rounded-lg border border-ink/15 dark:border-white/15 hover:bg-white/60 dark:hover:bg-white/10 text-ink text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
                     >
                       <Edit2 className="w-3.5 h-3.5 text-sage" /> Edit
                     </button>
                     <button
-                      onClick={() => handleDeleteAttempt(category)}
-                      className="px-3 py-1 rounded-lg border border-coral/30 hover:bg-coral-light text-coral text-xs font-semibold flex items-center gap-1 transition-colors"
+                      onClick={() => handleDeleteClick(category)}
+                      className="px-3 py-1.5 rounded-lg border border-coral/30 hover:bg-coral-light text-coral text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
                     >
                       <Trash2 className="w-3.5 h-3.5" /> Delete
                     </button>
@@ -220,7 +244,7 @@ export default function CategoriesPage() {
               </h2>
               <button
                 onClick={() => setIsAddModalOpen(false)}
-                className="p-1 rounded-lg hover:bg-ink/5 text-ink-muted hover:text-ink transition-colors"
+                className="p-1 rounded-lg hover:bg-ink/5 text-ink-muted hover:text-ink transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -239,7 +263,7 @@ export default function CategoriesPage() {
                   type="text"
                   placeholder="e.g. Subscriptions, Travel, Fitness"
                   value={catName}
-                  onChange={(e) => setCatName(e.target.value)}
+                  onChange={(e) => setCatName(capitalizeFirstLetter(e.target.value))}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-white/5 border border-ink/15 dark:border-white/15 text-sm text-ink focus:outline-none focus:border-sage transition-all"
                   required
                 />
@@ -249,14 +273,14 @@ export default function CategoriesPage() {
                 <button
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
-                  className="px-4 py-2 rounded-xl border border-ink/15 dark:border-white/15 text-xs font-semibold text-ink hover:bg-white dark:hover:bg-white/10"
+                  className="px-4 py-2.5 rounded-xl border border-ink/15 dark:border-white/15 text-xs font-semibold text-ink hover:bg-white dark:hover:bg-white/10 cursor-pointer transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-5 py-2 bg-sage hover:bg-[#3E7259] text-white text-xs font-semibold rounded-xl shadow-md transition-colors disabled:opacity-50"
+                  className="px-5 py-2.5 bg-sage hover:bg-[#3E7259] text-white text-xs font-semibold rounded-xl shadow-md transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   {isSubmitting ? 'Saving...' : editingCategory ? 'Update Name' : 'Create Category'}
                 </button>
@@ -266,45 +290,86 @@ export default function CategoriesPage() {
         </div>
       )}
 
-      {/* Warn-and-Reassign Deletion Modal (FR-8) */}
-      {warnDialogInfo && deletingCategory && (
+      {/* Delete Category Confirmation Pop-up Modal */}
+      {deletingCategory && (
         <div className="fixed inset-0 z-50 bg-ink/40 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="glass-modal w-full max-w-md rounded-2xl p-6 shadow-2xl border-coral/40 space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-coral-light flex items-center justify-center text-coral mb-2">
-              <AlertTriangle className="w-6 h-6" />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="glass-modal w-full max-w-md rounded-2xl p-6 shadow-2xl border-coral/40 space-y-4 relative"
+          >
+            <div className="flex items-center justify-between pb-2 border-b border-ink/10 dark:border-white/10">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-coral-light flex items-center justify-center text-coral shadow-xs">
+                  <Trash2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-display font-bold text-lg text-ink">Delete Category?</h3>
+                  <span className="text-[11px] text-ink-muted">This action cannot be undone</span>
+                </div>
+              </div>
+              <button
+                onClick={() => setDeletingCategory(null)}
+                className="p-1.5 rounded-lg hover:bg-ink/5 dark:hover:bg-white/10 text-ink-muted hover:text-ink transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
-            <div>
-              <h3 className="font-display font-bold text-lg text-ink">
-                Reassign Linked Expenses?
-              </h3>
-              <p className="text-xs text-ink-muted mt-1 leading-relaxed">
-                Category <span className="font-bold text-ink">"{deletingCategory.name}"</span> has{' '}
-                <span className="font-bold text-coral">{warnDialogInfo.linkedCount}</span> linked expense(s).
-                Deleting it will reassign all linked expenses to the protected{' '}
-                <span className="font-bold text-sage">"Uncategorized"</span> category in a single atomic transaction.
-              </p>
+            {/* Category details card */}
+            <div className="p-4 rounded-xl bg-ink/5 dark:bg-white/5 border border-ink/10 dark:border-white/10 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-sm text-ink">{deletingCategory.name}</span>
+                <span className="text-xs font-semibold px-2 py-0.5 rounded bg-sage-light text-sage border border-sage/25">
+                  {deletingCategory.expense_count ?? 0} Linked Expense(s)
+                </span>
+              </div>
             </div>
+
+            {(deletingCategory.expense_count ?? 0) > 0 ? (
+              <div className="p-3 rounded-xl bg-honey-light/80 border border-honey/40 text-honey flex items-start gap-2.5 text-xs">
+                <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+                <div>
+                  <span className="font-bold block">Safe Reassignment Protection</span>
+                  <p className="mt-0.5 leading-relaxed text-[11px]">
+                    This category has <strong>{deletingCategory.expense_count}</strong> linked expense(s).
+                    Deleting it will automatically and safely reassign all linked expenses to the protected{' '}
+                    <strong>&quot;Uncategorized&quot;</strong> category.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs text-ink-muted leading-relaxed">
+                Are you sure you want to delete category <strong>&quot;{deletingCategory.name}&quot;</strong>? This action cannot be undone.
+              </p>
+            )}
 
             <div className="flex items-center justify-end gap-3 pt-3 border-t border-ink/10 dark:border-white/10">
               <button
-                onClick={() => {
-                  setWarnDialogInfo(null);
-                  setDeletingCategory(null);
-                }}
-                className="px-4 py-2 rounded-xl border border-ink/15 dark:border-white/15 text-xs font-semibold text-ink hover:bg-white dark:hover:bg-white/10"
+                type="button"
+                onClick={() => setDeletingCategory(null)}
+                className="px-4 py-2.5 rounded-xl border border-ink/15 dark:border-white/15 text-xs font-semibold text-ink hover:bg-white dark:hover:bg-white/10 transition-colors cursor-pointer"
               >
                 Cancel
               </button>
               <button
-                onClick={handleConfirmForceDelete}
-                disabled={isForceDeleting}
-                className="px-5 py-2 bg-coral hover:bg-coral-dark text-white text-xs font-semibold rounded-xl shadow-md transition-colors disabled:opacity-50"
+                type="button"
+                onClick={handleConfirmDelete}
+                disabled={isDeleting}
+                className="px-5 py-2.5 bg-coral hover:bg-coral-dark text-white text-xs font-bold rounded-xl shadow-md shadow-coral/20 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
               >
-                {isForceDeleting ? 'Reassigning & Deleting...' : 'Reassign & Delete'}
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>
+                  {isDeleting
+                    ? 'Deleting...'
+                    : (deletingCategory.expense_count ?? 0) > 0
+                    ? 'Reassign & Delete'
+                    : 'Confirm Delete'}
+                </span>
               </button>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
     </div>

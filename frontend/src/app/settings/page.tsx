@@ -232,22 +232,31 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-7 max-w-5xl mx-auto pb-24">
-      {/* Toast Notification (Centered Top) */}
+      {/* Toast Notification (Exact Screen Center) */}
       <AnimatePresence>
         {toastMessage && (
-          <motion.div
-            initial={{ opacity: 0, y: -20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            className={`fixed top-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2.5 text-xs sm:text-sm font-bold border backdrop-blur-md transition-all ${
-              toastMessage.type === 'success'
-                ? 'bg-sage-light text-sage border-sage/40 dark:bg-sage/20 dark:text-sage shadow-sage/10'
-                : 'bg-coral-light text-coral border-coral/40 dark:bg-coral/20 dark:text-coral shadow-coral/10'
-            }`}
-          >
-            {toastMessage.type === 'success' ? <Check className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
-            <span>{toastMessage.text}</span>
-          </motion.div>
+          <div className="fixed inset-0 z-50 pointer-events-none flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.85, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.85, y: -15 }}
+              transition={{ type: 'spring', damping: 22, stiffness: 320 }}
+              className={`px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3.5 text-sm sm:text-base font-bold border backdrop-blur-xl pointer-events-auto ${
+                toastMessage.type === 'success'
+                  ? 'bg-white/95 dark:bg-[#16221C]/95 text-sage border-sage/40 shadow-sage/20'
+                  : 'bg-white/95 dark:bg-[#251818]/95 text-coral border-coral/40 shadow-coral/20'
+              }`}
+            >
+              <div
+                className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                  toastMessage.type === 'success' ? 'bg-sage-light text-sage' : 'bg-coral-light text-coral'
+                }`}
+              >
+                {toastMessage.type === 'success' ? <Check className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />}
+              </div>
+              <span className="text-ink dark:text-cream">{toastMessage.text}</span>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 

@@ -3,9 +3,10 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Receipt, Tag, Target, Settings, Menu, X, Brain, Sun, Moon } from 'lucide-react';
+import { LayoutDashboard, Receipt, Tag, Target, Settings, Menu, X, Sun, Moon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/providers/ThemeProvider';
+import BrainLogo3D from '@/components/ui/BrainLogo3D';
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -14,25 +15,6 @@ const navItems = [
   { href: '/budgets', label: 'Budget Goals', icon: Target },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
-
-const BrainLogo3D = () => {
-  return (
-    <div className="relative w-10 h-10 [perspective:1000px] group cursor-pointer shrink-0">
-      <div className="w-full h-full rounded-2xl bg-gradient-to-tr from-sage to-sage-light flex items-center justify-center border border-sage/35 shadow-md transition-all duration-700 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)_rotateX(15deg)]">
-        {/* Front Face */}
-        <div className="absolute inset-0 flex items-center justify-center [backface-visibility:hidden] [transform:translateZ(6px)]">
-          <Brain className="w-5 h-5 text-white" />
-        </div>
-        {/* Back Face */}
-        <div className="absolute inset-0 flex items-center justify-center [backface-visibility:hidden] [transform:rotateY(180deg)_translateZ(6px)]">
-          <Brain className="w-5 h-5 text-honey animate-pulse" />
-        </div>
-        {/* Inner 3D depth block */}
-        <div className="absolute inset-0 rounded-2xl bg-[#2a4d3c] [transform:translateZ(-2px)] opacity-60 blur-[1px]" />
-      </div>
-    </div>
-  );
-};
 
 export default function Sidebar() {
   const pathname = usePathname();
