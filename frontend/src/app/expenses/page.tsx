@@ -172,19 +172,19 @@ export default function ExpensesPage() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12 relative">
-      {/* Toast Notification */}
+      {/* Toast Notification (Centered Top) */}
       <AnimatePresence>
         {toastMessage && (
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className={`fixed top-6 right-6 z-50 px-4 py-3 rounded-xl shadow-xl flex items-center gap-2.5 text-xs font-bold border backdrop-blur-md ${
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            className={`fixed top-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2.5 text-xs sm:text-sm font-bold border backdrop-blur-md transition-all ${
               toastMessage.type === 'success'
-                ? 'bg-sage-light text-sage border-sage/30 dark:bg-sage/20 dark:text-sage'
+                ? 'bg-sage-light text-sage border-sage/40 dark:bg-sage/20 dark:text-sage shadow-sage/10'
                 : toastMessage.type === 'warning'
-                ? 'bg-honey-light text-honey border-honey/30 dark:bg-honey/20 dark:text-honey'
-                : 'bg-coral-light text-coral border-coral/30 dark:bg-coral/20 dark:text-coral'
+                ? 'bg-honey-light text-honey border-honey/40 dark:bg-honey/20 dark:text-honey shadow-honey/10'
+                : 'bg-coral-light text-coral border-coral/40 dark:bg-coral/20 dark:text-coral shadow-coral/10'
             }`}
           >
             {toastMessage.type === 'success' ? (
