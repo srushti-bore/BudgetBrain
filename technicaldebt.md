@@ -2,7 +2,7 @@
 
 **Project:** BudgetBrain — Personal Expense Tracker  
 **Document Status:** Active / Reference  
-**Last Updated:** August 28, 2026  
+**Last Updated:** August 29, 2026  
 
 ---
 
@@ -10,7 +10,7 @@
 
 This document logs all architectural decisions, design tradeoffs, known technical debt, and cloud infrastructure resolutions for the **BudgetBrain V1** application stack. 
 
-The application is designed as a lightweight, single-user expense tracker using Python FastAPI, SQLAlchemy 2.0 Asyncpg, PostgreSQL, and Next.js 16 / React 19.
+The application is designed as a lightweight, single-user expense tracker using Python FastAPI, SQLAlchemy 2.0 Asyncpg, PostgreSQL (Supabase), and Next.js 16 / React 19 (Vercel).
 
 ---
 
@@ -26,7 +26,7 @@ The application is designed as a lightweight, single-user expense tracker using 
 ### TD-2: Windows Async Event Loop Connection Engine Cache
 - **Context**: Python 3.13 on Windows uses `ProactorEventLoop`. Instantiating multiple `create_async_engine()` calls across different pytest async loops or request loops can cause `RuntimeError: Task attached to a different loop` or connection socket leaks.
 - **Solution Implemented**: Implemented `get_engine_and_factory()` in [`app/database.py`](file:///d:/BudgetBrain/backend/app/database.py) to cache engine instances per running event loop ID (`asyncio.get_running_loop()`).
-- **Future Improvement**: In production container environments (Linux Docker on Render/Railway), standard connection pooling with `pool_size=10, max_overflow=20` operates cleanly.
+- **Status**: **Resolved**.
 
 ---
 
@@ -44,14 +44,14 @@ The application is designed as a lightweight, single-user expense tracker using 
 
 ---
 
-### TD-5: Deferred Phase 2 Features (P2 Backlog) — Partially Resolved
+### TD-5: Deferred Phase 2 Features (P2 Backlog)
 - **Context**: SRS §3.7 & Appendix B mark data export and advanced features as Phase 2 scope.
 - **P2 Deferred Items**:
   1. CSV / Excel / PDF expense export.
   2. Recurring expenses engine (recurring tagging implemented; auto-creation engine deferred).
   3. Income tracking & net balance dashboard widgets.
-- **Items Resolved in Current Session**:
-  - ~~Multi-currency converter (V1 is fixed INR `₹`)~~ → **Resolved**: Dynamic multi-currency support added (INR, USD, EUR, GBP) with live exchange rate API integration.
+- **Items Resolved in V1**:
+  - Multi-currency converter (V1 is fixed INR `₹`) → **Resolved**: Dynamic multi-currency support added (INR, USD, EUR, GBP) with live exchange rate API integration.
 
 ---
 
@@ -61,9 +61,11 @@ The application is designed as a lightweight, single-user expense tracker using 
 
 ---
 
-### TD-7: Cross-Origin Resource Sharing (CORS) Policy for Vercel Monorepo Frontends — Resolved
+### TD-7: Cross-Origin Resource Sharing (CORS) Policy for Vercel Monorepo Frontends
 - **Context**: Browsers enforce CORS when Next.js hosted on Vercel (`https://budget-brain-eight.vercel.app`) queries Render FastAPI backend (`https://budgetbrain-ojnr.onrender.com`).
-- **Solution Implemented**: Configured `CORSMiddleware` in [`backend/app/main.py`](file:///d:/BudgetBrain/backend/app/main.py) to dynamically use `settings.allowed_origins_list` driven by the `ALLOWED_ORIGINS` environment variable, enabling fine-grained control and eliminating security risks of open wildcard permissions.
+- **Solution Implemented**: 
+  - Updated [`backend/app/config.py`](file:///d:/BudgetBrain/backend/app/config.py) default `ALLOWED_ORIGINS` to include local dev ports and `https://budget-brain-eight.vercel.app`.
+  - Added `allow_origin_regex=r"^https:\/\/.*\.vercel\.app$"` in [`backend/app/main.py`](file:///d:/BudgetBrain/backend/app/main.py) to automatically support all current and future Vercel deployment URLs and preview environments.
 - **Status**: **Resolved**.
 
 ---
@@ -71,6 +73,7 @@ The application is designed as a lightweight, single-user expense tracker using 
 ### TD-8: Next.js 16 Webpack Path Alias Resolution in Subfolder Monorepos
 - **Context**: In subfolder monorepos (`frontend/`), Next.js App Router path aliases (`@/*`) must resolve relative to `frontend/src`.
 - **Solution Implemented**: Explicitly declared Webpack alias mapping in [`frontend/next.config.ts`](file:///d:/BudgetBrain/frontend/next.config.ts) (`config.resolve.alias['@'] = path.resolve(__dirname, 'src')`) and unignored `frontend/src/lib/` in `.gitignore`.
+- **Status**: **Resolved**.
 
 ---
 
@@ -80,14 +83,13 @@ The application is designed as a lightweight, single-user expense tracker using 
 - **Conversion Provider**: [`CurrencyProvider.tsx`](file:///d:/BudgetBrain/frontend/src/providers/CurrencyProvider.tsx) fetches live rates from `https://open.er-api.com/v6/latest/INR` (free, no API key required) on mount, with hardcoded fallback rates for offline resilience.
 - **Technical Debt Assessment**:
   - **Rate Staleness**: Exchange rates are fetched once on page load and not refreshed during the session. For high-accuracy financial applications, a polling interval (e.g. every 15 minutes) or WebSocket stream would be needed.
-  - **Precision Loss**: JavaScript floating-point arithmetic introduces minor rounding discrepancies (<0.01 unit) during conversion. For accounting-grade precision, a `Decimal.js` or server-side conversion with Python `Decimal` would be required.
-  - **Search Filter Edge Case**: Min/max amount filters on the expense search page convert user input to INR before API calls. If the exchange rate changes between page load and filter submission, results may have marginal boundary mismatches.
+  - **Precision Loss**: JavaScript floating-point arithmetic introduces minor rounding discrepancies (<0.01 unit) during conversion.
+  - **Search Filter Edge Case**: Min/max amount filters on the expense search page convert user input to INR before API calls.
 
 ---
 
 ### TD-10: Hardcoded Currency Symbol in Recharts Y-Axis Tick Formatters
 - **Context**: The `SpendTrendChart.tsx` and `MonthlyCategoryGraph.tsx` components originally used hardcoded `₹` symbols in their Y-axis `tickFormatter` callbacks (`tickFormatter={(v) => '₹' + v}`).
-- **Problem**: When the user switched to USD, EUR, or GBP via the currency selector, chart axis labels still displayed `₹`.
 - **Solution Implemented**: Replaced hardcoded formatters with dynamic `formatCurrency(Number(v) || 0)` calls that respect the active CurrencyProvider context.
 - **Status**: **Resolved**.
 
@@ -100,33 +102,34 @@ The application is designed as a lightweight, single-user expense tracker using 
   - **Asset requests**: Cache-first with network fallback for uncached resources.
   - **API calls**: Not cached (pass-through to network). This is intentional — expense and budget data must always reflect the latest database state.
 - **Technical Debt Assessment**:
-  - **No Background Sync**: Offline expense creation is not supported. If the user is offline and tries to log an expense, the API call will fail silently. A future enhancement could queue offline mutations in IndexedDB and replay them when connectivity is restored (`Background Sync API`).
-  - **Cache Versioning**: Cache version is hardcoded as `budgetbrain-cache-v1`. On significant static asset changes, the version string must be manually incremented to trigger old cache eviction.
-  - **No Push Notifications**: The service worker does not implement push notification handlers. Budget limit alerts are only shown within the app UI.
+  - **No Background Sync**: Offline expense creation is not supported in V1.
+  - **Cache Versioning**: Cache version is maintained as `budgetbrain-cache-v1`.
 
 ---
 
 ### TD-12: PWA Install Prompt — `beforeinstallprompt` Browser Support Matrix
-- **Context**: The custom install popup ([`PWAInstallPrompt.tsx`](file:///d:/BudgetBrain/frontend/src/components/layout/PWAInstallPrompt.tsx)) relies on the `beforeinstallprompt` browser event to intercept and customize the installation flow.
-- **Browser Compatibility**:
-  - ✅ **Chromium-based browsers** (Chrome, Edge, Opera, Samsung Internet, Brave): Full support for `beforeinstallprompt` event and `prompt()` method.
-  - ❌ **Firefox**: Does not fire `beforeinstallprompt`. Users must manually install via browser menu.
-  - ❌ **Safari / iOS**: Does not support `beforeinstallprompt`. Users must use the Share → "Add to Home Screen" flow. The `appleWebApp` metadata in `layout.tsx` enables standalone mode once added.
-- **Fallback Handling**: The component gracefully degrades — if `beforeinstallprompt` never fires (unsupported browser), the popup simply never appears, and users can still install via native browser mechanisms.
+- **Context**: The custom install popup ([`PWAInstallPrompt.tsx`](file:///d:/BudgetBrain/frontend/src/components/layout/PWAInstallPrompt.tsx)) relies on the `beforeinstallprompt` browser event.
+- **Browser Compatibility**: Chromium browsers support direct trigger; Safari/iOS uses native "Add to Home Screen" enabled via `appleWebApp` metadata.
+- **Status**: **Resolved**.
 
 ---
 
 ### TD-13: Framer Motion Bundle Size Impact
 - **Context**: Framer Motion (`framer-motion` package) adds approximately 30-40KB gzipped to the client JavaScript bundle.
-- **Architecture Decision**: Accepted the bundle size increase in exchange for polished micro-interactions (hover springs, tap feedback, row enter/exit animations, container orchestration). These animations significantly elevate the perceived quality and premium feel of the application.
-- **Technical Debt Assessment**: If bundle size becomes a concern in future, individual animation utilities can be extracted using `motion/react` tree-shakeable imports (available in Framer Motion v11+) or replaced with lighter CSS `@keyframes` alternatives for simpler effects.
+- **Architecture Decision**: Accepted the bundle size increase in exchange for polished micro-interactions (hover springs, tap feedback, row enter/exit animations, container orchestration).
 
 ---
 
 ### TD-14: Monthly Stats Report — Projection Accuracy Limitations
 - **Context**: The [`MonthlyStatsReport.tsx`](file:///d:/BudgetBrain/frontend/src/components/dashboard/MonthlyStatsReport.tsx) widget projects month-end spending by linearly extrapolating: `projectedTotal = (totalSpent / elapsedDays) * totalDaysInMonth`.
-- **Limitation**: Linear projection assumes uniform daily spending. Real-world spending patterns are non-uniform (e.g. higher spending on weekends, salary days, bill payment dates). The projection may overestimate or underestimate significantly in early days of the month (days 1-5) where sample size is small.
-- **Future Improvement**: A weighted moving average or time-series regression model could provide more accurate month-end forecasts as more historical data accumulates.
+- **Limitation**: Linear projection assumes uniform daily spending. Real-world spending patterns are non-uniform.
+
+---
+
+### TD-15: Supabase Session Mode Connection Limit & NullPool Resolution
+- **Context**: Supabase session-mode pooler limits concurrent clients to 15. Running the 37-test pytest suite or high-frequency async loops across multiple test clients produced `asyncpg.exceptions.InternalServerError: (EMAXCONNSESSION) max clients reached in session mode`.
+- **Solution Implemented**: Added `poolclass=NullPool` to `create_async_engine` in [`database.py`](file:///d:/BudgetBrain/backend/app/database.py). Connections are immediately closed upon request completion, eliminating connection pool leaks and session mode exhaustion.
+- **Status**: **Resolved**.
 
 ---
 
@@ -134,6 +137,6 @@ The application is designed as a lightweight, single-user expense tracker using 
 
 - **PEP 8 Compliance**: All top-level imports clean; no mid-file or inline module imports.
 - **Configuration Hygiene**: Zero hardcoded credentials or database URLs. All settings resolved dynamically via `app.config.get_settings()`.
-- **Testing Standard**: 100% of new router endpoints or service methods must include corresponding unit/integration test cases in `backend/tests/`.
+- **Testing Standard**: 100% of new router endpoints or service methods must include corresponding unit/integration test cases in `backend/tests/` (37 / 37 currently passing).
 - **Currency Formatting Standard**: All user-facing monetary values must use `useFormatCurrency()` hook or `formatCurrency()` utility. Never hardcode currency symbols (`₹`, `$`, `€`, `£`) in display components.
 - **Animation Consistency**: All interactive card/button components should use Framer Motion `whileHover` and `whileTap` props with consistent spring physics (`type: "spring", stiffness: 300, damping: 20`).

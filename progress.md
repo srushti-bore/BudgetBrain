@@ -1,11 +1,12 @@
 # BudgetBrain — Session Progress Report (`progress.md`)
 
 **Project:** BudgetBrain — Personal Expense Tracker  
-**Phase:** V1 Feature-Complete + PWA Ready  
+**Phase:** V1 Feature-Complete + PWA Ready + Production Deployed  
 **Status:** 100% Backend & Frontend Complete, Multi-Currency Live, PWA Installable, Fully Verified & Cloud Deployed  
 **Repository:** [https://github.com/srushti-bore/BudgetBrain.git](https://github.com/srushti-bore/BudgetBrain.git)  
-**Live URL:** [https://budget-brain-eight.vercel.app/](https://budget-brain-eight.vercel.app/)  
-**Last Updated:** August 28, 2026  
+**Live Frontend:** [https://budget-brain-eight.vercel.app/](https://budget-brain-eight.vercel.app/)  
+**Live Backend:** [https://budgetbrain-ojnr.onrender.com/api/v1/health](https://budgetbrain-ojnr.onrender.com/api/v1/health)  
+**Last Updated:** August 29, 2026  
 
 ---
 
@@ -13,7 +14,7 @@
 
 This document records the complete, end-to-end progress achieved across all development sessions for **BudgetBrain V1**. The application was built following the Software Requirements Specification ([`BudgetBrain_SRS.md`](file:///d:/BudgetBrain/docs/BudgetBrain_SRS.md)), Product Requirements Document ([`BudgetBrain_PRD_Final.md`](file:///d:/BudgetBrain/docs/BudgetBrain_PRD_Final.md)), and Project Constraints ([`Agents.md`](file:///d:/BudgetBrain/Agents.md)).
 
-All 13 REST API endpoints across 5 core backend modules are fully functional with PostgreSQL, verified with 36 automated pytest tests. The Next.js 16+ frontend application features an eye-soothing human-psychology color system, dynamic multi-currency conversions, Framer Motion micro-interactions, a 3D Brain logo, a predictive monthly stats report widget, and full Progressive Web App (PWA) installability with custom install prompt popup.
+All 13 REST API endpoints across 5 core backend modules are fully functional with PostgreSQL, verified with 37 automated pytest tests (100% passing). The Next.js 16+ frontend application features an eye-soothing human-psychology color system, dynamic multi-currency conversions, Framer Motion micro-interactions, a 3D Brain logo, a predictive monthly stats report widget, and full Progressive Web App (PWA) installability with custom install prompt popup.
 
 ---
 
@@ -112,12 +113,9 @@ All 13 REST API endpoints across 5 core backend modules are fully functional wit
 6. **Average Spend Metric Accuracy**: Updated dashboard spend average calculations to divide by elapsed days up to current date rather than the whole month, avoiding mid-month metric deflation.
 7. **Frontend API Envelope Unwrapping**: Updated `frontend/src/lib/api.ts` `dashboardApi` client methods to unwrap `response.data.data`.
 8. **PEP 8 Compliance**: Resolved mid-function imports in `expenses.py`.
+9. **Database Connection Pool Bottleneck Fix**: Added `poolclass=NullPool` to `create_async_engine` in `database.py` to prevent Supabase connection pool exhaustion (`EMAXCONNSESSION`) across async test runs.
 
----
-
-## Summary of Accomplishments
-
-### Phase 13: Production Deployment & Live CORS Resolution (2026-08-29)
+### Phase 13 — Production Deployment & Live CORS Resolution
 - **Problem Identified**: The live frontend on Vercel (`https://budget-brain-eight.vercel.app`) was encountering preflight CORS 400 errors across all endpoints because the backend settings on Render defaulted `ALLOWED_ORIGINS` to `http://localhost:3000`.
 - **Changes Applied**:
   - Updated [`config.py`](file:///d:/BudgetBrain/backend/app/config.py) default `ALLOWED_ORIGINS` to include `http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001,https://budget-brain-eight.vercel.app`.
@@ -125,6 +123,18 @@ All 13 REST API endpoints across 5 core backend modules are fully functional wit
 - **Verification**:
   - Live probe across all 8 endpoints (`/dashboard/*`, `/categories`, `/expenses`, `/budgets`) returned `OPTIONS 200` and `Access-Control-Allow-Origin: https://budget-brain-eight.vercel.app`.
   - Production build `npx next build --webpack` succeeded with 0 errors.
+
+---
+
+## Summary of Accomplishments
+
+| Metric / Feature | Target | Status |
+|---|---|---|
+| API Endpoints | 13 REST routes | 100% Complete & Verified |
+| Automated Backend Tests | 37 test cases | 37 / 37 Passing (100%) |
+| Next.js Frontend | 4 Core App Pages | 100% Built & Verified |
+| Cloud Configs | Render, Vercel, Supabase | Configured & Live Deployed |
+| Production Build | Zero Compiler Errors | `next build` Passed |
 | Authentication Constraint | 0 Auth (Permanent) | Enforced |
 | Data Integrity Constraint | 0 Hardcoded Data | Enforced (100% DB driven) |
 | Multi-Currency Support | INR, USD, EUR, GBP | Live API rates + dynamic formatting |
@@ -135,7 +145,7 @@ All 13 REST API endpoints across 5 core backend modules are fully functional wit
 
 ---
 
-## Key Commits (Latest Session)
+## Key Commits
 
 | Commit Hash | Description |
 |---|---|
@@ -144,3 +154,6 @@ All 13 REST API endpoints across 5 core backend modules are fully functional wit
 | `568d4aa` | fix: resolve hardcoded INR symbols in chart Y-axis tickFormatters |
 | `a75338f` | feat: add progressive web app (PWA) support with service worker and premium app icon |
 | `4c6e95f` | feat: add visible custom client-side PWA installation prompt popup |
+| `3324e7d` | fix: resolve backend bugs, enforce response envelopes, and configure NullPool connection pooling |
+| `f2a1ae2` | fix(cors): allow vercel production domain and add vercel origin regex in CORS middleware |
+| `ae0ff75` | docs: document Phase 13 production CORS resolution |
