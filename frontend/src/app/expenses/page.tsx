@@ -23,6 +23,7 @@ import {
   Flame,
   AlertTriangle,
   Check,
+  X,
 } from 'lucide-react';
 
 export default function ExpensesPage() {
@@ -47,7 +48,8 @@ export default function ExpensesPage() {
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deletingExpense, setDeletingExpense] = useState<Expense | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'warning' | 'error' } | null>(null);
 
   const { nearLimitThreshold = 80 } = useSettings();
@@ -140,14 +142,17 @@ export default function ExpensesPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this expense entry?')) {
-      setDeletingId(id);
-      try {
-        await deleteMutation.mutateAsync(id);
-      } finally {
-        setDeletingId(null);
-      }
+  const handleConfirmDelete = async () => {
+    if (!deletingExpense) return;
+    setIsDeleting(true);
+    try {
+      await deleteMutation.mutateAsync(deletingExpense.id);
+      showToast('Expense deleted successfully!', 'success');
+      setDeletingExpense(null);
+    } catch (err: any) {
+      showToast(err?.response?.data?.error?.message || 'Failed to delete expense', 'error');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -443,9 +448,8 @@ export default function ExpensesPage() {
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleDelete(expense.id)}
-                          disabled={deletingId === expense.id}
-                          className="p-1.5 rounded-lg hover:bg-coral/20 text-coral font-bold transition-colors disabled:opacity-50"
+                          onClick={() => setDeletingExpense(expense)}
+                          className="p-1.5 rounded-lg hover:bg-coral/20 text-coral font-bold transition-colors cursor-pointer"
                           title="Delete Expense"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -500,6 +504,73 @@ export default function ExpensesPage() {
           queryClient.invalidateQueries({ queryKey: ['categories'] });
         }}
       />
+
+      {/* Delete Expense Confirmation Dialog Modal */}
+      {deletingExpense && (
+        <div className="fixed inset-0 z-50 bg-ink/40 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="glass-modal w-full max-w-md rounded-2xl p-6 shadow-2xl border-coral/40 space-y-4 relative"
+          >
+            <div className="flex items-center justify-between pb-2 border-b border-ink/10 dark:border-white/10">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-coral-light flex items-center justify-center text-coral shadow-xs">
+                  <Trash2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-display font-bold text-lg text-ink">Delete Expense?</h3>
+                  <span className="text-[11px] text-ink-muted">This action cannot be undone</span>
+                </div>
+              </div>
+              <button
+                onClick={() => setDeletingExpense(null)}
+                className="p-1.5 rounded-lg hover:bg-ink/5 dark:hover:bg-white/10 text-ink-muted hover:text-ink transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Expense details preview card */}
+            <div className="p-4 rounded-xl bg-ink/5 dark:bg-white/5 border border-ink/10 dark:border-white/10 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-sm text-ink">{deletingExpense.title}</span>
+                <span className="font-display font-extrabold text-base text-coral">
+                  -{formatCurrency(deletingExpense.amount)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-xs text-ink-muted pt-1 border-t border-ink/5 dark:border-white/5">
+                <span>Category: <strong className="text-ink">{deletingExpense.category_name || 'Uncategorized'}</strong></span>
+                <span>Date: <strong className="text-ink">{formatDate(deletingExpense.date)}</strong></span>
+              </div>
+            </div>
+
+            <p className="text-xs text-ink-muted leading-relaxed">
+              Are you sure you want to permanently delete this transaction? The amount will be removed from your recorded spend and restored to your available monthly budget.
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-ink/10 dark:border-white/10">
+              <button
+                type="button"
+                onClick={() => setDeletingExpense(null)}
+                className="px-4 py-2.5 rounded-xl border border-ink/15 dark:border-white/15 text-xs font-semibold text-ink hover:bg-white dark:hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                disabled={isDeleting}
+                className="px-5 py-2.5 bg-coral hover:bg-coral-dark text-white text-xs font-bold rounded-xl shadow-md shadow-coral/20 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>{isDeleting ? 'Deleting...' : 'Confirm Delete'}</span>
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }
