@@ -12,6 +12,7 @@ import MonthComparisonCard from '@/components/dashboard/MonthComparisonCard';
 import TopCategoriesWidget from '@/components/dashboard/TopCategoriesWidget';
 import RecentExpensesSnapshot from '@/components/dashboard/RecentExpensesSnapshot';
 import { useFormatCurrency } from '@/providers/CurrencyProvider';
+import { useSettings } from '@/providers/SettingsProvider';
 import MonthlyStatsReport from '@/components/dashboard/MonthlyStatsReport';
 import { Wallet, Calendar, PlusCircle, AlertCircle, Target, CheckCircle, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
@@ -37,6 +38,7 @@ const itemVariants: Variants = {
 
 export default function DashboardPage() {
   const formatCurrency = useFormatCurrency();
+  const { showPredictiveInsights } = useSettings();
   const {
     data: summary,
     isLoading: isSummaryLoading,
@@ -286,9 +288,12 @@ export default function DashboardPage() {
       </motion.div>
 
       {/* Bento Grid Layer 3: MoM Comparison, Budget Stats Report, & Top Categories */}
-      <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <motion.div
+        variants={itemVariants}
+        className={`grid grid-cols-1 ${showPredictiveInsights ? 'md:grid-cols-2 lg:grid-cols-3' : 'md:grid-cols-2'} gap-6`}
+      >
         <MonthComparisonCard comparison={comparison} />
-        <MonthlyStatsReport summary={summary} topCategories={topCategories} />
+        {showPredictiveInsights && <MonthlyStatsReport summary={summary} topCategories={topCategories} />}
         <TopCategoriesWidget categories={topCategories} />
       </motion.div>
 

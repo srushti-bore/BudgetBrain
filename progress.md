@@ -135,6 +135,18 @@ All 13 REST API endpoints across 5 core backend modules are fully functional wit
 - **Non-Intrusive PWA Prompt**: Repositioned as a compact, non-intrusive floating card in the corner that doesn't cover dashboard cards (`PWAInstallPrompt.tsx`).
 - **Sidebar Navigation Polish**: Added a left accent indicator bar on the active route and smooth hover micro-interactions (`Sidebar.tsx`).
 
+### Phase 15 — Settings & System Controls Suite
+- **SettingsProvider Context** ([`SettingsProvider.tsx`](file:///d:/BudgetBrain/frontend/src/providers/SettingsProvider.tsx)): Global state management with `localStorage` persistence for date formats (`DD/MM/YYYY`, `MM/DD/YYYY`, `YYYY-MM-DD`), first day of the week, near-limit warning thresholds (75%-90%), and predictive insights toggle.
+- **Export & Backup Engine** ([`exportUtils.ts`](file:///d:/BudgetBrain/frontend/src/lib/exportUtils.ts)):
+  - Client-side CSV export generator for all expense records with formatted columns for spreadsheet apps.
+  - Full database JSON snapshot generator and validator for complete backup and restore.
+- **Settings Page** ([`settings/page.tsx`](file:///d:/BudgetBrain/frontend/src/app/settings/page.tsx)):
+  - **Tab 1: Display & Regional Preferences**: Theme switcher (Light/Dark), base currency selector, date format picker, and first day of week.
+  - **Tab 2: Budget & Alerts**: Near-limit threshold selector (75%-90%), dashboard predictive health widget toggle.
+  - **Tab 3: Data Management & Danger Zone**: Instant CSV export, JSON backup, file verification, and security-guarded "Clear All Expenses" (requires typing "DELETE") and "Restore Starter Categories" (requires typing "RESET").
+  - **Tab 4: System Health & About**: Live FastAPI and Supabase connectivity monitor with real-time ping latency, version info, and GitHub repository links.
+- **Navigation Integration**: Added Settings with gear icon to [`Sidebar.tsx`](file:///d:/BudgetBrain/frontend/src/components/layout/Sidebar.tsx) and wrapped root tree in [`layout.tsx`](file:///d:/BudgetBrain/frontend/src/app/layout.tsx).
+
 ---
 
 ## Summary of Accomplishments
@@ -143,7 +155,7 @@ All 13 REST API endpoints across 5 core backend modules are fully functional wit
 |---|---|---|
 | API Endpoints | 13 REST routes | 100% Complete & Verified |
 | Automated Backend Tests | 37 test cases | 37 / 37 Passing (100%) |
-| Next.js Frontend | 4 Core App Pages | 100% Built & Verified |
+| Next.js Frontend | 5 Core App Pages | 100% Built & Verified |
 | Cloud Configs | Render, Vercel, Supabase | Configured & Live Deployed |
 | Production Build | Zero Compiler Errors | `next build` Passed |
 | Authentication Constraint | 0 Auth (Permanent) | Enforced |
@@ -153,6 +165,7 @@ All 13 REST API endpoints across 5 core backend modules are fully functional wit
 | Monthly Stats Report | Predictive health widget | Avg daily, projection, health score |
 | PWA Installability | Manifest + SW + Prompt | Fully installable with custom popup |
 | Daily Budget Limit | Per-month daily cap | DB column + modal + dashboard alert |
+| Settings & Backup Suite | 4 Tabs + Danger Zone | CSV export, JSON backup, live health monitor |
 | Dashboard UI/UX Polish | V1 Modernization | Spacing, enriched metrics, donut totals, ring glow |
 
 ---

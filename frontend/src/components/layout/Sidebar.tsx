@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Receipt, Tag, Target, Menu, X, Brain, Sun, Moon } from 'lucide-react';
+import { LayoutDashboard, Receipt, Tag, Target, Settings, Menu, X, Brain, Sun, Moon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useCurrency } from '@/providers/CurrencyProvider';
@@ -13,6 +13,7 @@ const navItems = [
   { href: '/expenses', label: 'Expenses', icon: Receipt },
   { href: '/categories', label: 'Categories', icon: Tag },
   { href: '/budgets', label: 'Budget Goals', icon: Target },
+  { href: '/settings', label: 'Settings', icon: Settings },
 ];
 
 const BrainLogo3D = () => {
