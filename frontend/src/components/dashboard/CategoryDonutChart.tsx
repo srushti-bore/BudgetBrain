@@ -70,23 +70,23 @@ export default function CategoryDonutChart({ initialData = [] }: CategoryDonutCh
   });
 
   return (
-    <div className="glass-card glass-card-hover p-7 flex flex-col justify-between h-full min-h-[360px] border-sage/20">
+    <div className="glass-card glass-card-hover p-6 sm:p-7 flex flex-col justify-between h-full min-h-[380px] border-sage/20">
       <div className="flex items-center justify-between mb-4">
         <div>
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-sage/15 flex items-center justify-center text-sage">
               <PieIcon className="w-4 h-4" />
             </div>
-            <h3 className="font-display font-bold text-lg text-ink">Category Spend Pie</h3>
+            <h3 className="font-display font-bold text-lg text-ink">Category Spend Breakdown</h3>
           </div>
-          <p className="text-xs text-ink-muted mt-0.5">Category distribution breakdown</p>
+          <p className="text-xs text-ink-muted mt-0.5">Distribution across spending categories</p>
         </div>
 
         {/* Weekly / Monthly Toggle */}
         <div className="flex bg-ink/5 dark:bg-white/10 p-1 rounded-xl gap-1">
           <button
             onClick={() => setPeriod('weekly')}
-            className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
+            className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
               period === 'weekly'
                 ? 'bg-sage text-white shadow-sm'
                 : 'text-ink-muted hover:text-ink dark:hover:text-cream'
@@ -96,7 +96,7 @@ export default function CategoryDonutChart({ initialData = [] }: CategoryDonutCh
           </button>
           <button
             onClick={() => setPeriod('monthly')}
-            className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
+            className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
               period === 'monthly'
                 ? 'bg-sage text-white shadow-sm'
                 : 'text-ink-muted hover:text-ink dark:hover:text-cream'
@@ -108,36 +108,36 @@ export default function CategoryDonutChart({ initialData = [] }: CategoryDonutCh
       </div>
 
       {isLoading || !isMounted ? (
-        <div className="h-60 flex items-center justify-center">
+        <div className="h-64 flex items-center justify-center">
           <div className="w-8 h-8 border-3 border-sage border-t-transparent rounded-full animate-spin" />
         </div>
       ) : chartData.length === 0 ? (
-        <div className="h-60 flex flex-col items-center justify-center text-center">
+        <div className="h-64 flex flex-col items-center justify-center text-center">
           <div className="w-12 h-12 rounded-2xl bg-sage/10 flex items-center justify-center text-sage mb-2">
             <PieIcon className="w-6 h-6" />
           </div>
           <p className="text-xs font-semibold text-ink">No {period} spending recorded yet.</p>
-          <p className="text-[11px] text-ink-muted mt-0.5">Log expenses to see color breakdown.</p>
+          <p className="text-[11px] text-ink-muted mt-0.5">Log expenses to see category distribution.</p>
         </div>
       ) : (
         <>
-          <div className="h-60 w-full min-h-[220px] relative">
-            <ResponsiveContainer width="100%" height="100%" minHeight={220}>
+          <div className="h-56 w-full relative my-auto">
+            <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={chartData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={50}
-                  outerRadius={85}
-                  paddingAngle={4}
+                  innerRadius={55}
+                  outerRadius={88}
+                  paddingAngle={3}
                   dataKey="value"
                 >
                   {chartData.map((entry, index) => (
                     <Cell
                       key={`cell-${index}`}
                       fill={COLORS[index % COLORS.length]}
-                      stroke="rgba(255,255,255,0.9)"
+                      stroke="rgba(255,255,255,0.8)"
                       strokeWidth={2}
                     />
                   ))}
@@ -156,18 +156,38 @@ export default function CategoryDonutChart({ initialData = [] }: CategoryDonutCh
                 />
               </PieChart>
             </ResponsiveContainer>
+
+            {/* Centered Donut Total Display */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center">
+              <span className="text-[10px] uppercase tracking-wider text-ink-muted font-bold">
+                Total
+              </span>
+              <span className="font-display font-extrabold text-sm sm:text-base text-ink leading-tight">
+                {formatCurrency(totalSum)}
+              </span>
+            </div>
           </div>
 
-          {/* Color Legend */}
-          <div className="grid grid-cols-2 gap-2 pt-3 border-t border-ink/5 dark:border-white/10 max-h-28 overflow-y-auto">
+          {/* Enhanced Color Legend with Values & Percentages */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-3 border-t border-ink/5 dark:border-white/10 max-h-32 overflow-y-auto pr-1">
             {chartData.map((entry, index) => (
-              <div key={entry.name} className="flex items-center gap-2 text-xs">
-                <span
-                  className="w-3 h-3 rounded-full shrink-0 shadow-xs"
-                  style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                />
-                <span className="text-ink font-semibold truncate flex-1">{entry.name}</span>
-                <span className="text-ink-muted text-[11px] font-bold">{entry.percentage}%</span>
+              <div
+                key={entry.name}
+                className="flex items-center justify-between gap-2 text-xs p-1.5 rounded-lg hover:bg-ink/5 dark:hover:bg-white/5 transition-colors"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <span
+                    className="w-2.5 h-2.5 rounded-full shrink-0 shadow-xs"
+                    style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                  />
+                  <span className="text-ink font-semibold truncate text-xs">{entry.name}</span>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className="text-ink-muted text-[11px] font-medium">{formatCurrency(entry.value)}</span>
+                  <span className="text-[10px] font-bold text-sage bg-sage-light dark:bg-sage/15 px-1.5 py-0.5 rounded">
+                    {entry.percentage}%
+                  </span>
+                </div>
               </div>
             ))}
           </div>

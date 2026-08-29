@@ -44,34 +44,46 @@ export default function BudgetRing({
   };
 
   const getRingColor = () => {
-    if (status === 'over_budget' || percentage >= 100) return '#D96B50';
-    if (status === 'near_limit' || percentage >= 80) return '#D99B38';
-    return '#4E8D6E';
+    if (status === 'over_budget' || percentage >= 100) return '#C85A48';
+    if (status === 'near_limit' || percentage >= 80) return '#C68A28';
+    return '#3E7259';
   };
 
+  const remaining = Math.max(limitAmount - spentAmount, 0);
+
   return (
-    <div className="glass-card glass-card-hover p-7 flex flex-col justify-between h-full min-h-[340px] relative overflow-hidden">
+    <div className="glass-card glass-card-hover p-6 sm:p-7 flex flex-col justify-between h-full min-h-[380px] relative overflow-hidden border-sage/20">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="font-display font-bold text-lg text-ink">Monthly Budget Status</h3>
-          <p className="text-xs text-ink-muted">Master Spending Limit Tracker</p>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-sage/15 flex items-center justify-center text-sage">
+              <Target className="w-4 h-4" />
+            </div>
+            <h3 className="font-display font-bold text-lg text-ink">Monthly Budget Status</h3>
+          </div>
+          <p className="text-xs text-ink-muted mt-0.5">Master spending limit & real-time runway</p>
         </div>
         {getStatusBadge()}
       </div>
 
-      {/* Ring & Data Section */}
-      <div className="flex flex-col sm:flex-row items-center justify-around gap-6 my-auto">
-        {/* SVG Circular Progress Ring */}
-        <div className="relative w-44 h-44 flex items-center justify-center shrink-0">
-          <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+      {/* Ring & Center Percentage Visual */}
+      <div className="flex flex-col items-center justify-center my-auto py-3">
+        <div className="relative w-48 h-48 flex items-center justify-center shrink-0">
+          {/* Subtle ambient backglow */}
+          <div
+            className="absolute inset-4 rounded-full blur-xl opacity-20 transition-all duration-700 pointer-events-none"
+            style={{ backgroundColor: getRingColor() }}
+          />
+
+          <svg className="w-full h-full transform -rotate-90 relative z-10" viewBox="0 0 100 100">
             {/* Background Track Circle */}
             <circle
               cx="50"
               cy="50"
               r="45"
               className="stroke-ink/5 dark:stroke-white/10"
-              strokeWidth="8"
+              strokeWidth="7"
               fill="transparent"
             />
             {/* Animated Progress Circle */}
@@ -80,7 +92,7 @@ export default function BudgetRing({
               cy="50"
               r="45"
               stroke={getRingColor()}
-              strokeWidth="8"
+              strokeWidth="7"
               strokeDasharray="283"
               initial={{ strokeDashoffset: 283 }}
               animate={{ strokeDashoffset }}
@@ -91,38 +103,44 @@ export default function BudgetRing({
           </svg>
 
           {/* Center Percentage Display */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-            <span className="font-display font-extrabold text-3xl text-ink tracking-tight">
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center z-20">
+            <span className="font-display font-extrabold text-3xl sm:text-4xl text-ink tracking-tight">
               {percentage}%
             </span>
-            <span className="text-[11px] font-semibold text-ink-muted uppercase tracking-wider mt-0.5">
+            <span className="text-[11px] font-bold text-ink-muted uppercase tracking-wider mt-0.5">
               Limit Used
             </span>
           </div>
         </div>
+      </div>
 
-        {/* Breakdown Stats */}
-        <div className="space-y-3 w-full sm:w-auto">
-          <div className="p-3.5 rounded-xl bg-white/60 dark:bg-white/5 border border-ink/5 dark:border-white/10">
-            <span className="text-[11px] text-ink-muted font-medium block">Monthly Limit Target</span>
-            <span className="font-display font-bold text-lg text-ink">
-              {limitAmount > 0 ? formatCurrency(limitAmount) : 'Not Configured'}
-            </span>
-          </div>
+      {/* Breakdown Stats Grid */}
+      <div className="grid grid-cols-3 gap-2.5 sm:gap-3 pt-4 border-t border-ink/5 dark:border-white/10">
+        <div className="p-3 rounded-xl bg-white/70 dark:bg-white/5 border border-ink/5 dark:border-white/10 text-center">
+          <span className="text-[10px] sm:text-[11px] text-ink-muted font-semibold uppercase tracking-wider block">
+            Budget Cap
+          </span>
+          <span className="font-display font-bold text-sm sm:text-base text-ink block mt-0.5 truncate">
+            {limitAmount > 0 ? formatCurrency(limitAmount) : 'None'}
+          </span>
+        </div>
 
-          <div className="p-3.5 rounded-xl bg-white/60 dark:bg-white/5 border border-ink/5 dark:border-white/10">
-            <span className="text-[11px] text-ink-muted font-medium block">Total Spent So Far</span>
-            <span className="font-display font-bold text-lg text-coral">
-              {formatCurrency(spentAmount)}
-            </span>
-          </div>
+        <div className="p-3 rounded-xl bg-white/70 dark:bg-white/5 border border-ink/5 dark:border-white/10 text-center">
+          <span className="text-[10px] sm:text-[11px] text-ink-muted font-semibold uppercase tracking-wider block">
+            Total Spent
+          </span>
+          <span className="font-display font-bold text-sm sm:text-base text-coral block mt-0.5 truncate">
+            {formatCurrency(spentAmount)}
+          </span>
+        </div>
 
-          <div className="p-3.5 rounded-xl bg-white/60 dark:bg-white/5 border border-ink/5 dark:border-white/10">
-            <span className="text-[11px] text-ink-muted font-medium block">Remaining Limit</span>
-            <span className="font-display font-bold text-lg text-sage">
-              {formatCurrency(Math.max(limitAmount - spentAmount, 0))}
-            </span>
-          </div>
+        <div className="p-3 rounded-xl bg-white/70 dark:bg-white/5 border border-ink/5 dark:border-white/10 text-center">
+          <span className="text-[10px] sm:text-[11px] text-ink-muted font-semibold uppercase tracking-wider block">
+            Remaining
+          </span>
+          <span className="font-display font-bold text-sm sm:text-base text-sage block mt-0.5 truncate">
+            {formatCurrency(remaining)}
+          </span>
         </div>
       </div>
     </div>

@@ -58,46 +58,53 @@ export default function PWAInstallPrompt() {
   return (
     <AnimatePresence>
       {isVisible && (
-        <motion.div
-          initial={{ opacity: 0, y: 50, scale: 0.95 }}
+        <motion.aside
+          aria-label="Install Application"
+          initial={{ opacity: 0, y: 30, scale: 0.96 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 20, scale: 0.95 }}
-          className="fixed bottom-6 right-6 left-6 md:left-auto md:w-96 z-50 p-5 rounded-2xl glass-modal shadow-2xl border border-sage/35 bg-white/95 dark:bg-[#16201c] flex flex-col gap-4"
+          exit={{ opacity: 0, y: 20, scale: 0.96 }}
+          transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+          className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 max-w-sm w-[calc(100%-2rem)] sm:w-auto p-4 rounded-2xl glass-modal shadow-2xl border border-sage/40 bg-white/95 dark:bg-[#16201c]/95 backdrop-blur-md flex flex-col gap-3"
         >
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-sage/15 flex items-center justify-center text-sage border border-sage/20 shrink-0">
-                <Brain className="w-6 h-6 text-sage" />
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-sage/15 flex items-center justify-center text-sage border border-sage/25 shrink-0">
+                <Brain className="w-5 h-5 text-sage" />
               </div>
-              <div>
-                <h4 className="font-display font-bold text-sm text-ink dark:text-cream leading-tight">Install BudgetBrain</h4>
-                <p className="text-[11px] text-ink-muted mt-0.5">Log expenses and check budgets offline!</p>
+              <div className="min-w-0">
+                <h4 className="font-display font-bold text-xs sm:text-sm text-ink dark:text-cream leading-tight truncate">
+                  Install BudgetBrain
+                </h4>
+                <p className="text-[11px] text-ink-muted leading-tight mt-0.5">
+                  Fast access & offline budget tracking
+                </p>
               </div>
             </div>
             <button
               onClick={handleDismiss}
-              className="p-1.5 rounded-lg hover:bg-ink/5 dark:hover:bg-white/10 text-ink-muted hover:text-ink transition-colors"
+              className="p-1 rounded-lg hover:bg-ink/5 dark:hover:bg-white/10 text-ink-muted hover:text-ink transition-colors cursor-pointer shrink-0"
+              aria-label="Dismiss install prompt"
             >
-              <X className="w-4 h-4" />
+              <X className="w-3.5 h-3.5" />
             </button>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 pt-1 border-t border-ink/5 dark:border-white/10">
             <button
               onClick={handleDismiss}
-              className="flex-1 py-2 rounded-xl border border-ink/15 dark:border-white/15 text-xs font-semibold text-ink dark:text-cream hover:bg-ink/5 dark:hover:bg-white/10 text-center transition-colors cursor-pointer"
+              className="px-3 py-1.5 rounded-xl border border-ink/15 dark:border-white/15 text-xs font-semibold text-ink dark:text-cream hover:bg-ink/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
             >
               Later
             </button>
             <button
               onClick={handleInstall}
-              className="flex-1 py-2 bg-sage hover:bg-sage-dark text-white text-xs font-bold rounded-xl shadow-md flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              className="flex-1 py-1.5 bg-sage hover:bg-sage-dark text-white text-xs font-bold rounded-xl shadow-sm flex items-center justify-center gap-1.5 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
             >
               <Download className="w-3.5 h-3.5" />
-              <span>Install Now</span>
+              <span>Install App</span>
             </button>
           </div>
-        </motion.div>
+        </motion.aside>
       )}
     </AnimatePresence>
   );
