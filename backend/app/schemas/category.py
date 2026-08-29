@@ -15,8 +15,11 @@ class CategoryCreate(BaseModel):
 
     @field_validator("name")
     @classmethod
-    def strip_whitespace(cls, v: str) -> str:
-        return v.strip()
+    def format_and_strip(cls, v: str) -> str:
+        s = v.strip()
+        if not s:
+            return s
+        return s[0].upper() + s[1:]
 
 
 class CategoryUpdate(BaseModel):
@@ -25,8 +28,11 @@ class CategoryUpdate(BaseModel):
 
     @field_validator("name")
     @classmethod
-    def strip_whitespace(cls, v: str) -> str:
-        return v.strip()
+    def format_and_strip(cls, v: str) -> str:
+        s = v.strip()
+        if not s:
+            return s
+        return s[0].upper() + s[1:]
 
 
 class CategoryOut(BaseModel):

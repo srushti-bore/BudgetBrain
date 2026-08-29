@@ -36,3 +36,10 @@ export function getTodayDateString(): string {
   const day = String(today.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
+
+export function capitalizeFirstLetter(str: string): string {
+  if (!str) return '';
+  const trimmed = str.trim();
+  if (!trimmed) return '';
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+}

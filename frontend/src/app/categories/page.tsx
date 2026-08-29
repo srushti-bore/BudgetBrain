@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { categoryApi } from '@/lib/api';
 import { Category } from '@/types';
+import { capitalizeFirstLetter } from '@/lib/utils';
 import { Tag, Plus, Edit2, Trash2, Shield, AlertTriangle, X } from 'lucide-react';
 
 export default function CategoriesPage() {
@@ -58,15 +59,16 @@ export default function CategoriesPage() {
 
   const handleSaveCategory = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!catName.trim()) return;
+    const formattedName = capitalizeFirstLetter(catName);
+    if (!formattedName) return;
 
     setIsSubmitting(true);
     setErrorMsg('');
     try {
       if (editingCategory) {
-        await updateMutation.mutateAsync({ id: editingCategory.id, name: catName.trim() });
+        await updateMutation.mutateAsync({ id: editingCategory.id, name: formattedName });
       } else {
-        await createMutation.mutateAsync({ name: catName.trim() });
+        await createMutation.mutateAsync({ name: formattedName });
       }
       setIsAddModalOpen(false);
     } catch (err: any) {

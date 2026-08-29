@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Expense, Category, PaymentMode } from '@/types';
-import { getTodayDateString } from '@/lib/utils';
+import { getTodayDateString, capitalizeFirstLetter } from '@/lib/utils';
 import { X, Plus, AlertCircle, Repeat } from 'lucide-react';
 import { categoryApi } from '@/lib/api';
 import { useCurrency } from '@/providers/CurrencyProvider';
@@ -118,10 +118,11 @@ export default function ExpenseModal({
   };
 
   const handleCreateCategory = async () => {
-    if (!newCatName.trim()) return;
+    const formattedName = capitalizeFirstLetter(newCatName);
+    if (!formattedName) return;
     setCatCreating(true);
     try {
-      const created = await categoryApi.create({ name: newCatName.trim() });
+      const created = await categoryApi.create({ name: formattedName });
       if (onCategoryCreated) onCategoryCreated(created);
       setCategoryId(created.id);
       setNewCatName('');
