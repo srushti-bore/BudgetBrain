@@ -5,6 +5,8 @@ All exceptions use the SRS-defined error envelope:
   { "error": { "code": str, "message": str, "field": str | None } }
 """
 
+from decimal import Decimal
+
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
@@ -90,6 +92,24 @@ class CategoryHasExpensesException(BudgetBrainException):
             status_code=status.HTTP_409_CONFLICT,
         )
         self.expense_count = expense_count
+
+
+class BudgetExceededException(BudgetBrainException):
+    """Raised when an expense would cause monthly spending to exceed the active budget limit."""
+
+    def __init__(self, expense_amount: Decimal, remaining_budget: Decimal, budget_limit: Decimal):
+        super().__init__(
+            code="BUDGET_EXCEEDED",
+            message=(
+                f"Transaction blocked: This expense of ₹{expense_amount:,.2f} exceeds your monthly budget. "
+                f"Your remaining budget is only ₹{remaining_budget:,.2f} (Budget Cap: ₹{budget_limit:,.2f})."
+            ),
+            field="amount",
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+        self.expense_amount = expense_amount
+        self.remaining_budget = remaining_budget
+        self.budget_limit = budget_limit
 
 
 # ─────────────────────────────────────────────────────────────────────────────

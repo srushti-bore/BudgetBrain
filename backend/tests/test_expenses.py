@@ -2,7 +2,8 @@
 Tests for /api/v1/expenses endpoints.
 
 Covers: FR-2 (Add), FR-3 (View), FR-4 (Edit), FR-5 (Delete),
-        FR-11 to FR-16 (Search, Filter, Sort).
+        FR-11 to FR-16 (Search, Filter, Sort),
+        Budget Overspend Blocking (Strict budget cap protection).
 """
 import datetime
 import uuid
@@ -10,6 +11,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 BASE_URL = "/api/v1/expenses"
+TEST_DATE = "2025-01-15"
 
 
 def helper_create_category(client: TestClient, name: str = None) -> str:
@@ -32,7 +34,7 @@ class TestListExpenses:
             "title": "Grocery Shopping",
             "amount": 500.00,
             "category_id": cat_id,
-            "date": str(datetime.date.today())
+            "date": TEST_DATE
         })
         res = client.get(f"{BASE_URL}?search=Grocery")
         assert res.status_code == 200
@@ -46,7 +48,7 @@ class TestListExpenses:
             "title": "Movie Ticket",
             "amount": 300.00,
             "category_id": cat_id,
-            "date": str(datetime.date.today())
+            "date": TEST_DATE
         })
         res = client.get(f"{BASE_URL}?category_id={cat_id}")
         assert res.status_code == 200
@@ -61,7 +63,7 @@ class TestCreateExpense:
             "title": "Dinner",
             "amount": 1200.00,
             "category_id": cat_id,
-            "date": str(datetime.date.today()),
+            "date": TEST_DATE,
             "payment_mode": "card"
         })
         assert res.status_code == 201
@@ -86,7 +88,7 @@ class TestCreateExpense:
             "title": "Zero Expense",
             "amount": 0.00,
             "category_id": cat_id,
-            "date": str(datetime.date.today())
+            "date": TEST_DATE
         })
         assert res.status_code == 422
 
@@ -95,9 +97,31 @@ class TestCreateExpense:
             "title": "Orphan Expense",
             "amount": 100.00,
             "category_id": "00000000-0000-0000-0000-000000000000",
-            "date": str(datetime.date.today())
+            "date": TEST_DATE
         })
         assert res.status_code == 404
+
+    def test_create_exceeding_budget_returns_400_blocked(self, client: TestClient):
+        """Verify strict budget cap blocking when expense exceeds budget."""
+        cat_id = helper_create_category(client)
+        test_period = "2024-11-01"
+        # 1. Set budget of 500
+        client.post("/api/v1/budgets", json={
+            "category_id": None,
+            "period_type": "monthly",
+            "period_start": test_period,
+            "limit_amount": 500.00
+        })
+        # 2. Attempt to add expense of 1000 -> must be blocked (400 BUDGET_EXCEEDED)
+        res = client.post(BASE_URL, json={
+            "title": "Overbudget Expense",
+            "amount": 1000.00,
+            "category_id": cat_id,
+            "date": "2024-11-10"
+        })
+        assert res.status_code == 400
+        err = res.json()["error"]
+        assert err["code"] == "BUDGET_EXCEEDED"
 
 
 class TestGetExpense:
@@ -107,7 +131,7 @@ class TestGetExpense:
             "title": "Coffee",
             "amount": 150.00,
             "category_id": cat_id,
-            "date": str(datetime.date.today())
+            "date": TEST_DATE
         })
         exp_id = create_res.json()["data"]["id"]
 
@@ -127,7 +151,7 @@ class TestUpdateExpense:
             "title": "Tea",
             "amount": 20.00,
             "category_id": cat_id,
-            "date": str(datetime.date.today())
+            "date": TEST_DATE
         })
         exp_id = create_res.json()["data"]["id"]
 
@@ -143,7 +167,7 @@ class TestDeleteExpense:
             "title": "Snacks",
             "amount": 80.00,
             "category_id": cat_id,
-            "date": str(datetime.date.today())
+            "date": TEST_DATE
         })
         exp_id = create_res.json()["data"]["id"]
 

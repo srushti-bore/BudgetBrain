@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Expense, Category, PaymentMode } from '@/types';
 import { getTodayDateString, capitalizeFirstLetter } from '@/lib/utils';
-import { X, Plus, AlertCircle, Repeat, Flame, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { X, Plus, AlertCircle, Repeat, Flame, AlertTriangle, ShieldCheck, ShieldAlert } from 'lucide-react';
 import { categoryApi, dashboardApi } from '@/lib/api';
 import { useCurrency, useFormatCurrency } from '@/providers/CurrencyProvider';
 import { useSettings } from '@/providers/SettingsProvider';
@@ -91,11 +91,15 @@ export default function ExpenseModal({
   const initialBaseAmount = initialData ? initialData.amount : 0;
   const amountDelta = parsedBaseAmount - initialBaseAmount;
 
-  // Monthly Budget Check
+  // Monthly Budget Check (Strict Enforcement)
   const budgetLimit = summary?.budget_limit || 0;
-  const projectedTotalSpent = Math.max((summary?.total_spent || 0) + amountDelta, 0);
+  const alreadySpentWithoutThis = Math.max((summary?.total_spent || 0) - initialBaseAmount, 0);
+  const projectedTotalSpent = alreadySpentWithoutThis + parsedBaseAmount;
+  const remainingBudget = Math.max(budgetLimit - alreadySpentWithoutThis, 0);
   const projectedMonthlyPercent = budgetLimit > 0 ? Math.round((projectedTotalSpent / budgetLimit) * 100) : 0;
-  const isOverMonthly = budgetLimit > 0 && projectedTotalSpent > budgetLimit;
+  
+  // Strict over-budget flag
+  const isOverMonthly = budgetLimit > 0 && parsedBaseAmount > 0 && projectedTotalSpent > budgetLimit;
   const isNearMonthly = budgetLimit > 0 && !isOverMonthly && projectedMonthlyPercent >= nearLimitThreshold;
 
   // Daily Limit Check
@@ -125,6 +129,14 @@ export default function ExpenseModal({
     }
     if (date > getTodayDateString()) {
       setErrorMsg('Expense date cannot be in the future');
+      return;
+    }
+
+    // Strict Budget Cap Enforcement: Block over-budget submission
+    if (isOverMonthly) {
+      setErrorMsg(
+        `🚫 Transaction Blocked: You cannot log this expense of ${formatCurrency(parsedViewAmount)}. Your remaining monthly budget is only ${formatCurrency(remainingBudget)} (Monthly Cap: ${formatCurrency(budgetLimit)}). Budget deficit / negative balance is not allowed.`
+      );
       return;
     }
 
@@ -221,7 +233,11 @@ export default function ExpenseModal({
                 placeholder="0.00"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-white/5 border border-ink/15 dark:border-white/15 text-sm font-bold text-ink focus:outline-none focus:border-sage transition-all"
+                className={`w-full px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-white/5 border text-sm font-bold text-ink focus:outline-none transition-all ${
+                  isOverMonthly
+                    ? 'border-coral ring-2 ring-coral/20'
+                    : 'border-ink/15 dark:border-white/15 focus:border-sage'
+                }`}
                 required
               />
             </div>
@@ -250,26 +266,23 @@ export default function ExpenseModal({
                 exit={{ opacity: 0, height: 0 }}
                 className="space-y-2"
               >
-                {/* Monthly Threshold Alert */}
-                {(isOverMonthly || isNearMonthly) && (
-                  <div
-                    className={`p-3 rounded-xl border flex items-start gap-2.5 text-xs ${
-                      isOverMonthly
-                        ? 'bg-coral-light/80 dark:bg-coral/20 border-coral/40 text-coral'
-                        : 'bg-honey-light/80 dark:bg-honey/20 border-honey/40 text-honey'
-                    }`}
-                  >
-                    {isOverMonthly ? (
-                      <Flame className="w-4 h-4 mt-0.5 shrink-0 animate-pulse text-coral" />
-                    ) : (
-                      <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-honey" />
-                    )}
+                {/* Monthly Threshold Alert / Block Banner */}
+                {isOverMonthly ? (
+                  <div className="p-3.5 rounded-xl border border-coral/50 bg-coral-light/90 dark:bg-coral/25 text-coral flex items-start gap-3 shadow-xs">
+                    <ShieldAlert className="w-5 h-5 mt-0.5 shrink-0 text-coral animate-bounce" />
                     <div>
-                      <span className="font-bold block">
-                        {isOverMonthly
-                          ? '🔥 Monthly Budget Exceeded Alert!'
-                          : `⚠️ Near Monthly Budget Limit Alert (≥${nearLimitThreshold}%)`}
-                      </span>
+                      <span className="font-bold text-sm block">🚫 Budget Limit Exceeded — Transaction Blocked!</span>
+                      <p className="mt-1 leading-relaxed text-[11px]">
+                        This expense of <strong>{formatCurrency(parsedViewAmount)}</strong> exceeds your remaining monthly budget (<strong>{formatCurrency(remainingBudget)}</strong>).
+                        Total monthly spending cannot exceed your <strong>{formatCurrency(budgetLimit)}</strong> cap. Please reduce the expense amount.
+                      </p>
+                    </div>
+                  </div>
+                ) : isNearMonthly ? (
+                  <div className="p-3 rounded-xl border border-honey/40 bg-honey-light/80 dark:bg-honey/20 text-honey flex items-start gap-2.5 text-xs">
+                    <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-honey" />
+                    <div>
+                      <span className="font-bold block">⚠️ Near Monthly Budget Limit Alert (≥{nearLimitThreshold}%)</span>
                       <p className="mt-0.5 leading-relaxed text-[11px]">
                         Adding this expense will bring your total monthly spend to{' '}
                         <strong>{formatCurrency(projectedTotalSpent)}</strong> (
@@ -278,10 +291,10 @@ export default function ExpenseModal({
                       </p>
                     </div>
                   </div>
-                )}
+                ) : null}
 
                 {/* Daily Cap Threshold Alert */}
-                {(isOverDaily || isNearDaily) && (
+                {(isOverDaily || isNearDaily) && !isOverMonthly && (
                   <div
                     className={`p-3 rounded-xl border flex items-start gap-2.5 text-xs ${
                       isOverDaily
@@ -421,10 +434,10 @@ export default function ExpenseModal({
             </button>
             <button
               type="submit"
-              disabled={isSubmitting}
-              className={`px-5 py-2.5 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50 ${
-                isOverMonthly || isOverDaily
-                  ? 'bg-coral hover:bg-coral-dark shadow-coral/20'
+              disabled={isSubmitting || isOverMonthly}
+              className={`px-5 py-2.5 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                isOverMonthly
+                  ? 'bg-coral shadow-coral/20'
                   : 'bg-sage hover:bg-sage-dark shadow-sage/20'
               }`}
             >
@@ -432,8 +445,8 @@ export default function ExpenseModal({
                 <span>Saving...</span>
               ) : isOverMonthly ? (
                 <>
-                  <Flame className="w-3.5 h-3.5" />
-                  <span>Log Expense Anyway</span>
+                  <ShieldAlert className="w-3.5 h-3.5" />
+                  <span>Exceeds Budget (Blocked)</span>
                 </>
               ) : isNearMonthly ? (
                 <>
