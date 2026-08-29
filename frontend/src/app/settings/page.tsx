@@ -471,7 +471,7 @@ export default function SettingsPage() {
                 ))}
               </div>
               <p className="text-[11px] text-ink-muted">
-                When your spending reaches <strong className="text-ink">{nearLimitThreshold}%</strong> of your monthly limit, cards switch to the amber warning badge.
+                When your spending reaches <strong className="text-ink">{nearLimitThreshold}%</strong> of your monthly budget or daily spending limit, cards dynamically switch to the amber Near Limit warning badge.
               </p>
             </div>
 

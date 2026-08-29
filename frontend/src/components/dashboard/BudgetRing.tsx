@@ -3,6 +3,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useFormatCurrency } from '@/providers/CurrencyProvider';
+import { useSettings } from '@/providers/SettingsProvider';
 import { AlertTriangle, CheckCircle, Flame, Target } from 'lucide-react';
 
 interface BudgetRingProps {
@@ -14,25 +15,29 @@ interface BudgetRingProps {
 export default function BudgetRing({
   limitAmount = 0,
   spentAmount = 0,
-  status = 'on_track',
 }: BudgetRingProps) {
   const formatCurrency = useFormatCurrency();
+  const { nearLimitThreshold = 80 } = useSettings();
+
   const percentage =
     limitAmount > 0 ? Math.min(Math.round((spentAmount / limitAmount) * 100), 999) : 0;
   const strokeDashoffset = 283 - (283 * Math.min(percentage, 100)) / 100;
 
+  const isOverBudget = percentage >= 100;
+  const isNearLimit = percentage >= nearLimitThreshold && !isOverBudget;
+
   const getStatusBadge = () => {
-    if (status === 'over_budget' || percentage >= 100) {
+    if (isOverBudget) {
       return (
         <span className="px-3 py-1 rounded-full bg-coral-light text-coral border border-coral/30 text-xs font-bold flex items-center gap-1.5 shadow-2xs">
           <Flame className="w-3.5 h-3.5" /> Over Budget
         </span>
       );
     }
-    if (status === 'near_limit' || percentage >= 80) {
+    if (isNearLimit) {
       return (
         <span className="px-3 py-1 rounded-full bg-honey-light text-honey border border-honey/30 text-xs font-bold flex items-center gap-1.5 shadow-2xs">
-          <AlertTriangle className="w-3.5 h-3.5" /> Near Limit (≥80%)
+          <AlertTriangle className="w-3.5 h-3.5" /> Near Limit (≥{nearLimitThreshold}%)
         </span>
       );
     }
@@ -44,8 +49,8 @@ export default function BudgetRing({
   };
 
   const getRingColor = () => {
-    if (status === 'over_budget' || percentage >= 100) return '#C85A48';
-    if (status === 'near_limit' || percentage >= 80) return '#C68A28';
+    if (isOverBudget) return '#C85A48';
+    if (isNearLimit) return '#C68A28';
     return '#3E7259';
   };
 

@@ -14,7 +14,7 @@ import RecentExpensesSnapshot from '@/components/dashboard/RecentExpensesSnapsho
 import { useFormatCurrency } from '@/providers/CurrencyProvider';
 import { useSettings } from '@/providers/SettingsProvider';
 import MonthlyStatsReport from '@/components/dashboard/MonthlyStatsReport';
-import { Wallet, Calendar, PlusCircle, AlertCircle, Target, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Wallet, Calendar, PlusCircle, AlertCircle, Target, CheckCircle, AlertTriangle, Flame } from 'lucide-react';
 import Link from 'next/link';
 
 const containerVariants: Variants = {
@@ -38,7 +38,7 @@ const itemVariants: Variants = {
 
 export default function DashboardPage() {
   const formatCurrency = useFormatCurrency();
-  const { showPredictiveInsights } = useSettings();
+  const { showPredictiveInsights, nearLimitThreshold = 80 } = useSettings();
   const {
     data: summary,
     isLoading: isSummaryLoading,
@@ -107,13 +107,14 @@ export default function DashboardPage() {
   }
 
   // Computed values for daily limit
-  const dailyLimitPercent = summary?.daily_limit
-    ? Math.min(Math.round(((summary.today_spent || 0) / summary.daily_limit) * 100), 100)
+  const dailySpent = summary?.today_spent || 0;
+  const dailyCap = summary?.daily_limit || 0;
+  const dailyLimitPercent = dailyCap > 0
+    ? Math.min(Math.round((dailySpent / dailyCap) * 100), 999)
     : 0;
-  const dailyRemaining = summary?.daily_limit
-    ? Math.max(summary.daily_limit - (summary.today_spent || 0), 0)
-    : 0;
-  const dailyExceeded = summary?.daily_limit ? (summary.today_spent || 0) > summary.daily_limit : false;
+  const dailyRemaining = Math.max(dailyCap - dailySpent, 0);
+  const dailyExceeded = dailyCap > 0 && dailySpent > dailyCap;
+  const dailyNearLimit = dailyCap > 0 && !dailyExceeded && dailyLimitPercent >= nearLimitThreshold;
 
   // Average daily spend
   const avgDailySpend = elapsedDays > 0 ? (summary?.total_spent || 0) / elapsedDays : 0;
@@ -202,29 +203,47 @@ export default function DashboardPage() {
         </motion.div>
       </motion.div>
 
-      {/* Daily Spend Limit Card (Conditional) — Simplified */}
+      {/* Daily Spend Limit Card (Conditional) — 3-Tier Alert Thresholds */}
       {summary?.daily_limit ? (
         <motion.div
           variants={itemVariants}
           whileHover={{ y: -3, boxShadow: '0 10px 28px -8px rgba(0,0,0,0.06)' }}
           transition={{ type: 'spring', stiffness: 300, damping: 22 }}
-          className="glass-card p-5 border-sage/35 bg-gradient-to-r from-white/95 to-honey-light/20 dark:from-[#17211d] dark:to-honey/8"
+          className={`glass-card p-5 border ${
+            dailyExceeded
+              ? 'border-coral/40 bg-gradient-to-r from-white/95 to-coral-light/25 dark:from-[#17211d] dark:to-coral/10'
+              : dailyNearLimit
+              ? 'border-honey/40 bg-gradient-to-r from-white/95 to-honey-light/25 dark:from-[#17211d] dark:to-honey/10'
+              : 'border-sage/35 bg-gradient-to-r from-white/95 to-sage-light/15 dark:from-[#17211d] dark:to-sage/8'
+          }`}
         >
           <div className="flex flex-col sm:flex-row sm:items-center gap-4">
             {/* Left: Icon + Label + Status */}
             <div className="flex items-center gap-3 flex-1 min-w-0">
-              <div className="w-9 h-9 rounded-xl bg-honey/10 flex items-center justify-center border border-honey/20 shrink-0">
-                <Target className="w-4.5 h-4.5 text-honey" />
+              <div
+                className={`w-9 h-9 rounded-xl flex items-center justify-center border shrink-0 ${
+                  dailyExceeded
+                    ? 'bg-coral/10 text-coral border-coral/30'
+                    : dailyNearLimit
+                    ? 'bg-honey/10 text-honey border-honey/30'
+                    : 'bg-sage/10 text-sage border-sage/30'
+                }`}
+              >
+                <Target className="w-4.5 h-4.5" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <h3 className="font-display font-bold text-sm text-ink">Daily Limit</h3>
+                  <h3 className="font-display font-bold text-sm text-ink">Daily Spending Limit</h3>
                   {dailyExceeded ? (
-                    <span className="px-2 py-0.5 rounded-full bg-coral-light text-coral border border-coral/30 text-[10px] font-bold flex items-center gap-1 animate-pulse">
-                      <AlertTriangle className="w-3 h-3" /> Exceeded
+                    <span className="px-2 py-0.5 rounded-full bg-coral-light text-coral border border-coral/30 text-[10px] font-bold flex items-center gap-1 shadow-2xs">
+                      <Flame className="w-3 h-3" /> Over Daily Limit
+                    </span>
+                  ) : dailyNearLimit ? (
+                    <span className="px-2 py-0.5 rounded-full bg-honey-light text-honey border border-honey/30 text-[10px] font-bold flex items-center gap-1 shadow-2xs">
+                      <AlertTriangle className="w-3 h-3" /> Near Limit (≥{nearLimitThreshold}%)
                     </span>
                   ) : (
-                    <span className="px-2 py-0.5 rounded-full bg-sage-light text-sage border border-sage/30 text-[10px] font-bold flex items-center gap-1">
+                    <span className="px-2 py-0.5 rounded-full bg-sage-light text-sage border border-sage/30 text-[10px] font-bold flex items-center gap-1 shadow-2xs">
                       <CheckCircle className="w-3 h-3" /> On Track
                     </span>
                   )}
@@ -234,12 +253,14 @@ export default function DashboardPage() {
                   <div className="flex-1 h-2 bg-ink/5 dark:bg-white/10 rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all duration-500 ${
-                        dailyExceeded ? 'bg-coral' : 'bg-honey'
+                        dailyExceeded ? 'bg-coral' : dailyNearLimit ? 'bg-honey' : 'bg-sage'
                       }`}
-                      style={{ width: `${dailyLimitPercent}%` }}
+                      style={{ width: `${Math.min(dailyLimitPercent, 100)}%` }}
                     />
                   </div>
-                  <span className="text-[11px] font-bold text-ink-muted shrink-0 tabular-nums">{dailyLimitPercent}%</span>
+                  <span className="text-[11px] font-bold text-ink-muted shrink-0 tabular-nums">
+                    {dailyLimitPercent}%
+                  </span>
                 </div>
               </div>
             </div>
@@ -247,21 +268,25 @@ export default function DashboardPage() {
             {/* Right: Key numbers */}
             <div className="flex items-center gap-4 sm:gap-6 text-center sm:text-right shrink-0">
               <div>
-                <span className="text-[10px] text-ink-muted font-semibold uppercase tracking-wider block">Spent</span>
-                <span className={`font-display font-bold text-sm ${dailyExceeded ? 'text-coral' : 'text-ink'}`}>
+                <span className="text-[10px] text-ink-muted font-semibold uppercase tracking-wider block">Spent Today</span>
+                <span
+                  className={`font-display font-bold text-sm ${
+                    dailyExceeded ? 'text-coral' : dailyNearLimit ? 'text-honey font-extrabold' : 'text-ink'
+                  }`}
+                >
                   {formatCurrency(summary.today_spent || 0)}
                 </span>
               </div>
               <div className="w-px h-8 bg-ink/8 dark:bg-white/10" />
               <div>
                 <span className="text-[10px] text-ink-muted font-semibold uppercase tracking-wider block">Remaining</span>
-                <span className="font-display font-bold text-sm text-sage">
+                <span className={`font-display font-bold text-sm ${dailyRemaining === 0 ? 'text-coral' : 'text-sage'}`}>
                   {formatCurrency(dailyRemaining)}
                 </span>
               </div>
               <div className="w-px h-8 bg-ink/8 dark:bg-white/10" />
               <div>
-                <span className="text-[10px] text-ink-muted font-semibold uppercase tracking-wider block">Cap</span>
+                <span className="text-[10px] text-ink-muted font-semibold uppercase tracking-wider block">Daily Cap</span>
                 <span className="font-display font-bold text-sm text-ink">
                   {formatCurrency(summary.daily_limit)}
                 </span>
