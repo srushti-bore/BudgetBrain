@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { Brain, Sparkles } from 'lucide-react';
-import { motion } from 'framer-motion';
 
 interface BrainLogo3DProps {
   size?: 'sm' | 'md' | 'lg';
@@ -23,37 +22,27 @@ export default function BrainLogo3D({ size = 'md', className = '' }: BrainLogo3D
   };
 
   return (
-    <div className={`relative shrink-0 [perspective:1000px] group cursor-pointer select-none ${className}`}>
-      {/* Dynamic Ambient Synaptic Halo */}
-      <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-sage via-honey to-sage opacity-40 blur-md group-hover:opacity-75 transition-opacity duration-500 animate-pulse pointer-events-none" />
+    <div className={`relative shrink-0 [perspective:800px] group cursor-pointer select-none ${className}`}>
+      {/* Subtle Ambient Glowing Shadow */}
+      <div className="absolute -inset-0.5 rounded-2xl bg-sage opacity-30 blur-sm group-hover:opacity-60 transition-opacity duration-300 pointer-events-none" />
 
-      {/* 3D Container with Multi-Axis Transform */}
+      {/* 3D Modern Squircle Icon Container */}
       <div
-        className={`relative ${sizeClasses[size]} bg-gradient-to-br from-[#2D5A45] via-[#3E7259] to-[#1E3D2F] border border-sage/40 shadow-lg shadow-sage/30 flex items-center justify-center transition-all duration-700 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)_rotateX(12deg)_scale(1.05)]`}
+        className={`relative ${sizeClasses[size]} bg-gradient-to-br from-[#356B52] via-[#2F5E48] to-[#1C3B2D] border border-white/20 shadow-md shadow-[#1C3B2D]/30 flex items-center justify-center transition-transform duration-300 ease-out [transform-style:preserve-3d] group-hover:[transform:rotateY(14deg)_rotateX(-8deg)_scale(1.06)] overflow-hidden`}
       >
-        {/* Front Face: Cognitive Logic (Emerald & Silver Brain with Frontal Synaptic Spark) */}
-        <div className="absolute inset-0 flex items-center justify-center [backface-visibility:hidden] [transform:translateZ(8px)]">
-          <div className="relative">
-            <Brain className={`${iconSizes[size]} text-white drop-shadow-[0_2px_8px_rgba(255,255,255,0.4)]`} />
-            {/* Prefrontal Cortex Decision Synapse (Psychology Spark) */}
-            <motion.div
-              animate={{ scale: [1, 1.4, 1], opacity: [0.7, 1, 0.7] }}
-              transition={{ repeat: Infinity, duration: 2.4, ease: 'easeInOut' }}
-              className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-honey shadow-[0_0_8px_#E5A93C]"
-            />
-          </div>
+        {/* Top-down Specular Glass Sheen */}
+        <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/25 to-transparent rounded-t-2xl pointer-events-none" />
+
+        {/* Center 3D Floating Brain Emblem */}
+        <div className="relative z-10 flex items-center justify-center [transform:translateZ(6px)]">
+          <Brain className={`${iconSizes[size]} text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.3)]`} />
+          
+          {/* Subtle Golden Synapse Indicator */}
+          <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-honey shadow-[0_0_6px_#E5A93C] animate-pulse" />
         </div>
 
-        {/* Back Face: Intuitive Wealth Psychology (Golden Synaptic Core) */}
-        <div className="absolute inset-0 flex items-center justify-center [backface-visibility:hidden] [transform:rotateY(180deg)_translateZ(8px)] rounded-2xl bg-gradient-to-br from-[#8C5E1A] via-[#C68A28] to-[#604010] border border-honey/40">
-          <div className="relative flex items-center justify-center">
-            <Brain className={`${iconSizes[size]} text-cream drop-shadow-[0_2px_10px_rgba(229,169,60,0.6)]`} />
-            <Sparkles className="w-2.5 h-2.5 text-white absolute -bottom-1 -left-1 animate-spin" style={{ animationDuration: '4s' }} />
-          </div>
-        </div>
-
-        {/* 3D Depth Layer (Simulated Extrusion Block) */}
-        <div className="absolute inset-0 rounded-2xl bg-[#14261D] [transform:translateZ(-4px)] opacity-80" />
+        {/* Bottom Ambient Reflection */}
+        <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
       </div>
     </div>
   );

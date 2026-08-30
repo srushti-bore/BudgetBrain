@@ -6,20 +6,22 @@ import { usePathname } from 'next/navigation';
 import { LayoutDashboard, Receipt, Tag, Target, Settings, Menu, X, Sun, Moon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/providers/ThemeProvider';
+import { useTranslation } from '@/providers/LanguageProvider';
 import BrainLogo3D from '@/components/ui/BrainLogo3D';
-
-const navItems = [
-  { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/expenses', label: 'Expenses', icon: Receipt },
-  { href: '/categories', label: 'Categories', icon: Tag },
-  { href: '/budgets', label: 'Budget Goals', icon: Target },
-  { href: '/settings', label: 'Settings', icon: Settings },
-];
 
 export default function Sidebar() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
+  const { t } = useTranslation();
+
+  const navItems = [
+    { href: '/', label: t('nav_dashboard', 'Dashboard'), icon: LayoutDashboard },
+    { href: '/expenses', label: t('nav_expenses', 'Expenses'), icon: Receipt },
+    { href: '/categories', label: t('nav_categories', 'Categories'), icon: Tag },
+    { href: '/budgets', label: t('nav_budgets', 'Budget Goals'), icon: Target },
+    { href: '/settings', label: t('nav_settings', 'Settings'), icon: Settings },
+  ];
 
   return (
     <>
@@ -29,7 +31,7 @@ export default function Sidebar() {
           <BrainLogo3D />
           <div>
             <span className="font-display font-bold text-base text-ink dark:text-cream leading-none block">BudgetBrain</span>
-            <span className="text-[10px] text-ink-muted leading-none">Your Financial Control Center</span>
+            <span className="text-[10px] text-ink-muted leading-none">{t('tagline', 'Your Financial Control Center')}</span>
           </div>
         </Link>
         <div className="flex items-center gap-2">
@@ -75,7 +77,7 @@ export default function Sidebar() {
               <h1 className="font-display font-bold text-lg text-ink dark:text-cream tracking-tight group-hover:text-sage transition-colors">
                 BudgetBrain
               </h1>
-              <p className="text-xs text-ink-muted font-medium">Your Financial Control Center</p>
+              <p className="text-xs text-ink-muted font-medium">{t('tagline', 'Your Financial Control Center')}</p>
             </div>
           </Link>
 
@@ -102,7 +104,7 @@ export default function Sidebar() {
                   )}
                   <Icon
                     className={cn(
-                      'w-4 h-4 md:w-5 md:h-5 transition-transform duration-200 group-hover:scale-110',
+                      'w-4 h-4 transition-transform duration-200 group-hover:scale-110 shrink-0',
                       isActive ? 'text-sage' : 'text-ink-muted group-hover:text-ink dark:group-hover:text-cream'
                     )}
                   />

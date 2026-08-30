@@ -13,6 +13,7 @@ import TopCategoriesWidget from '@/components/dashboard/TopCategoriesWidget';
 import RecentExpensesSnapshot from '@/components/dashboard/RecentExpensesSnapshot';
 import { useFormatCurrency } from '@/providers/CurrencyProvider';
 import { useSettings } from '@/providers/SettingsProvider';
+import { useTranslation } from '@/providers/LanguageProvider';
 import MonthlyStatsReport from '@/components/dashboard/MonthlyStatsReport';
 import { Wallet, Calendar, PlusCircle, AlertCircle, Target, CheckCircle, AlertTriangle, Flame } from 'lucide-react';
 import Link from 'next/link';
@@ -39,6 +40,7 @@ const itemVariants: Variants = {
 export default function DashboardPage() {
   const formatCurrency = useFormatCurrency();
   const { showPredictiveInsights, nearLimitThreshold = 80 } = useSettings();
+  const { t } = useTranslation();
   const {
     data: summary,
     isLoading: isSummaryLoading,
@@ -130,10 +132,10 @@ export default function DashboardPage() {
       <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-2">
         <div>
           <h1 className="font-display font-extrabold text-2xl md:text-[1.85rem] text-ink tracking-tight leading-tight">
-            Dashboard Overview
+            {t('dashboard_title', 'Financial Overview')}
           </h1>
           <p className="text-xs md:text-sm text-ink-muted mt-1.5 tracking-wide font-medium">
-            {currentMonthName} · Log expense → See impact → Track remaining budget
+            {currentMonthName} · {t('dashboard_subtitle', 'Real-time financial intelligence, predictive health & budget analytics')}
           </p>
         </div>
 
@@ -142,7 +144,7 @@ export default function DashboardPage() {
           className="group inline-flex items-center gap-2 px-5 py-2.5 bg-sage hover:bg-sage-dark text-white font-semibold text-xs md:text-sm rounded-xl shadow-md shadow-sage/20 hover:shadow-lg hover:shadow-sage/30 transition-all duration-200 self-start md:self-auto hover:scale-[1.02] active:scale-[0.98]"
         >
           <PlusCircle className="w-4 h-4 transition-transform duration-200 group-hover:rotate-90" />
-          <span>Log Expense</span>
+          <span>{t('log_expense', 'Log Expense')}</span>
         </Link>
       </motion.div>
 

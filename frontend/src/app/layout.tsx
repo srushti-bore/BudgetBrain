@@ -5,6 +5,7 @@ import QueryProvider from '@/providers/QueryProvider';
 import { ThemeProvider } from '@/providers/ThemeProvider';
 import { CurrencyProvider } from '@/providers/CurrencyProvider';
 import { SettingsProvider } from '@/providers/SettingsProvider';
+import { LanguageProvider } from '@/providers/LanguageProvider';
 import Sidebar from '@/components/layout/Sidebar';
 import PWAInstallPrompt from '@/components/layout/PWAInstallPrompt';
 
@@ -42,15 +43,17 @@ export default function RootLayout({
         <ThemeProvider>
           <QueryProvider>
             <CurrencyProvider>
-              <SettingsProvider>
-                <div className="min-h-screen flex flex-col lg:flex-row">
-                  <Sidebar />
-                  <main className="flex-1 lg:ml-64 pt-20 lg:pt-8 p-5 sm:p-8 lg:p-10 lg:px-12 overflow-x-hidden">
-                    {children}
-                  </main>
-                </div>
-                <PWAInstallPrompt />
-              </SettingsProvider>
+              <LanguageProvider>
+                <SettingsProvider>
+                  <div className="min-h-screen flex flex-col lg:flex-row">
+                    <Sidebar />
+                    <main className="flex-1 lg:ml-64 pt-20 lg:pt-8 p-5 sm:p-8 lg:p-10 lg:px-12 overflow-x-hidden">
+                      {children}
+                    </main>
+                  </div>
+                  <PWAInstallPrompt />
+                </SettingsProvider>
+              </LanguageProvider>
             </CurrencyProvider>
           </QueryProvider>
         </ThemeProvider>

@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useCurrency } from '@/providers/CurrencyProvider';
 import { useSettings, DateFormatOption, FirstDayOption } from '@/providers/SettingsProvider';
+import { useTranslation } from '@/providers/LanguageProvider';
+import { LanguageCode } from '@/lib/translations';
 import { categoryApi, expenseApi, budgetApi, API_BASE_URL } from '@/lib/api';
 import { exportExpensesToCSV, exportFullBackupJSON, validateBackupJSON } from '@/lib/exportUtils';
 import {
@@ -28,6 +30,7 @@ import {
   X,
   Wifi,
   ShieldAlert,
+  Globe,
 } from 'lucide-react';
 
 const starterCategories = [
@@ -56,6 +59,7 @@ export default function SettingsPage() {
     setShowPredictiveInsights,
     formatCustomDate,
   } = useSettings();
+  const { t, language, setLanguage, languages } = useTranslation();
 
   const [activeTab, setActiveTab] = useState<'general' | 'budgets' | 'data' | 'about'>('general');
   const [isExportingCSV, setIsExportingCSV] = useState(false);
@@ -348,6 +352,50 @@ export default function SettingsPage() {
                 </div>
                 {theme === 'dark' && <CheckCircle className="w-4 h-4 text-sage" />}
               </button>
+            </div>
+          </div>
+
+          {/* Language Selection Card */}
+          <div className="glass-card p-6 sm:p-7 space-y-6">
+            <div>
+              <h3 className="font-display font-bold text-base text-ink flex items-center gap-2">
+                <Globe className="w-4 h-4 text-sage" />
+                <span>{t('language_selection', 'Language / भाषा')}</span>
+              </h3>
+              <p className="text-xs text-ink-muted mt-0.5">
+                {t('language_help', 'Choose your preferred interface language across BudgetBrain.')}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {languages.map((opt) => {
+                const isSelected = language === opt.code;
+                return (
+                  <button
+                    key={opt.code}
+                    onClick={() => {
+                      setLanguage(opt.code);
+                      showToast(`Language switched to ${opt.nativeName} (${opt.name})`);
+                    }}
+                    className={`p-3.5 rounded-xl border flex items-center justify-between transition-all cursor-pointer ${
+                      isSelected
+                        ? 'border-sage bg-sage-light/60 dark:bg-sage/15 text-sage font-bold shadow-xs'
+                        : 'border-ink/10 dark:border-white/10 hover:bg-ink/5 dark:hover:bg-white/5 text-ink'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className="text-xl shrink-0">{opt.flag}</span>
+                      <div className="text-left min-w-0">
+                        <span className="text-xs sm:text-sm font-bold block truncate text-ink dark:text-cream">
+                          {opt.nativeName}
+                        </span>
+                        <span className="text-[10px] text-ink-muted block truncate">{opt.name}</span>
+                      </div>
+                    </div>
+                    {isSelected && <CheckCircle className="w-4 h-4 text-sage shrink-0 ml-1.5" />}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
