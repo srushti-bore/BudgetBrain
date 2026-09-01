@@ -20,6 +20,13 @@ function LoginFormContent() {
   const searchParams = useSearchParams();
   const isJustRegistered = searchParams.get('registered') === 'true';
 
+  // Explicitly ensure email and password start completely empty on mount
+  React.useEffect(() => {
+    setEmail('');
+    setPassword('');
+  }, []);
+
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -88,7 +95,7 @@ function LoginFormContent() {
       )}
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} autoComplete="off" className="space-y-4">
         {/* Email Field */}
         <div>
           <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] mb-1.5">
@@ -99,7 +106,7 @@ function LoginFormContent() {
             <input
               type="email"
               required
-              autoComplete="email"
+              autoComplete="off"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@domain.com"
@@ -126,12 +133,13 @@ function LoginFormContent() {
             <input
               type={showPassword ? 'text' : 'password'}
               required
-              autoComplete="current-password"
+              autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all placeholder:text-[var(--color-text-muted)]/60"
             />
+
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
