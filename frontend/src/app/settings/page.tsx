@@ -37,7 +37,10 @@ import {
   LogOut,
   User as UserIcon,
   Lock,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
+
 
 const starterCategories = [
   'Food & Dining',
@@ -77,8 +80,12 @@ export default function SettingsPage() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [showCurrentPass, setShowCurrentPass] = useState(false);
+  const [showNewPass, setShowNewPass] = useState(false);
+  const [showConfirmNewPass, setShowConfirmNewPass] = useState(false);
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   const [isLoggingOutAll, setIsLoggingOutAll] = useState(false);
+
 
 
   // Health Ping State
@@ -672,24 +679,33 @@ export default function SettingsPage() {
                 <KeyRound className="w-4 h-4 text-sage" />
                 <span>Change Password</span>
               </h3>
-              <p className="text-xs text-ink-muted mt-0.5">Update your account password using secure BCrypt hashing</p>
+              <p className="text-xs text-ink-muted mt-0.5">Update your account password using secure BCrypt encryption</p>
             </div>
 
             <form
               onSubmit={async (e) => {
                 e.preventDefault();
-                if (newPassword !== confirmNewPassword) {
-                  showToast('New passwords do not match.', 'error');
+                const hasMin = newPassword.length >= 8;
+                const hasUp = /[A-Z]/.test(newPassword);
+                const hasLow = /[a-z]/.test(newPassword);
+                const hasNum = /[0-9]/.test(newPassword);
+                const isValid = hasMin && hasUp && hasLow && hasNum;
+
+                if (!isValid) {
+                  showToast('Please satisfy all password security requirements.', 'error');
                   return;
                 }
-                if (newPassword.length < 8) {
-                  showToast('New password must be at least 8 characters long.', 'error');
+                if (newPassword !== confirmNewPassword) {
+                  showToast('New passwords do not match.', 'error');
                   return;
                 }
                 setIsUpdatingPassword(true);
                 try {
                   await changePassword(currentPassword, newPassword);
-                  showToast('Password updated! Please sign in again.');
+                  showToast('Password updated successfully! Please sign in again.');
+                  setCurrentPassword('');
+                  setNewPassword('');
+                  setConfirmNewPassword('');
                 } catch (err: any) {
                   showToast(err.response?.data?.error?.message || err.message || 'Failed to update password.', 'error');
                 } finally {
@@ -698,57 +714,119 @@ export default function SettingsPage() {
               }}
               className="space-y-4 max-w-lg"
             >
+              {/* Current Password */}
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">
                   Current Password
                 </label>
-                <input
-                  type="password"
-                  required
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full p-2.5 rounded-xl border border-ink/10 dark:border-white/10 text-sm bg-white dark:bg-white/5"
-                />
+                <div className="relative flex items-center">
+                  <Lock className="absolute left-3.5 w-4 h-4 text-ink-muted" />
+                  <input
+                    type={showCurrentPass ? 'text' : 'password'}
+                    required
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-ink/10 dark:border-white/10 text-sm bg-white dark:bg-white/5 focus:outline-none focus:ring-2 focus:ring-sage/40 transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPass(!showCurrentPass)}
+                    className="absolute right-3 text-ink-muted hover:text-ink dark:hover:text-cream focus:outline-none p-1 cursor-pointer"
+                  >
+                    {showCurrentPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
+              {/* New Password */}
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">
-                  New Password (min 8 chars, 1 uppercase, 1 lowercase, 1 number)
+                  New Password
                 </label>
-                <input
-                  type="password"
-                  required
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full p-2.5 rounded-xl border border-ink/10 dark:border-white/10 text-sm bg-white dark:bg-white/5"
-                />
+                <div className="relative flex items-center">
+                  <Lock className="absolute left-3.5 w-4 h-4 text-ink-muted" />
+                  <input
+                    type={showNewPass ? 'text' : 'password'}
+                    required
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-ink/10 dark:border-white/10 text-sm bg-white dark:bg-white/5 focus:outline-none focus:ring-2 focus:ring-sage/40 transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPass(!showNewPass)}
+                    className="absolute right-3 text-ink-muted hover:text-ink dark:hover:text-cream focus:outline-none p-1 cursor-pointer"
+                  >
+                    {showNewPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+
+                {/* Password Strength Validation Badges */}
+                {newPassword.length > 0 && (
+                  <div className="mt-2 p-2.5 rounded-xl bg-ink/5 dark:bg-white/5 border border-ink/10 dark:border-white/10 text-[11px] grid grid-cols-2 gap-1.5">
+                    <span className={`flex items-center gap-1 ${newPassword.length >= 8 ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-ink-muted'}`}>
+                      {newPassword.length >= 8 ? <Check className="w-3 h-3 text-emerald-500" /> : <X className="w-3 h-3 text-coral" />} 8+ Characters
+                    </span>
+                    <span className={`flex items-center gap-1 ${/[A-Z]/.test(newPassword) ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-ink-muted'}`}>
+                      {/[A-Z]/.test(newPassword) ? <Check className="w-3 h-3 text-emerald-500" /> : <X className="w-3 h-3 text-coral" />} 1 Uppercase (A-Z)
+                    </span>
+                    <span className={`flex items-center gap-1 ${/[a-z]/.test(newPassword) ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-ink-muted'}`}>
+                      {/[a-z]/.test(newPassword) ? <Check className="w-3 h-3 text-emerald-500" /> : <X className="w-3 h-3 text-coral" />} 1 Lowercase (a-z)
+                    </span>
+                    <span className={`flex items-center gap-1 ${/[0-9]/.test(newPassword) ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-ink-muted'}`}>
+                      {/[0-9]/.test(newPassword) ? <Check className="w-3 h-3 text-emerald-500" /> : <X className="w-3 h-3 text-coral" />} 1 Number (0-9)
+                    </span>
+                  </div>
+                )}
               </div>
 
+              {/* Confirm New Password */}
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">
                   Confirm New Password
                 </label>
-                <input
-                  type="password"
-                  required
-                  value={confirmNewPassword}
-                  onChange={(e) => setConfirmNewPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full p-2.5 rounded-xl border border-ink/10 dark:border-white/10 text-sm bg-white dark:bg-white/5"
-                />
+                <div className="relative flex items-center">
+                  <Lock className="absolute left-3.5 w-4 h-4 text-ink-muted" />
+                  <input
+                    type={showConfirmNewPass ? 'text' : 'password'}
+                    required
+                    value={confirmNewPassword}
+                    onChange={(e) => setConfirmNewPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-ink/10 dark:border-white/10 text-sm bg-white dark:bg-white/5 focus:outline-none focus:ring-2 focus:ring-sage/40 transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmNewPass(!showConfirmNewPass)}
+                    className="absolute right-3 text-ink-muted hover:text-ink dark:hover:text-cream focus:outline-none p-1 cursor-pointer"
+                  >
+                    {showConfirmNewPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                {confirmNewPassword.length > 0 && newPassword !== confirmNewPassword && (
+                  <p className="text-[11px] text-coral mt-1 flex items-center gap-1">
+                    <X className="w-3 h-3" /> Passwords do not match
+                  </p>
+                )}
               </div>
 
               <button
                 type="submit"
-                disabled={isUpdatingPassword || !currentPassword || !newPassword}
-                className="px-5 py-2.5 rounded-xl bg-sage hover:bg-sage-dark text-white font-bold text-xs sm:text-sm disabled:opacity-50 transition-all cursor-pointer"
+                disabled={
+                  isUpdatingPassword ||
+                  !currentPassword ||
+                  newPassword.length < 8 ||
+                  newPassword !== confirmNewPassword
+                }
+                className="px-5 py-2.5 rounded-xl bg-sage hover:bg-sage-dark text-white font-bold text-xs sm:text-sm disabled:opacity-50 transition-all cursor-pointer shadow-sm hover:shadow-md"
               >
-                {isUpdatingPassword ? 'Updating...' : 'Update Password'}
+                {isUpdatingPassword ? 'Updating Password...' : 'Update Password'}
               </button>
             </form>
           </div>
+
 
           {/* Session Management & Multi-Device Logout Card */}
           <div className="glass-card p-6 sm:p-7 space-y-6">

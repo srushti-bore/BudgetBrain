@@ -32,11 +32,13 @@ from app.models.user import User
 from app.schemas.auth import (
     ChangePasswordRequest,
     GoogleLoginRequest,
+    ResetPasswordRequest,
     TokenResponse,
     UserLogin,
     UserOut,
     UserRegister,
 )
+
 
 settings = get_settings()
 
@@ -350,3 +352,54 @@ class AuthService:
             .values(revoked=True)
         )
         await self.db.commit()
+
+    async def forgot_password(self, email: str) -> str | None:
+        """Generate a secure password reset token (15 mins expiry)."""
+        stmt = select(User).where(User.email == email.lower().strip())
+        user = (await self.db.execute(stmt)).scalar_one_or_none()
+        if not user:
+            return None
+        from datetime import timedelta
+        reset_token = create_access_token(
+            user_id=user.id,
+            email=user.email,
+            expires_delta=timedelta(minutes=15),
+            extra_claims={"type": "password_reset"},
+        )
+        return reset_token
+
+    async def reset_password(self, data: ResetPasswordRequest) -> None:
+        """Verify password reset token and update user password."""
+        from app.core.security import decode_token
+        try:
+            payload = decode_token(data.token)
+        except Exception as exc:
+            raise ValidationException(
+                message="Password reset link is invalid or has expired. Please request a new link.",
+                field="token",
+            ) from exc
+
+        if payload.get("type") != "password_reset":
+            raise ValidationException(
+                message="Invalid token type.",
+                field="token",
+            )
+
+        user_id = payload.get("sub")
+        stmt = select(User).where(User.id == user_id)
+        user = (await self.db.execute(stmt)).scalar_one_or_none()
+        if not user:
+            raise ValidationException(
+                message="User not found.",
+                field="token",
+            )
+
+        user.hashed_password = hash_password(data.new_password)
+        # Revoke all active sessions
+        await self.db.execute(
+            update(RefreshToken)
+            .where(RefreshToken.user_id == user.id)
+            .values(revoked=True)
+        )
+        await self.db.commit()
+

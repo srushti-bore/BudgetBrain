@@ -270,10 +270,35 @@ async def forgot_password(
 ):
     """
     FR-AUTH-7: Initiate password recovery.
-    Always returns success to prevent user enumeration.
+    Generates reset token and dispatches reset instructions.
     """
+    service = AuthService(db)
+    reset_token = await service.forgot_password(body.email)
+    msg = "If an account with this email exists, password reset instructions have been dispatched."
+    if settings.APP_DEBUG and reset_token:
+        msg = f"{msg} [Dev Token: {reset_token}]"
+    return DataResponse(data=MessageResponse(message=msg))
+
+
+@router.post(
+    "/reset-password",
+    response_model=DataResponse[MessageResponse],
+    summary="Reset password using valid reset token",
+)
+async def reset_password(
+    body: ResetPasswordRequest,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    FR-AUTH-7: Complete password recovery using signed JWT reset token.
+    """
+    service = AuthService(db)
+    await service.reset_password(data=body)
+    clear_refresh_cookie(response)
     return DataResponse(
         data=MessageResponse(
-            message="If an account with this email exists, password reset instructions have been dispatched."
+            message="Password has been reset successfully. Please log in with your new password."
         )
     )
+

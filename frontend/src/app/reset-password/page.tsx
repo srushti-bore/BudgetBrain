@@ -4,7 +4,8 @@ import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Lock, Eye, EyeOff, KeyRound, ArrowRight, ShieldCheck, Check, X } from 'lucide-react';
+import { Lock, Eye, EyeOff, KeyRound, ArrowRight, ShieldCheck, Check, X, ArrowLeft } from 'lucide-react';
+import { authApi } from '@/lib/api';
 import BrainLogo3D from '@/components/ui/BrainLogo3D';
 
 function ResetPasswordContent() {
@@ -14,6 +15,7 @@ function ResetPasswordContent() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,16 +27,20 @@ function ResetPasswordContent() {
   const hasLower = /[a-z]/.test(newPassword);
   const hasNumber = /[0-9]/.test(newPassword);
   const isPasswordValid = hasMinLength && hasUpper && hasLower && hasNumber;
-  const doPasswordsMatch = newPassword === confirmPassword;
+  const doPasswordsMatch = newPassword.length > 0 && newPassword === confirmPassword;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!token) {
+      setError('Password reset token is missing. Please click the link in your email.');
+      return;
+    }
     if (!isPasswordValid) {
-      setError('Please satisfy all password complexity rules.');
+      setError('Please satisfy all password complexity rules before proceeding.');
       return;
     }
     if (!doPasswordsMatch) {
-      setError('Passwords do not match.');
+      setError('New passwords do not match.');
       return;
     }
 
@@ -42,17 +48,22 @@ function ResetPasswordContent() {
     setIsSubmitting(true);
 
     try {
-      // Direct reset notification
+      await authApi.resetPassword({ token, new_password: newPassword });
       setIsSuccess(true);
       setTimeout(() => {
         router.push('/login');
-      }, 2500);
+      }, 2000);
     } catch (err: any) {
-      setError(err.message || 'Failed to reset password. The link may have expired.');
+      const msg =
+        err.response?.data?.error?.message ||
+        err.message ||
+        'Failed to reset password. The link may have expired or is invalid.';
+      setError(msg);
     } finally {
       setIsSubmitting(false);
     }
   };
+
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center p-4 sm:p-6 bg-[var(--color-bg)] relative overflow-hidden">
@@ -155,13 +166,20 @@ function ResetPasswordContent() {
                 <div className="relative flex items-center">
                   <Lock className="absolute left-3.5 w-4 h-4 text-[var(--color-text-muted)]" />
                   <input
-                    type={showPassword ? 'text' : 'password'}
+                    type={showConfirmPassword ? 'text' : 'password'}
                     required
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all placeholder:text-[var(--color-text-muted)]/60"
+                    className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all placeholder:text-[var(--color-text-muted)]/60"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] focus:outline-none p-1"
+                  >
+                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
               </div>
 
@@ -170,20 +188,30 @@ function ResetPasswordContent() {
                 whileTap={{ scale: 0.99 }}
                 type="submit"
                 disabled={isSubmitting || !isPasswordValid || !doPasswordsMatch}
-                className="w-full mt-2 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-medium text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-700/20 disabled:opacity-50 transition-all"
+                className="w-full mt-2 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-medium text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-700/20 disabled:opacity-50 transition-all cursor-pointer"
               >
                 {isSubmitting ? (
                   <>
                     <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    <span>Updating...</span>
+                    <span>Updating Password...</span>
                   </>
                 ) : (
                   <>
                     <KeyRound className="w-4 h-4" />
-                    <span>Update Password</span>
+                    <span>Set New Password</span>
                   </>
                 )}
               </motion.button>
+
+              <div className="pt-2 text-center">
+                <Link
+                  href="/login"
+                  className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] inline-flex items-center gap-1 font-medium transition-colors"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" /> Back to Sign In
+                </Link>
+              </div>
+
             </form>
           )}
         </div>
