@@ -53,11 +53,13 @@ export const getAccessToken = (): string | null => {
 // ── Axios Client ───────────────────────────────────────────────────────────
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
+  timeout: 10000, // 10s request timeout to prevent hanging when backend is sleeping
   headers: {
     'Content-Type': 'application/json',
   },
   withCredentials: true, // Send HttpOnly refresh token cookie on every request
 });
+
 
 // Request Interceptor: Attach Access Token
 apiClient.interceptors.request.use(

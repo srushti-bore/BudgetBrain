@@ -45,8 +45,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let isMounted = true;
 
     const initAuth = async () => {
+      // 3.5s timeout promise so the UI never gets stuck on the loading vault screen
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Session restoration timeout')), 3500)
+      );
+
       try {
-        const refreshed = await authApi.refresh();
+        const refreshed = await Promise.race([authApi.refresh(), timeoutPromise]);
         if (isMounted) {
           handleAuthSuccess(refreshed);
         }
@@ -61,6 +66,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
     };
+
 
     initAuth();
 
