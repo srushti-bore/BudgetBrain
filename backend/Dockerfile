@@ -23,5 +23,6 @@ EXPOSE 8000
 ENV PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app
 
-# Startup script: Run migrations, seed categories, start server
-CMD ["sh", "-c", "alembic upgrade head && python scripts/seed_clean_data.py && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Startup script: Run migrations and start server
+CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+
