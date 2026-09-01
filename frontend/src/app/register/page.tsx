@@ -14,9 +14,10 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { register } = useAuth();
+
   const router = useRouter();
 
   // Password rules validation
@@ -34,21 +35,30 @@ export default function RegisterPage() {
     }
 
     setError(null);
+    setSuccess(null);
     setIsSubmitting(true);
 
     try {
-      await register(email.trim(), password, fullName.trim() || undefined);
-      router.push('/');
+      const { authApi } = await import('@/lib/api');
+      await authApi.register({
+        email: email.trim(),
+        password,
+        full_name: fullName.trim() || undefined,
+      });
+      setSuccess('Account created successfully! Redirecting to Sign In...');
+      setTimeout(() => {
+        router.push('/login?registered=true');
+      }, 1200);
     } catch (err: any) {
       const msg =
         err.response?.data?.error?.message ||
         err.message ||
         'Registration failed. Please check your information.';
       setError(msg);
-    } finally {
       setIsSubmitting(false);
     }
   };
+
 
   const handleGoogleClick = () => {
     const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
@@ -86,6 +96,18 @@ export default function RegisterPage() {
             </p>
           </div>
 
+          {/* Success Banner */}
+          {success && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              className="mb-4 p-3.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs sm:text-sm font-semibold leading-relaxed flex items-center gap-2"
+            >
+              <Check className="w-4 h-4 shrink-0" />
+              {success}
+            </motion.div>
+          )}
+
           {/* Error Banner */}
           {error && (
             <motion.div
@@ -96,6 +118,7 @@ export default function RegisterPage() {
               {error}
             </motion.div>
           )}
+
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-3.5">

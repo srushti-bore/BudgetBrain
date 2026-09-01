@@ -129,33 +129,33 @@ export default function Sidebar() {
 
         {/* User Profile & Sign Out at Sidebar Footer */}
         {user && (
-          <div className="pt-4 border-t border-ink/5 dark:border-white/10">
-            <div className="flex items-center justify-between p-2.5 rounded-2xl bg-ink/5 dark:bg-white/5 border border-ink/5 dark:border-white/5">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-sm">
-                  {user.full_name ? user.full_name.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xs font-bold text-ink dark:text-cream truncate leading-tight">
-                    {user.full_name || 'My Account'}
-                  </p>
-                  <p className="text-[10px] text-ink-muted truncate">
-                    {user.email}
-                  </p>
-                </div>
+          <div className="pt-4 border-t border-ink/5 dark:border-white/10 space-y-2">
+            <div className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-ink/5 dark:bg-white/5 border border-ink/5 dark:border-white/5 min-w-0">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-sm">
+                {user.full_name ? user.full_name.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
               </div>
-              <button
-                onClick={() => logout()}
-                className="p-1.5 rounded-xl text-ink-muted hover:text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer shrink-0"
-                title="Sign Out"
-                aria-label="Sign Out"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold text-ink dark:text-cream truncate leading-tight">
+                  {user.full_name || 'My Account'}
+                </p>
+                <p className="text-[10px] text-ink-muted truncate">
+                  {user.email}
+                </p>
+              </div>
             </div>
+
+            {/* Clear, Prominent Sign Out Button */}
+            <button
+              onClick={() => logout()}
+              className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl font-semibold text-xs text-red-600 dark:text-red-400 bg-red-500/10 hover:bg-red-500/15 border border-red-500/20 active:scale-[0.98] transition-all cursor-pointer shadow-2xs"
+            >
+              <LogOut className="w-4 h-4 shrink-0" />
+              <span>Sign Out / लॉगआउट</span>
+            </button>
           </div>
         )}
       </aside>
+
     </>
   );
 }

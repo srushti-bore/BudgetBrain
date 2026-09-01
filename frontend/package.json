@@ -3,11 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint"
   },
+
   "dependencies": {
     "@tailwindcss/postcss": "^4",
     "@tanstack/react-query": "^5.102.5",
