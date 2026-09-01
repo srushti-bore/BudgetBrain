@@ -1,276 +1,328 @@
-# Software Requirements Specification
+# Software Requirements Specification (SRS)
 
-**Project:** BudgetBrain — Personal Expense Tracker
-**Version:** 1.0 (V1 / MVP)
-**Status:** Final
+**Project:** BudgetBrain — Personal Expense Tracker with Secure Multi-Tenant Authentication  
+**Version:** 2.0  
+**Status:** Final / Authoritative  
 
 ---
 
 ## 1. Introduction
 
 ### 1.1 Purpose
-This Software Requirements Specification (SRS) defines the functional, technical, and design requirements for **BudgetBrain**, a personal expense-tracking web application. It is intended for the development team building V1 and serves as the authoritative reference for architecture, data model, API design, validation, and UI/UX.
+This Software Requirements Specification (SRS) defines the functional, technical, security, and architectural requirements for **BudgetBrain**, a personal expense-tracking web application. This document serves as the single source of truth for engineering, data modeling, API contracts, security standards, and user experience.
 
 ### 1.2 Document Conventions
-- **FR-n** references trace back to the source PRD's functional requirement numbering.
-- Priority levels (P0/P1/P2) follow the PRD: P0 = must-have for V1, P1 = important, P2 = nice-to-have.
+- **FR-n** references functional requirements originating from the Product Requirements Document (PRD).
+- **FR-AUTH-n** references authentication, session, and identity requirements.
+- **FR-ISO-n** references multi-tenant data isolation and ownership enforcement requirements.
+- Priority levels: **P0** (Critical / Mandatory), **P1** (High / Core Feature), **P2** (Enhancement).
 
 ### 1.3 Intended Audience
-Development team, QA/testing team, and the product owner (single stakeholder for this project).
+Development engineers, system architects, security auditors, and product stakeholders.
 
 ### 1.4 Project Scope
-BudgetBrain V1 is a **single-user, authentication-free** web application for logging expenses, managing categories, tracking budgets, and viewing spending reports. It excludes login, multi-user support, multi-currency, and bank integrations in V1 and all planned future phases (authentication is permanently out of scope per project decision).
-
-### 1.5 References
-- Product Requirements Document (PRD) — BudgetBrain, prior version
-- IEEE Std 830-1998 (structural convention followed by this SRS)
+BudgetBrain is a multi-tenant, cloud-deployed web application featuring:
+1. **Secure JWT & OAuth 2.0 Authentication:** Sign Up, Login, Google Sign-In (OIDC), Token Refresh with Rotation, Revocation, and Multi-Device Session Termination.
+2. **Strict Multi-Tenant Data Isolation:** Complete data privacy where every user operates in an isolated environment without RBAC/admin overhead.
+3. **Core Expense & Budget Management:** Dynamic user-owned categories, multi-filter search, monthly and daily budget goal tracking with strict Anti-Deficit protection.
+4. **Visual Analytics & Usability:** Interactive charts, 8-language localization, dynamic multi-currency conversions, PWA installability, and responsive glassmorphic UI.
 
 ---
 
 ## 2. Overall Description
 
-### 2.1 Product Perspective
-Standalone two-tier web application: a Next.js frontend communicating with a FastAPI backend over a REST API, backed by PostgreSQL. No third-party auth, payment, or banking integrations in V1.
+### 2.1 Product Architecture
+BudgetBrain operates as a decoupled, multi-tier cloud application:
+- **Frontend Layer:** Next.js 16 (React 19, TypeScript, Tailwind CSS, Framer Motion) hosted on Vercel. Communicates with the backend using an Axios client configured with `withCredentials: true` and automated JWT refresh interceptors.
+- **Backend API Layer:** Python 3.12+ FastAPI with async SQLAlchemy 2.0 and Pydantic v2 hosted on Render. Derives authenticated identity exclusively from validated JWT Security Contexts.
+- **Data Layer:** PostgreSQL (Supabase / Render) managed with async Alembic migrations and connection pooling (`NullPool` for serverless/session mode).
 
-### 2.2 Product Functions (Summary)
-- Full CRUD on expenses
-- User-managed dynamic categories
-- Dashboard with totals, charts, and budget status
-- Search, filter, and sort on expenses
-- Budget goal setting (overall + optional per-category) with live tracking
+```
+┌────────────────────────────────────────────────────────┐
+│                   Next.js 16 Client                     │
+│  (Auth Context, PWA, 8 Languages, Currency Provider)   │
+└─────────────────────────┬──────────────────────────────┘
+                          │ HTTPS / REST (JSON)
+                          │ Authorization: Bearer <Access Token>
+                          │ Cookie: refresh_token (HttpOnly, Secure)
+┌─────────────────────────▼──────────────────────────────┐
+│                    FastAPI Backend                     │
+│ ┌────────────────────────────────────────────────────┐ │
+│ │ Security & Auth Middleware (JWT / Google Verify)   │ │
+│ └───────────────────────┬────────────────────────────┘ │
+│ ┌───────────────────────▼────────────────────────────┐ │
+│ │ Routers (Auth, Expenses, Categories, Budgets, Dash)│ │
+│ └───────────────────────┬────────────────────────────┘ │
+│ ┌───────────────────────▼────────────────────────────┐ │
+│ │ Service Layer (Business Logic + Anti-Deficit Guard)│ │
+│ └───────────────────────┬────────────────────────────┘ │
+│ ┌───────────────────────▼────────────────────────────┐ │
+│ │ Repository Layer (SQLAlchemy 2.0 Async Queries)    │ │
+│ │ Enforces WHERE user_id = :current_user_id on all DB│ │
+│ └───────────────────────┬────────────────────────────┘ │
+└─────────────────────────┼──────────────────────────────┘
+                          │ Asyncpg (NullPool)
+┌─────────────────────────▼──────────────────────────────┐
+│                 PostgreSQL Database                    │
+│   (users, refresh_tokens, categories, expenses, budgets)
+└────────────────────────────────────────────────────────┘
+```
 
-### 2.3 User Classes and Characteristics
-One user class: an individual tracking personal spending. No admin role, no multi-tenancy.
+### 2.2 User Classes & Authorization Model
+- **Single Role Model:** All registered accounts are individual user tenants.
+- **No Admin / RBAC System:** Every authenticated user possesses equal permissions over their own private data and zero permissions over any other user's data.
+- **Ownership Enforcement:** Authorization is derived strictly from the verified JWT `sub` claim. Frontend-supplied `user_id` values in request bodies or query parameters are never trusted for authorization.
 
-### 2.4 Operating Environment
-| Layer | Technology |
+### 2.3 Operating Environment
+| Layer | Technology Specification |
 |---|---|
-| Backend runtime | Python 3.12, FastAPI, uvicorn |
-| Database | PostgreSQL (17.x via Supabase in deployment) |
-| Frontend runtime | Next.js, Node 20 |
-| Deployment | Vercel (frontend) + Render (backend) + Supabase (database) |
-| Client | Responsive web browser — desktop and mobile |
-
-### 2.5 Design and Implementation Constraints
-- **No authentication in any phase** — explicit, permanent project decision.
-- No hardcoded or demo data at any stage — all data must be dynamically created, stored, and fetched from the live database (applies to development too).
-- Local development must run without Docker; Docker is introduced only for deployment.
-- All configuration is environment-variable driven — no hardcoded config values in source.
-
-### 2.6 Assumptions and Dependencies
-- Single fixed currency: ₹ (INR), 2 decimal places.
-- Budget periods default to monthly.
-- Deployment URL is the sole access boundary in the absence of authentication — the user accepts this tradeoff.
+| Backend Runtime | Python 3.12+, FastAPI, Uvicorn (ASGI) |
+| Database Engine | PostgreSQL 16+ / 17 (Supabase / Render) |
+| ORM & Migrations | SQLAlchemy 2.0 Async, Alembic |
+| Auth & Cryptography | Passlib / Argon2 / BCrypt, PyJWT / Authlib, Google Auth Lib |
+| Frontend Runtime | Next.js 16 (App Router), React 19, TypeScript |
+| UI & Animation | Vanilla CSS, Tailwind CSS, Framer Motion, Recharts, Lucide Icons |
+| Hosting & Cloud | Vercel (Frontend) + Render (Backend) + Supabase (PostgreSQL) |
 
 ---
 
-## 3. System Features
+## 3. Specific Functional Requirements
 
-### 3.1 Navigation
-**Description:** Hamburger menu with two sections — Dashboard (view-only) and Expenses (full management).
-**Priority:** P0
+### 3.1 Authentication & Session Management
 
-### 3.2 Expense Management (FR-2 to FR-5)
-**Description:** Full CRUD on expenses.
-| Action | Behavior |
-|---|---|
-| Add | Create a new expense entry |
-| View | Paginated list, default page size 20, max 100 |
-| Edit | Update any field of an existing expense |
-| Delete | Requires confirmation step before removal |
+#### FR-AUTH-1: User Registration
+- Endpoint: `POST /api/v1/auth/register`
+- Validates email format, unique email check (case-insensitive), password strength (min 8 characters, at least 1 uppercase, 1 lowercase, 1 number).
+- Hashes password using Argon2 or BCrypt (cost factor ≥ 12).
+- Automatically seeds default starter categories (`Food`, `Transport`, `Housing`, `Entertainment`, `Utilities`, `Healthcare`, `Shopping`, `Uncategorized`) linked to the new `user_id`.
+- Returns user profile, Access Token, and sets `refresh_token` in an HttpOnly cookie.
 
-**Fields:** title, category, amount, date, notes (optional), payment mode (optional).
-**Priority:** P0
+#### FR-AUTH-2: User Login (Email & Password)
+- Endpoint: `POST /api/v1/auth/login`
+- Validates credentials against stored hash.
+- Enforces rate limiting (max 5 failed attempts per 15 minutes per IP/email).
+- Issues short-lived Access Token (10–15 min expiry) and generates a cryptographically secure Refresh Token (7–30 days expiry).
+- Stores the SHA-256 hash of the Refresh Token in the `refresh_tokens` database table.
+- Sets the plaintext Refresh Token in an `HttpOnly`, `Secure`, `SameSite=Lax` cookie.
 
-### 3.3 Category Management (FR-6 to FR-10)
-**Description:** User builds and manages their own categories rather than choosing from a fixed list.
+#### FR-AUTH-3: Google OAuth 2.0 / OpenID Connect Sign-In
+- Endpoint: `POST /api/v1/auth/google`
+- Client obtains Google ID Token via Google Sign-In button and sends `{ "id_token": "..." }` to backend.
+- Backend verifies the ID Token directly with Google APIs (checking signature, audience `GOOGLE_CLIENT_ID`, and expiration).
+- If user exists by Google ID or verified email, safely links account.
+- If user is new, creates `User` record with `is_verified=True` and seeds starter categories.
+- Issues standard application Access Token + HttpOnly Refresh Token.
 
-| Action | Behavior | Priority |
-|---|---|---|
-| Create | Add a category while logging an expense or from category list | P0 |
-| Rename | Edit an existing category name | P0 |
-| Delete | See deletion flow below | P0 |
-| View | List with expense count per category | P1 |
-| Starter categories | Seeded on first run (Food, Transport, Rent, etc.) plus a protected "Uncategorized" system category | P2 |
+#### FR-AUTH-4: Refresh Token Rotation & Automatic Token Refresh
+- Endpoint: `POST /api/v1/auth/refresh`
+- Reads `refresh_token` cookie from request.
+- Hashes incoming token and verifies existence, expiration, and non-revoked status in `refresh_tokens` table.
+- **Token Rotation:** Revokes the used refresh token, issues a brand new Refresh Token + Access Token, and updates the database and cookie.
+- If a revoked or reused refresh token is presented, invalidates all sessions for the affected user (Breach Detection).
 
-**Deletion flow (FR-8):**
-1. Backend checks whether the category has linked expenses.
-2. If linked expenses exist, the API returns a conflict response with the count; the frontend shows a warning/confirmation dialog.
-3. On user confirmation, the backend reassigns all linked expenses to "Uncategorized" and then deletes the category, inside a single transaction.
-4. If no linked expenses exist, the category is deleted directly.
-5. The "Uncategorized" category itself can never be deleted or renamed.
+#### FR-AUTH-5: Secure Logout & Session Revocation
+- Endpoint: `POST /api/v1/auth/logout`
+- Marks the current refresh token as `revoked=True` in the database.
+- Clears the `refresh_token` cookie (`Max-Age=0`).
 
-### 3.4 Search, Filter and Sort (FR-11 to FR-16)
-**Description:** All capabilities work together (e.g., filter by category, then sort by amount).
-| Capability | Detail | Priority |
-|---|---|---|
-| Search | Title and notes text only (category name search is out of scope for V1) | P1 |
-| Filter — date range | e.g. this week, this month | P0 |
-| Filter — category | Single category isolation | P0 |
-| Filter — amount range | Min/max bounds | P1 |
-| Filter — payment mode | Cash / card / UPI / other | P1 |
-| Sort | By amount, date, or category | P1 |
+#### FR-AUTH-6: Logout from All Devices / Sessions
+- Endpoint: `POST /api/v1/auth/logout-all`
+- Sets `revoked=True` on all active refresh tokens associated with `current_user.id`.
+- Clears the local cookie.
 
-### 3.5 Dashboard (FR-17 to FR-25)
-| Feature | Priority |
-|---|---|
-| Total spend (overall + current month) | P0 |
-| Recent expenses snapshot | P0 |
-| Pie/donut chart — spend by category | P0 |
-| Bar/line chart — spend over time | P0 |
-| Budget status vs. goal | P0 |
-| Daily/weekly/monthly report views | P0 |
-| Month-over-month comparison (% change) | P1 |
-| Top categories by spend | P1 |
-| Average daily/weekly spend | P2 |
+#### FR-AUTH-7: Forgot & Reset Password
+- Endpoints: `POST /api/v1/auth/forgot-password`, `POST /api/v1/auth/reset-password`
+- Generates cryptographically secure, time-limited (15–30 min) reset token.
+- Reset token is hashed in DB; single-use only.
 
-### 3.6 Budget / Spending Goal (FR-26 to FR-28)
-**Description:** The user sets spending goals; the app tracks status automatically.
-- An **overall monthly budget is required**; **per-category budgets are optional**.
-- Live remaining balance = goal − spent, recalculated as expenses are added.
-- Status thresholds: **on track** (below 80% of limit), **near limit** (80%–100%), **over budget** (above 100%). The 80% threshold is environment-configurable.
-- **V1 supports monthly budgets only.** The data model reserves a `period_type` field for weekly budgets, but the V1 interface only exposes monthly goal-setting.
-- **No automatic rollover.** Each new period requires the user to set a new budget explicitly; the previous period's limit is not auto-copied forward.
-**Priority:** P0 (P1 for the near-limit alert indicator)
-
-### 3.7 Data Export
-**Description:** Export expenses as CSV/PDF/Excel — nice-to-have, implemented only if time permits; otherwise deferred to Phase 2.
-**Priority:** P2
-
-### 3.8 Data Integrity
-**Description:** No hardcoded or demo data anywhere in the application, at any stage of development or deployment. All data is dynamically created, stored, and fetched from the live database.
-**Priority:** P0
+#### FR-AUTH-8: Change Password
+- Endpoint: `POST /api/v1/auth/change-password`
+- Requires valid JWT and verification of `old_password` before setting `new_password`.
 
 ---
 
-## 4. Data Requirements
+### 3.2 User Data Isolation & Ownership Rules (FR-ISO)
 
-### 4.1 Entity: `categories`
-| Field | Type | Constraints |
-|---|---|---|
-| id | UUID | Primary key |
-| name | VARCHAR(50) | Required, unique |
-| is_system | BOOLEAN | Default false; true only for the seeded "Uncategorized" row |
-| created_at / updated_at | TIMESTAMPTZ | Auto-managed |
-
-### 4.2 Entity: `expenses`
-| Field | Type | Constraints |
-|---|---|---|
-| id | UUID | Primary key |
-| title | VARCHAR(50) | Required |
-| amount | NUMERIC(10,2) | Required, must be > 0 |
-| category_id | UUID | Required, foreign key to categories, restrict on delete |
-| date | DATE | Required, cannot be later than today |
-| notes | TEXT | Optional |
-| payment_mode | VARCHAR(20) | Optional: cash / card / upi / other |
-| created_at / updated_at | TIMESTAMPTZ | Auto-managed |
-
-Indexed on: date, category_id, amount, and full-text (trigram) search on title and notes.
-
-### 4.3 Entity: `budgets`
-| Field | Type | Constraints |
-|---|---|---|
-| id | UUID | Primary key |
-| category_id | UUID | Nullable — null represents the overall budget; cascades on category delete |
-| period_type | VARCHAR(10) | monthly or weekly, default monthly |
-| period_start | DATE | Required |
-| limit_amount | NUMERIC(10,2) | Required, must be > 0 |
-| created_at / updated_at | TIMESTAMPTZ | Auto-managed |
-
-Uniqueness: one budget per category (or one overall budget) per period.
+1. **Security Context Derivation:** All protected routes inject `current_user: User = Depends(get_current_user)`.
+2. **Query Scoping:** Every database read, insert, update, or delete query must include `WHERE user_id = :current_user.id`.
+3. **Cross-Tenant Blocking:**
+   - `GET /expenses/{id}`: Returns `404 Not Found` if expense does not belong to `current_user.id`.
+   - `PATCH /expenses/{id}`: Returns `404 Not Found` if expense does not belong to `current_user.id`.
+   - `DELETE /expenses/{id}`: Returns `404 Not Found` if expense does not belong to `current_user.id`.
+   - The same rule applies to categories and budgets.
+4. **Category Isolation:** Category names are unique per-user (`UNIQUE(user_id, lower(name))`), allowing User A and User B to independently have their own "Groceries" category.
 
 ---
 
-## 5. External Interface Requirements
-
-### 5.1 User Interfaces
-Responsive web app, desktop and mobile browsers. Design direction: glassmorphism with a colorful, natural theme.
-
-| Element | Specification |
-|---|---|
-| Color palette | Sage #7FB89A (primary/growth), coral #F0876B (spending/alerts), honey #F4B860 (budget/goals), sky #8FC1E3 (secondary), cream #FBF7EF (background), ink #2E3B36 (text) |
-| Typography | Display/numerals: Fraunces (organic serif). Body/UI: Plus Jakarta Sans |
-| Signature element | Circular budget ring with a gradient fill (sage → honey → coral) reflecting live budget status |
-| Motion | Framer Motion — staggered card entrance, 3D tilt-on-hover for glass cards, spring-eased budget ring animation, count-up numeric transitions |
-| Layout | Bento-style glass card grid; backdrop blur, soft shadows, layered depth |
-
-### 5.2 API Interfaces
-Base path: `/api/v1`. REST/JSON over HTTPS.
-
-| Method | Endpoint | Purpose |
-|---|---|---|
-| GET | /health | App and database health status |
-| GET / POST / PATCH / DELETE | /categories, /categories/{id} | Category management |
-| GET / POST / PATCH / DELETE / GET | /expenses, /expenses/{id} | Expense management |
-| GET | /dashboard/summary | Total spend and recent expenses |
-| GET | /dashboard/by-category | Category breakdown for pie/donut chart |
-| GET | /dashboard/trend | Spend-over-time data for bar/line chart |
-| GET | /dashboard/comparison | Month-over-month change |
-| GET | /dashboard/top-categories | Ranked category spend |
-| GET / POST / PATCH | /budgets, /budgets/{id} | Budget management |
-
-**Response envelope:** `{ "data": ..., "meta": { "page", "page_size", "total" } }`
-**Error format:** `{ "error": { "code", "message", "field" } }`
-**Documentation:** Auto-generated OpenAPI/Swagger at `/docs` and `/redoc`.
-
-### 5.3 Software Interfaces
-| Interface | Detail |
-|---|---|
-| Database driver | asyncpg (async SQLAlchemy 2.0) |
-| Migrations | Alembic |
-| Frontend data layer | TanStack Query against the REST API |
+### 3.3 Expense Management (FR-2 to FR-5)
+- **Full CRUD:** Create, Read (Paginated/Filtered/Sorted), Update, Delete.
+- **Fields:** `id`, `user_id`, `title`, `amount`, `category_id`, `date`, `notes`, `payment_mode`, `is_recurring`, `created_at`, `updated_at`.
+- **Anti-Deficit Protection:** Expense creation and modification verify that total monthly expenditure does not exceed the active monthly budget limit. If exceeded, returns `HTTP 400 BUDGET_EXCEEDED`.
+- **Safe Deletion:** Glassmorphic confirmation modal on UI; restores deleted amount back to active budget.
 
 ---
 
-## 6. Non-Functional Requirements
-
-### 6.1 Performance
-Dashboard and reports must load from live, database-driven data at any data volume — no static or cached placeholder values.
-
-### 6.2 Scalability
-Data model and API are designed so later phases can extend the system without major rework of V1 foundations.
-
-### 6.3 Reliability
-Each development phase follows a Run → Test → Deploy cycle and must be fully functional before the next phase begins.
-
-### 6.4 Security
-No authentication layer exists in V1 or any planned future phase. The application's only access boundary is its deployment URL. This is an explicit, accepted project decision rather than an oversight.
-
-### 6.5 Testability
-Every backend module (routers, services) must be independently testable via automated tests (pytest + httpx).
-
-### 6.6 Maintainability
-Environment-driven configuration throughout (`.env.example` for both backend and frontend); no hardcoded values in source code.
-
-### 6.7 Portability
-Local development runs without containers; Docker images (separate for frontend and backend) are used only at the deployment stage, targeting Render and Vercel respectively.
+### 3.4 Category Management (FR-6 to FR-10)
+- **User-Scoped CRUD:** Create, Rename, Delete with Warn-and-Reassign flow.
+- **Uncategorized Protection:** Each user has a protected system category `"Uncategorized"` (`is_system=True`) that cannot be deleted or renamed.
+- **Deletion Reassignment:** Deleting a category with linked expenses reassigns them to the user's `"Uncategorized"` category in a single atomic transaction.
 
 ---
 
-## 7. Appendices
-
-### Appendix A — Development & Deployment Workflow
-| Stage | Backend | Frontend |
-|---|---|---|
-| Local development | Virtual environment, Alembic migrations, uvicorn with reload | npm install, npm run dev |
-| Local testing | pytest against local PostgreSQL | Manual QA against local backend |
-| Deployment | Docker image deployed to Render | Docker image (or native build) deployed to Vercel |
-| Deployment database | Supabase — swap `DATABASE_URL` only, no code change | — |
-
-### Appendix B — Out of Scope (V1)
-Authentication (permanently), multiple currencies, bank/UPI/SMS auto-import, income tracking, notifications/reminders, recurring expenses, multi-user/family accounts, native mobile application. Data export is a deferred nice-to-have.
-
-### Appendix C — Definition of Done (V1)
-- Full expense CRUD functional end-to-end
-- Dynamic category management with the warn-and-reassign deletion flow
-- Dashboard with total spend, recent expenses, at least two charts, and budget status
-- Search plus at least two filters and two sort options, usable together
-- Overall budget (required) and optional per-category budgets, with live balance and status
-- Hamburger navigation functional between Dashboard and Expenses
-- All validation rules enforced on both frontend and backend
-- No hardcoded or demo data anywhere in the system
-- Deployed to Vercel, Render, and Supabase, and tested end-to-end
+### 3.5 Budget Goal Tracking (FR-26 to FR-28)
+- **Monthly Overall & Category Budgets:** Configured per user per calendar month.
+- **Daily Spending Limit:** Optional daily allowance with real-time dashboard progress tracking.
+- **Live Status Thresholds:** On Track (< 80%), Near Limit (80%–100%, configurable), Over Budget (> 100%).
 
 ---
 
-*This SRS reflects all requirements and decisions finalized during project discussion for BudgetBrain V1. No open items remain.*
+### 3.6 Dashboard Analytics (FR-17 to FR-25)
+- **Summary Metrics:** Total spent, monthly budget remaining, daily spending average, recent 5 expenses.
+- **Charts:** Category Spend Breakdown Donut Chart (weekly/monthly toggle), Spend Trend over Time (day/week/month), Month-over-Month comparison, Top 5 spending categories.
+- **Predictive Monthly Report:** Spend velocity projection and financial health badge.
+
+---
+
+## 4. Data Requirements & Schema Specifications
+
+### 4.1 Entity: `users`
+| Column | Type | Constraints | Description |
+|---|---|---|---|
+| `id` | VARCHAR(36) | PK, UUID | Unique user identifier |
+| `email` | VARCHAR(255) | Unique, Index, Not Null | User email address (lowercase) |
+| `hashed_password` | VARCHAR(255) | Nullable (null for OAuth-only) | Argon2 / BCrypt password hash |
+| `full_name` | VARCHAR(100) | Nullable | User display name |
+| `avatar_url` | VARCHAR(500) | Nullable | Profile picture / Google avatar |
+| `google_id` | VARCHAR(100) | Unique, Index, Nullable | Google OIDC unique subject ID |
+| `is_active` | BOOLEAN | Default True, Not Null | Account active status |
+| `is_verified` | BOOLEAN | Default False, Not Null | Email verification status |
+| `created_at` | TIMESTAMPTZ | Not Null | Timestamp of registration |
+| `updated_at` | TIMESTAMPTZ | Not Null | Timestamp of last update |
+
+### 4.2 Entity: `refresh_tokens`
+| Column | Type | Constraints | Description |
+|---|---|---|---|
+| `id` | VARCHAR(36) | PK, UUID | Unique token identifier |
+| `user_id` | VARCHAR(36) | FK → `users.id` (CASCADE), Index, Not Null | Owner of session |
+| `token_hash` | VARCHAR(64) | Index, Not Null | SHA-256 hash of refresh token |
+| `expires_at` | TIMESTAMPTZ | Index, Not Null | Token expiration timestamp |
+| `revoked` | BOOLEAN | Default False, Not Null | Revocation status flag |
+| `user_agent` | VARCHAR(255) | Nullable | Browser / Device user agent string |
+| `ip_address` | VARCHAR(45) | Nullable | Client IP address |
+| `created_at` | TIMESTAMPTZ | Not Null | Token creation timestamp |
+
+### 4.3 Entity: `categories`
+| Column | Type | Constraints | Description |
+|---|---|---|---|
+| `id` | VARCHAR(36) | PK, UUID | Unique category identifier |
+| `user_id` | VARCHAR(36) | FK → `users.id` (CASCADE), Index, Not Null | Tenant owner |
+| `name` | VARCHAR(50) | Not Null | Category display name |
+| `is_system` | BOOLEAN | Default False, Not Null | True for "Uncategorized" |
+| `created_at` | TIMESTAMPTZ | Not Null | Auto timestamp |
+| `updated_at` | TIMESTAMPTZ | Not Null | Auto timestamp |
+
+*Index / Constraint:* `UNIQUE(user_id, lower(name))`
+
+### 4.4 Entity: `expenses`
+| Column | Type | Constraints | Description |
+|---|---|---|---|
+| `id` | VARCHAR(36) | PK, UUID | Unique expense identifier |
+| `user_id` | VARCHAR(36) | FK → `users.id` (CASCADE), Index, Not Null | Tenant owner |
+| `category_id` | VARCHAR(36) | FK → `categories.id` (RESTRICT), Index, Not Null | Associated category |
+| `title` | VARCHAR(50) | Not Null | Expense title |
+| `amount` | NUMERIC(10,2) | Not Null, Check > 0 | Amount in base currency (INR) |
+| `date` | DATE | Index, Not Null | Transaction date (<= today) |
+| `notes` | TEXT | Nullable | Additional notes |
+| `payment_mode` | VARCHAR(20) | Nullable | cash / card / upi / other |
+| `is_recurring` | BOOLEAN | Default False, Not Null | Recurring monthly flag |
+| `created_at` | TIMESTAMPTZ | Not Null | Auto timestamp |
+| `updated_at` | TIMESTAMPTZ | Not Null | Auto timestamp |
+
+*Indexes:* `(user_id, date)`, `(user_id, category_id)`, `(user_id, amount)`
+
+### 4.5 Entity: `budgets`
+| Column | Type | Constraints | Description |
+|---|---|---|---|
+| `id` | VARCHAR(36) | PK, UUID | Unique budget identifier |
+| `user_id` | VARCHAR(36) | FK → `users.id` (CASCADE), Index, Not Null | Tenant owner |
+| `category_id` | VARCHAR(36) | FK → `categories.id` (CASCADE), Nullable | Null = overall monthly budget |
+| `period_type` | VARCHAR(10) | Default 'monthly', Not Null | Period type |
+| `period_start` | DATE | Index, Not Null | First day of month (YYYY-MM-01) |
+| `limit_amount` | NUMERIC(10,2) | Not Null, Check > 0 | Monthly limit amount |
+| `daily_limit` | NUMERIC(10,2) | Nullable | Optional daily spend limit |
+| `created_at` | TIMESTAMPTZ | Not Null | Auto timestamp |
+| `updated_at` | TIMESTAMPTZ | Not Null | Auto timestamp |
+
+*Constraints:* `UNIQUE(user_id, period_type, period_start, category_id)` and Partial Unique `WHERE category_id IS NULL`.
+
+---
+
+## 5. External API Specifications
+
+Base URL: `/api/v1`  
+Envelope Standard: `{ "data": <payload>, "meta": <pagination/metadata> }`  
+Error Standard: `{ "error": { "code": "ERROR_CODE", "message": "Description", "field": "optional_field" } }`
+
+### 5.1 Authentication API Endpoints
+| Method | Endpoint | Access | Description |
+|---|---|---|---|
+| `POST` | `/auth/register` | Public | Register new user; issues tokens |
+| `POST` | `/auth/login` | Public | Login with email/password; issues tokens |
+| `POST` | `/auth/google` | Public | Google OAuth 2.0 token verification & login |
+| `POST` | `/auth/refresh` | Cookie | Rotate refresh token & issue new access token |
+| `POST` | `/auth/logout` | Authenticated | Revoke current session & clear cookie |
+| `POST` | `/auth/logout-all` | Authenticated | Revoke all active sessions for current user |
+| `POST` | `/auth/forgot-password` | Public | Request password reset token |
+| `POST` | `/auth/reset-password` | Public | Reset password using valid reset token |
+| `GET` | `/auth/me` | Authenticated | Return profile of current authenticated user |
+| `POST` | `/auth/change-password`| Authenticated | Update password with old password check |
+
+### 5.2 Core Business Endpoints (All Require `Authorization: Bearer <token>`)
+| Module | Method | Endpoint | Description |
+|---|---|---|---|
+| **Health** | `GET` | `/health` | Public app & database health check |
+| **Categories**| `GET` | `/categories` | List user categories with expense counts |
+| | `POST` | `/categories` | Create user-scoped category |
+| | `GET` | `/categories/{id}` | Get category (owner-only) |
+| | `PATCH`| `/categories/{id}` | Update category (owner-only) |
+| | `DELETE`|`/categories/{id}` | Delete with warn-and-reassign (owner-only) |
+| **Expenses** | `GET` | `/expenses` | List user expenses with search/filter/sort |
+| | `POST` | `/expenses` | Create expense with budget cap validation |
+| | `GET` | `/expenses/{id}` | Get expense (owner-only) |
+| | `PATCH`| `/expenses/{id}` | Update expense (owner-only) |
+| | `DELETE`|`/expenses/{id}` | Delete expense (owner-only) |
+| **Budgets** | `GET` | `/budgets` | List user budgets with spent & remaining balances |
+| | `POST` | `/budgets` | Set overall or category budget |
+| | `GET` | `/budgets/{id}` | Get budget (owner-only) |
+| | `PATCH`| `/budgets/{id}` | Update budget limit (owner-only) |
+| **Dashboard** | `GET` | `/dashboard/summary` | User spend metrics, recent expenses, budget status |
+| | `GET` | `/dashboard/by-category` | Category spend breakdown chart data |
+| | `GET` | `/dashboard/trend` | Spend trend by day/week/month |
+| | `GET` | `/dashboard/comparison` | Month-over-month comparison |
+| | `GET` | `/dashboard/top-categories`| Top 5 spending categories |
+
+---
+
+## 6. Non-Functional & Security Requirements
+
+### 6.1 Security & Protection
+- **No Plaintext Passwords:** Argon2 or BCrypt with minimum work factor 12.
+- **Token Security:** JWT signing secrets stored strictly in environment variables (`JWT_SECRET_KEY`). Never expose secrets in client bundles or git.
+- **Cookie Security:** `refresh_token` cookie configured with `HttpOnly=True`, `Secure=True` (in production), `SameSite=Lax`, and `Path=/api/v1/auth`.
+- **CORS Protection:** Configured with `allow_credentials=True` restricted to trusted origins (`ALLOWED_ORIGINS`).
+- **Rate Limiting:** Enforced on auth endpoints to prevent brute-force attacks.
+
+### 6.2 Data Integrity & Isolation
+- **100% Tenant Isolation:** No query shall execute without scoping to `current_user.id`.
+- **Zero Mock / Hardcoded Data:** All data dynamically stored and retrieved from PostgreSQL.
+- **Database Connection Pooling:** Managed with `NullPool` for clean async session termination on cloud PostgreSQL instances.
+
+---
+
+## 7. Definition of Done (DoD)
+
+1. Database schema updated with `users`, `refresh_tokens`, and `user_id` foreign keys on all core entities.
+2. Complete JWT and Google OAuth authentication flow verified on backend and frontend.
+3. User A and User B cross-tenant access attempts tested and verified to return `404/403`.
+4. All existing features (Categories, Expenses, Budgets, Dashboard, Multi-Currency, 8 Languages, PWA, 3D Logo) verified working 100% under authentication.
+5. Automated test suite passing 100% with zero regressions.

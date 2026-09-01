@@ -191,6 +191,19 @@ All 13 REST API endpoints across 5 core backend modules are fully functional wit
   - **Pulsing Synaptic Beacon**: Glowing gold node at the prefrontal cortex representing financial intelligence.
   - **Interactive 3D Touch/Hover**: Smooth spring tilt on hover/tap across all mobile, tablet, and desktop viewports.
 
+### Phase 26 — Postman API Testing Suite & Local Server Automation
+- **Created Postman Collection v2.1.0** ([`BudgetBrain.postman_collection.json`](file:///d:/BudgetBrain/BudgetBrain.postman_collection.json)):
+  - Covers all 13 REST API endpoints across 5 modules (Health, Categories, Expenses, Budgets, Dashboard).
+  - Includes automated test assertions for HTTP status codes, JSON schema validation, and response structures.
+  - Implements dynamic variable persistence (`category_id`, `expense_id`, `budget_id`) across sequenced test requests.
+- **Created Postman Environment Configurations**:
+  - [`BudgetBrain.postman_environment.json`](file:///d:/BudgetBrain/BudgetBrain.postman_environment.json) for Local Development (`http://127.0.0.1:8000`).
+  - [`BudgetBrain_Production.postman_environment.json`](file:///d:/BudgetBrain/BudgetBrain_Production.postman_environment.json) for Live Cloud Backend (`https://budgetbrain-ojnr.onrender.com`).
+- **Live Server & Method Verification**:
+  - Automated Uvicorn async backend launch on Windows.
+  - Verified and documented `PATCH` routing semantics with UUID path parameters for resource updates.
+  - Verified 409 Conflict handling on category name uniqueness constraints.
+
 ---
 
 ## Summary of Accomplishments
@@ -199,6 +212,8 @@ All 13 REST API endpoints across 5 core backend modules are fully functional wit
 |---|---|---|
 | API Endpoints | 13 REST routes | 100% Complete & Verified |
 | Automated Backend Tests | 38 test cases | 38 / 38 Passing (100%) |
+| Postman API Collection | 13 Requests + Assertions | Complete & Import-Ready (v2.1.0) |
+| Postman Environments | Local & Production | Configured (`.json` files) |
 | Next.js Frontend | 5 Core App Pages | 100% Built & Verified |
 | Cloud Configs | Render, Vercel, Supabase | Configured & Live Deployed |
 | Production Build | Zero Compiler Errors | `next build` Passed (0 errors) |
@@ -240,3 +255,4 @@ All 13 REST API endpoints across 5 core backend modules are fully functional wit
 | `10e5586` | style(toast): restore toast notifications to center-top position across all pages |
 | `c84ca8f` | feat(i18n): add multilingual localization with Gujarati, Marwadi, German, Marathi, Hindi and simple 3D logo |
 | `d81f6b0` | feat(ui): add gentle floating 3D animation, light shimmer sweep, and synaptic pulse to BrainLogo3D |
+| `81c04d1` | test(postman): create complete Postman collection v2.1.0 and environment configs for local and prod API testing |

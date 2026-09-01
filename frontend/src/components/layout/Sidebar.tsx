@@ -3,10 +3,11 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Receipt, Tag, Target, Settings, Menu, X, Sun, Moon } from 'lucide-react';
+import { LayoutDashboard, Receipt, Tag, Target, Settings, Menu, X, Sun, Moon, LogOut, User as UserIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useTranslation } from '@/providers/LanguageProvider';
+import { useAuth } from '@/providers/AuthProvider';
 import BrainLogo3D from '@/components/ui/BrainLogo3D';
 
 export default function Sidebar() {
@@ -14,6 +15,7 @@ export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { t } = useTranslation();
+  const { user, logout } = useAuth();
 
   const navItems = [
     { href: '/', label: t('nav_dashboard', 'Dashboard'), icon: LayoutDashboard },
@@ -44,6 +46,16 @@ export default function Sidebar() {
           >
             {theme === 'light' ? <Moon className="w-4 h-4 text-ink-muted" /> : <Sun className="w-4 h-4 text-honey" />}
           </button>
+          {user && (
+            <button
+              onClick={() => logout()}
+              className="p-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 hover:bg-red-500/20 transition-colors cursor-pointer"
+              aria-label="Sign Out"
+              title="Sign Out"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          )}
           <button
             onClick={() => setIsOpen(!isOpen)}
             className="p-2 rounded-xl bg-white dark:bg-white/5 border border-ink/10 dark:border-white/10 text-ink dark:text-cream hover:bg-ink/5 transition-colors cursor-pointer"
@@ -114,6 +126,35 @@ export default function Sidebar() {
             })}
           </nav>
         </div>
+
+        {/* User Profile & Sign Out at Sidebar Footer */}
+        {user && (
+          <div className="pt-4 border-t border-ink/5 dark:border-white/10">
+            <div className="flex items-center justify-between p-2.5 rounded-2xl bg-ink/5 dark:bg-white/5 border border-ink/5 dark:border-white/5">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-sm">
+                  {user.full_name ? user.full_name.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-ink dark:text-cream truncate leading-tight">
+                    {user.full_name || 'My Account'}
+                  </p>
+                  <p className="text-[10px] text-ink-muted truncate">
+                    {user.email}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => logout()}
+                className="p-1.5 rounded-xl text-ink-muted hover:text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer shrink-0"
+                title="Sign Out"
+                aria-label="Sign Out"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </aside>
     </>
   );

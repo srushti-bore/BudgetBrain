@@ -38,3 +38,9 @@ class TimestampMixin:
 def new_uuid() -> str:
     """Generate a new UUID string — used as default for primary keys."""
     return str(uuid.uuid4())
+
+
+def now_utc() -> datetime:
+    """Return current UTC datetime."""
+    return datetime.now(timezone.utc)
+

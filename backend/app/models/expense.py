@@ -1,19 +1,18 @@
 """
 BudgetBrain — Expense ORM Model
 
-SRS §4.2:
+SRS §4.4:
   id            UUID         PK
+  user_id       UUID         FK → users.id (CASCADE)
   title         VARCHAR(50)  Required
   amount        NUMERIC(10,2) Required, > 0
-  category_id   UUID         FK → categories, restrict on delete
+  category_id   UUID         FK → categories.id, restrict on delete
   date          DATE         Required, cannot be in future
   notes         TEXT         Optional
   payment_mode  VARCHAR(20)  Optional: cash / card / upi / other
   is_recurring  BOOLEAN      Optional: true for recurring expenses
   created_at    TIMESTAMPTZ  Auto-managed
   updated_at    TIMESTAMPTZ  Auto-managed
-
-Indexed on: date, category_id, amount, full-text (trigram) on title + notes.
 """
 
 import enum
@@ -37,6 +36,12 @@ class Expense(Base, TimestampMixin):
 
     id: Mapped[str] = mapped_column(
         String(36), primary_key=True, default=new_uuid
+    )
+    user_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     title: Mapped[str] = mapped_column(
         String(50), nullable=False
@@ -62,18 +67,23 @@ class Expense(Base, TimestampMixin):
     )
 
     # Relationships
+    user: Mapped["User"] = relationship(  # noqa: F821
+        "User", back_populates="expenses", lazy="select"
+    )
     category: Mapped["Category"] = relationship(  # noqa: F821
         "Category", back_populates="expenses", lazy="select"
     )
 
-    # Composite + full-text indexes (defined at table level)
+    # Composite indexes for high-speed filtered multi-tenant queries
     __table_args__ = (
+        Index("ix_expenses_user_date", "user_id", "date"),
+        Index("ix_expenses_user_category", "user_id", "category_id"),
+        Index("ix_expenses_user_amount", "user_id", "amount"),
         Index("ix_expenses_date_category", "date", "category_id"),
-        Index("ix_expenses_amount", "amount"),
     )
 
     def __repr__(self) -> str:
         return (
-            f"<Expense id={self.id!r} title={self.title!r} "
+            f"<Expense id={self.id!r} user_id={self.user_id!r} title={self.title!r} "
             f"amount={self.amount} date={self.date} is_recurring={self.is_recurring}>"
         )

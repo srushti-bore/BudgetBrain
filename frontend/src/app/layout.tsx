@@ -6,8 +6,8 @@ import { ThemeProvider } from '@/providers/ThemeProvider';
 import { CurrencyProvider } from '@/providers/CurrencyProvider';
 import { SettingsProvider } from '@/providers/SettingsProvider';
 import { LanguageProvider } from '@/providers/LanguageProvider';
-import Sidebar from '@/components/layout/Sidebar';
-import PWAInstallPrompt from '@/components/layout/PWAInstallPrompt';
+import { AuthProvider } from '@/providers/AuthProvider';
+import AppShell from '@/components/layout/AppShell';
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -23,7 +23,7 @@ const fraunces = Fraunces({
 
 export const metadata: Metadata = {
   title: 'BudgetBrain — Your Financial Control Center',
-  description: 'Smart, single-user personal finance control center with zero friction and dynamic expense tracking.',
+  description: 'Smart, secure multi-tenant personal finance control center with zero friction and dynamic expense tracking.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
@@ -41,21 +41,17 @@ export default function RootLayout({
     <html lang="en" className={`${plusJakartaSans.variable} ${fraunces.variable} suppressHydrationWarning`}>
       <body className="bg-cream text-ink font-sans antialiased min-h-screen">
         <ThemeProvider>
-          <QueryProvider>
-            <CurrencyProvider>
-              <LanguageProvider>
-                <SettingsProvider>
-                  <div className="min-h-screen flex flex-col lg:flex-row">
-                    <Sidebar />
-                    <main className="flex-1 lg:ml-64 pt-20 lg:pt-8 p-5 sm:p-8 lg:p-10 lg:px-12 overflow-x-hidden">
-                      {children}
-                    </main>
-                  </div>
-                  <PWAInstallPrompt />
-                </SettingsProvider>
-              </LanguageProvider>
-            </CurrencyProvider>
-          </QueryProvider>
+          <AuthProvider>
+            <QueryProvider>
+              <CurrencyProvider>
+                <LanguageProvider>
+                  <SettingsProvider>
+                    <AppShell>{children}</AppShell>
+                  </SettingsProvider>
+                </LanguageProvider>
+              </CurrencyProvider>
+            </QueryProvider>
+          </AuthProvider>
         </ThemeProvider>
         {/* Service Worker Loader */}
         <script

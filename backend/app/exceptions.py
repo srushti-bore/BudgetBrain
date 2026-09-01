@@ -112,6 +112,41 @@ class BudgetExceededException(BudgetBrainException):
         self.budget_limit = budget_limit
 
 
+class AuthenticationException(BudgetBrainException):
+    """Raised when authentication fails (invalid credentials, expired token, revoked session)."""
+
+    def __init__(self, message: str = "Invalid authentication credentials.", field: str | None = None):
+        super().__init__(
+            code="UNAUTHORIZED",
+            message=message,
+            field=field,
+            status_code=status.HTTP_401_UNAUTHORIZED,
+        )
+
+
+class ForbiddenException(BudgetBrainException):
+    """Raised when an authenticated user attempts to access another tenant's resource."""
+
+    def __init__(self, message: str = "You do not have permission to access this resource."):
+        super().__init__(
+            code="FORBIDDEN",
+            message=message,
+            status_code=status.HTTP_403_FORBIDDEN,
+        )
+
+
+class RateLimitException(BudgetBrainException):
+    """Raised when an auth endpoint exceeds request velocity limits."""
+
+    def __init__(self, message: str = "Too many requests. Please try again later."):
+        super().__init__(
+            code="RATE_LIMIT_EXCEEDED",
+            message=message,
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        )
+
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Error Response Helper
 # ─────────────────────────────────────────────────────────────────────────────

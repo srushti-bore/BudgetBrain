@@ -167,6 +167,14 @@ The application is designed as a lightweight, single-user expense tracker using 
 
 ---
 
+### TD-19: RESTful Resource Routing Semantics & Entity Uniqueness Constraints
+- **Context**: During Postman API verification and client consumption, explicit HTTP verb conventions and entity constraints are strictly enforced:
+  1. **Partial Resource Modification (`PATCH`)**: Resource updates (`/categories/{id}`, `/expenses/{id}`, `/budgets/{id}`) require HTTP `PATCH` rather than `PUT` (for partial modifications) and mandate the UUID path parameter. Sending `PATCH` without a path identifier or `POST` to a detail endpoint correctly triggers `HTTP 405 Method Not Allowed`.
+  2. **Case-Insensitive Uniqueness Enforcement (`CONFLICT 409`)**: Category names enforce strict uniqueness across the database (`name.ilike()`). Creating a duplicate category name returns `HTTP 409 Conflict` with `{ error: { code: "CONFLICT", message: "Category '...' already exists." } }`.
+- **Status**: **Resolved & Documented in Postman Suite**.
+
+---
+
 ## 3. Maintenance & Code Quality Standards
 
 - **PEP 8 Compliance**: All top-level imports clean; no mid-file or inline module imports.

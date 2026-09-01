@@ -1,12 +1,12 @@
 # BudgetBrain — Session Progress Report (`progress.md`)
 
 **Project:** BudgetBrain — Personal Expense Tracker  
-**Phase:** V1 Feature-Complete + PWA Ready + Production Deployed  
-**Status:** 100% Backend & Frontend Complete, Multi-Currency Live, PWA Installable, Fully Verified & Cloud Deployed  
+**Phase:** V1 Feature-Complete + Multilingual Ready + PWA Certified + Production Deployed  
+**Status:** 100% Backend & Frontend Complete, 8 Languages Live, Multi-Currency Live, PWA Installable, Strict Anti-Deficit Guard Active, 3D Animated Logo Live  
 **Repository:** [https://github.com/srushti-bore/BudgetBrain.git](https://github.com/srushti-bore/BudgetBrain.git)  
 **Live Frontend:** [https://budget-brain-eight.vercel.app/](https://budget-brain-eight.vercel.app/)  
 **Live Backend:** [https://budgetbrain-ojnr.onrender.com/api/v1/health](https://budgetbrain-ojnr.onrender.com/api/v1/health)  
-**Last Updated:** August 29, 2026  
+**Last Updated:** August 31, 2026  
 
 ---
 
@@ -14,7 +14,7 @@
 
 This document records the complete, end-to-end progress achieved across all development sessions for **BudgetBrain V1**. The application was built following the Software Requirements Specification ([`BudgetBrain_SRS.md`](file:///d:/BudgetBrain/docs/BudgetBrain_SRS.md)), Product Requirements Document ([`BudgetBrain_PRD_Final.md`](file:///d:/BudgetBrain/docs/BudgetBrain_PRD_Final.md)), and Project Constraints ([`Agents.md`](file:///d:/BudgetBrain/Agents.md)).
 
-All 13 REST API endpoints across 5 core backend modules are fully functional with PostgreSQL, verified with 37 automated pytest tests (100% passing). The Next.js 16+ frontend application features an eye-soothing human-psychology color system, dynamic multi-currency conversions, Framer Motion micro-interactions, a 3D Brain logo, a predictive monthly stats report widget, and full Progressive Web App (PWA) installability with custom install prompt popup.
+All 13 REST API endpoints across 5 core backend modules are fully functional with PostgreSQL, verified with 38 automated pytest tests (100% passing). The Next.js 16+ frontend application features an eye-soothing human-psychology color system, 8-language multilingual translation suite (English, Marathi, Hindi, Gujarati, Marwadi, German, Spanish, French), dynamic multi-currency conversions (INR, USD, EUR, GBP), Framer Motion micro-interactions, an elegant 3D animated Brain logo, strict over-budget prevention guards, custom glassmorphic deletion confirmation modals, and full Progressive Web App (PWA) installability.
 
 ---
 
@@ -23,9 +23,9 @@ All 13 REST API endpoints across 5 core backend modules are fully functional wit
 ### Phase 1 — Environment & Rules Alignment
 - **PRD & SRS Analysis**: Analyzed requirements detailing data models, API schemas, and validation rules.
 - **Operating Constraints (`Agents.md`)**:
-  - Greeting rule: `"Hello Srush"`.
+  - Mandatory greeting rule: `"Hello Srush"`.
   - Permanent decision: **No authentication in any phase**.
-  - Permanent decision: **No hardcoded or demo data at any stage** (all data dynamically created and fetched from PostgreSQL).
+  - Permanent decision: **No hardcoded or demo data at any stage** (100% database-driven from PostgreSQL).
 
 ### Phase 2 — Architecture & Database Initialization
 - **Layered Architecture**: Designed a clean, decoupled backend architecture (Routers → Services → Repositories → SQLAlchemy 2.0 Async Models).
@@ -65,18 +65,15 @@ All 13 REST API endpoints across 5 core backend modules are fully functional wit
   - Fetches live exchange rates from `https://open.er-api.com/v6/latest/INR` on mount.
   - Provides `convertToView(amountInINR)` and `convertToBase(amountInView)` conversion functions.
   - Exposes `useFormatCurrency()` hook for dynamic symbol/locale formatting across all components.
-- **Supported Currencies**: INR (₹), USD ($), EUR (€), GBP (£) — selectable via sidebar dropdown.
+- **Supported Currencies**: INR (₹), USD ($), EUR (€), GBP (£).
 - **Write Path Conversion**: Expense log modal and budget settings modal convert user-entered amounts from view currency back to INR base before saving to the database.
 - **Read Path Conversion**: All dashboard metrics, expense tables, budget cards, and chart tooltips dynamically format displayed values using the active view currency.
 - **Search Filter Scaling**: Expense search min/max amount filters convert user input from view currency to INR before sending API requests, ensuring correct backend query matching.
 - **Chart Y-Axis Fix**: Replaced hardcoded `₹` symbols in `SpendTrendChart.tsx` and `MonthlyCategoryGraph.tsx` Y-axis tick formatters with dynamic `formatCurrency()` calls.
 
-### Phase 9 — Framer Motion Micro-Interactions & 3D Brain Logo
+### Phase 9 — Framer Motion Micro-Interactions
 - **Dashboard Card Animations**: Added `whileHover` and `whileTap` spring animations to all Bento Grid metric and chart cards.
 - **Expense Table Row Animations**: Integrated `AnimatePresence` and `motion.tr` to expense list rows — entries animate in on load and slide away on deletion.
-- **3D Brain Logo** ([`Sidebar.tsx`](file:///d:/BudgetBrain/frontend/src/components/layout/Sidebar.tsx)):
-  - Built using pure CSS 3D transforms (`perspective: 1000px`, `transform-style: preserve-3d`, `translateZ(6px)` depth separation).
-  - Logo smoothly rotates 180° and changes faces on mouse hover.
 
 ### Phase 10 — Monthly Statistics & Budget Health Report Widget
 - **Created [`MonthlyStatsReport.tsx`](file:///d:/BudgetBrain/frontend/src/components/dashboard/MonthlyStatsReport.tsx)**:
@@ -100,29 +97,112 @@ All 13 REST API endpoints across 5 core backend modules are fully functional wit
    - Added `manifest` and `appleWebApp` metadata fields for iOS compatibility.
 5. **Custom Install Prompt Popup** ([`PWAInstallPrompt.tsx`](file:///d:/BudgetBrain/frontend/src/components/layout/PWAInstallPrompt.tsx)):
    - Intercepts the browser's `beforeinstallprompt` event to defer and customize the installation flow.
-   - Displays a premium floating card with "Install BudgetBrain" heading, Brain icon, and **"Install Now"** / **"Later"** action buttons.
-   - Framer Motion fade-in/slide-up animation after 2-second delay on page load.
-   - Session-persistent dismissal via `sessionStorage` to avoid repeat prompts.
+   - Displays a floating card with "Install BudgetBrain" heading, Brain icon, and action buttons.
+   - Session-persistent dismissal via `sessionStorage`.
 
 ### Phase 12 — Backend Bug Fixes & API Contract Normalization
 1. **`is_recurring` Propagation Fix**: Added missing `is_recurring` parameter to `ExpenseOut` constructors in `list_expenses` and `create_expense` methods in `expense_service.py`.
-2. **CORS Hardening**: Updated `main.py` to use `settings.allowed_origins_list` instead of open wildcard `["*"]`, enabling origin protection across development and production domains.
-3. **API Response Normalization**: Wrapped all 5 dashboard endpoints (`/summary`, `/by-category`, `/trend`, `/comparison`, `/top-categories`) with `DataResponse` to strictly conform to the `{ data, meta }` SRS envelope format.
-4. **Budget NULL Uniqueness Constraint**: Added partial unique index `uq_budget_overall_period` on `budgets (period_type, period_start) WHERE category_id IS NULL` to ensure PostgreSQL integrity for overall budgets.
-5. **Date Validation Resilience**: Added defensive `try/except` ISO date parsing in expenses, budgets, and dashboard routes to return clean 422 HTTP validation errors instead of unhandled 500 exceptions on malformed dates.
-6. **Average Spend Metric Accuracy**: Updated dashboard spend average calculations to divide by elapsed days up to current date rather than the whole month, avoiding mid-month metric deflation.
+2. **CORS Hardening**: Updated `main.py` to use `settings.allowed_origins_list` instead of open wildcard `["*"]`.
+3. **API Response Normalization**: Wrapped all 5 dashboard endpoints with `DataResponse` to strictly conform to the `{ data, meta }` SRS envelope format.
+4. **Budget NULL Uniqueness Constraint**: Added partial unique index `uq_budget_overall_period` on `budgets (period_type, period_start) WHERE category_id IS NULL`.
+5. **Date Validation Resilience**: Added defensive ISO date parsing in expenses, budgets, and dashboard routes.
+6. **Average Spend Metric Accuracy**: Updated dashboard spend average calculations to divide by elapsed days up to current date.
 7. **Frontend API Envelope Unwrapping**: Updated `frontend/src/lib/api.ts` `dashboardApi` client methods to unwrap `response.data.data`.
 8. **PEP 8 Compliance**: Resolved mid-function imports in `expenses.py`.
-9. **Database Connection Pool Bottleneck Fix**: Added `poolclass=NullPool` to `create_async_engine` in `database.py` to prevent Supabase connection pool exhaustion (`EMAXCONNSESSION`) across async test runs.
+9. **Database Connection Pool Bottleneck Fix**: Added `poolclass=NullPool` to `create_async_engine` in `database.py`.
 
 ### Phase 13 — Production Deployment & Live CORS Resolution
-- **Problem Identified**: The live frontend on Vercel (`https://budget-brain-eight.vercel.app`) was encountering preflight CORS 400 errors across all endpoints because the backend settings on Render defaulted `ALLOWED_ORIGINS` to `http://localhost:3000`.
 - **Changes Applied**:
-  - Updated [`config.py`](file:///d:/BudgetBrain/backend/app/config.py) default `ALLOWED_ORIGINS` to include `http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001,https://budget-brain-eight.vercel.app`.
-  - Added `allow_origin_regex=r"^https:\/\/.*\.vercel\.app$"` to [`main.py`](file:///d:/BudgetBrain/backend/app/main.py) to automatically support all current and future Vercel deployment URLs and preview environments.
-- **Verification**:
-  - Live probe across all 8 endpoints (`/dashboard/*`, `/categories`, `/expenses`, `/budgets`) returned `OPTIONS 200` and `Access-Control-Allow-Origin: https://budget-brain-eight.vercel.app`.
-  - Production build `npx next build --webpack` succeeded with 0 errors.
+  - Updated [`config.py`](file:///d:/BudgetBrain/backend/app/config.py) default `ALLOWED_ORIGINS` to include local dev ports and `https://budget-brain-eight.vercel.app`.
+  - Added `allow_origin_regex=r"^https:\/\/.*\.vercel\.app$"` to [`main.py`](file:///d:/BudgetBrain/backend/app/main.py).
+- **Verification**: All 8 endpoints verified live with `OPTIONS 200` and CORS headers.
+
+### Phase 14 — Dashboard UI/UX Polish & Modernization
+- Standardized container to `max-w-8xl` with unified `gap-6` spacing.
+- Enriched metrics with average daily spend context and date ranges.
+- Redesigned `BudgetRing.tsx` with dynamic ambient ring glows and 3-pill stats summary.
+
+### Phase 15 — Settings & System Controls Suite
+- **SettingsProvider Context** ([`SettingsProvider.tsx`](file:///d:/BudgetBrain/frontend/src/providers/SettingsProvider.tsx)): `localStorage` persistence for date formats (`DD/MM/YYYY`, `MM/DD/YYYY`, `YYYY-MM-DD`), first day of the week, near-limit warning thresholds, and predictive insights toggle.
+- **Export & Backup Engine** ([`exportUtils.ts`](file:///d:/BudgetBrain/frontend/src/lib/exportUtils.ts)): CSV export and JSON backup/restore.
+- **Settings Page** ([`settings/page.tsx`](file:///d:/BudgetBrain/frontend/src/app/settings/page.tsx)): 4-tab control suite with Danger Zone and live system health monitor.
+
+### Phase 16 — Month-over-Month Comparison Contract Normalization
+- Normalized `get_comparison()` endpoint response to return both `_total` and `_spent` aliases alongside `is_increase` boolean flag.
+- Handled zero-spend previous month baseline gracefully in [`MonthComparisonCard.tsx`](file:///d:/BudgetBrain/frontend/src/components/dashboard/MonthComparisonCard.tsx).
+
+### Phase 17 — Category Name Auto-Capitalization & Input Formatting
+- Created `capitalizeFirstLetter(str)` utility in [`frontend/src/lib/utils.ts`](file:///d:/BudgetBrain/frontend/src/lib/utils.ts).
+- Applied client-side live capitalization on Category name inputs across [`categories/page.tsx`](file:///d:/BudgetBrain/frontend/src/app/categories/page.tsx) and [`ExpenseModal.tsx`](file:///d:/BudgetBrain/frontend/src/components/expenses/ExpenseModal.tsx).
+- Added Pydantic field validator `format_and_strip` in [`backend/app/schemas/category.py`](file:///d:/BudgetBrain/backend/app/schemas/category.py) ensuring server-side uppercase first-letter enforcement.
+
+### Phase 18 — Sidebar Minimalist Clean-up
+- Cleaned redundant base currency dropdown and dark mode switch from the bottom of [`Sidebar.tsx`](file:///d:/BudgetBrain/frontend/src/components/layout/Sidebar.tsx) to provide a sleek, distraction-free navigation experience, maintaining theme and currency controls inside Settings.
+
+### Phase 19 — Dynamic Alert Thresholds for Monthly & Daily Budgets
+- Updated [`BudgetRing.tsx`](file:///d:/BudgetBrain/frontend/src/components/dashboard/BudgetRing.tsx) to dynamically use `useSettings().nearLimitThreshold` (e.g. 75%, 80%, 85%, 90%) instead of hardcoded 80%.
+- Updated Daily Spending Limit card in [`page.tsx`](file:///d:/BudgetBrain/frontend/src/app/page.tsx) with a 3-tier warning system: **Over Limit 🔥**, **Near Limit ⚠️**, **On Track ✓**.
+
+### Phase 20 — Expense Title Capitalization & Customizable Threshold Slider
+- Added Pydantic title capitalization validator in [`backend/app/schemas/expense.py`](file:///d:/BudgetBrain/backend/app/schemas/expense.py).
+- Added live capitalization on title input in [`ExpenseModal.tsx`](file:///d:/BudgetBrain/frontend/src/components/expenses/ExpenseModal.tsx).
+- Rebuilt Near Limit Alert Threshold in [`settings/page.tsx`](file:///d:/BudgetBrain/frontend/src/app/settings/page.tsx) with an editable Direct Number Input, Range Slider (1-99%), Quick Preset Pills (75%, 80%, 85%, 90%), and a Live Trigger Preview.
+
+### Phase 21 — Strict Budget Cap Enforcement (Anti-Deficit Protection)
+- **Problem**: User required that if budget is ₹2,00,000, current spent is ₹1,90,000 (remaining ₹10,000), logging a ₹20,000 expense must be **blocked** so balance never goes negative.
+- **Backend Hard Guard**:
+  - Added `BudgetExceededException` (HTTP 400, code `BUDGET_EXCEEDED`) in [`backend/app/exceptions.py`](file:///d:/BudgetBrain/backend/app/exceptions.py).
+  - Integrated monthly budget cap verification in `create_expense` and `update_expense` in [`backend/app/services/expense_service.py`](file:///d:/BudgetBrain/backend/app/services/expense_service.py).
+  - Added automated test in [`backend/tests/test_expenses.py`](file:///d:/BudgetBrain/backend/tests/test_expenses.py) (38/38 tests passing 100%).
+- **Frontend Real-time Blocking**:
+  - In [`ExpenseModal.tsx`](file:///d:/BudgetBrain/frontend/src/components/expenses/ExpenseModal.tsx), if `projectedSpent > budgetLimit`:
+    - Displays red alert: `🚫 Budget Limit Exceeded — Transaction Blocked!`.
+    - Disables submit button with label `🚫 Exceeds Budget (Blocked)`.
+    - Prevents form submission and shows exact remaining balance.
+
+### Phase 22 — Expense Deletion Confirmation Pop-up Modal
+- Replaced browser `confirm()` in [`expenses/page.tsx`](file:///d:/BudgetBrain/frontend/src/app/expenses/page.tsx) with a custom Glassmorphic Pop-up Dialog Modal.
+- Displays transaction details card (Title, Amount, Category, Date) and clear warning before permanent deletion.
+- Restores deleted amount back to active monthly budget and triggers center-top success toast.
+
+### Phase 23 — Category Deletion Confirmation Pop-up Modal
+- Replaced immediate deletion in [`categories/page.tsx`](file:///d:/BudgetBrain/frontend/src/app/categories/page.tsx) with a dedicated Confirmation Pop-up Modal.
+- Displays Category Name and Linked Expenses count with safe reassignment warning to "Uncategorized".
+
+### Phase 24 — Multilingual Localization Engine (8 Languages)
+- Created type-safe dictionary [`frontend/src/lib/translations.ts`](file:///d:/BudgetBrain/frontend/src/lib/translations.ts) and [`frontend/src/providers/LanguageProvider.tsx`](file:///d:/BudgetBrain/frontend/src/providers/LanguageProvider.tsx).
+- **Supported Languages**:
+  1. 🇮🇳 **मराठी (Marathi - `mr`)**
+  2. 🇮🇳 **हिंदी (Hindi - `hi`)**
+  3. 🇮🇳 **ગુજરાતી (Gujarati - `gu`)**
+  4. 🇮🇳 **मारवाड़ी (Marwadi - `mwr`)**
+  5. 🇩🇪 **Deutsch (German - `de`)**
+  6. 🇺🇸 **English (`en`)**
+  7. 🇪🇸 **Español (Spanish - `es`)**
+  8. 🇫🇷 **Français (French - `fr`)**
+- Added Language Selector Cards in [`settings/page.tsx`](file:///d:/BudgetBrain/frontend/src/app/settings/page.tsx) under Display & Preferences.
+- Connected Sidebar, Dashboard headers, metrics, and modals to reactive `useTranslation()` hooks with `localStorage` persistence.
+
+### Phase 25 — Simple, Modern & Animated 3D Brain Logo
+- Redesigned [`BrainLogo3D.tsx`](file:///d:/BudgetBrain/frontend/src/components/ui/BrainLogo3D.tsx) into an elegant, minimalist **3D Emerald Squircle** with:
+  - **Gentle 3D Floating Motion**: Smooth continuous 5.5s floating loop (`y`, `rotateY`, `rotateX`).
+  - **Ambient Breathing Glow**: Soft emerald halo pulsing in the background.
+  - **Periodic Specular Shimmer Sweep**: Shimmer light beam sweeping across the glass surface every 3.5s.
+  - **Pulsing Synaptic Beacon**: Glowing gold node at the prefrontal cortex representing financial intelligence.
+  - **Interactive 3D Touch/Hover**: Smooth spring tilt on hover/tap across all mobile, tablet, and desktop viewports.
+
+### Phase 26 — Postman API Testing Suite & Local Server Automation
+- **Created Postman Collection v2.1.0** ([`BudgetBrain.postman_collection.json`](file:///d:/BudgetBrain/BudgetBrain.postman_collection.json)):
+  - Covers all 13 REST API endpoints across 5 modules (Health, Categories, Expenses, Budgets, Dashboard).
+  - Includes automated test assertions for HTTP status codes, JSON schema validation, and response structures.
+  - Implements dynamic variable persistence (`category_id`, `expense_id`, `budget_id`) across sequenced test requests.
+- **Created Postman Environment Configurations**:
+  - [`BudgetBrain.postman_environment.json`](file:///d:/BudgetBrain/BudgetBrain.postman_environment.json) for Local Development (`http://127.0.0.1:8000`).
+  - [`BudgetBrain_Production.postman_environment.json`](file:///d:/BudgetBrain/BudgetBrain_Production.postman_environment.json) for Live Cloud Backend (`https://budgetbrain-ojnr.onrender.com`).
+- **Live Server & Method Verification**:
+  - Automated Uvicorn async backend launch on Windows.
+  - Verified and documented `PATCH` routing semantics with UUID path parameters for resource updates.
+  - Verified 409 Conflict handling on category name uniqueness constraints.
 
 ---
 
@@ -131,21 +211,28 @@ All 13 REST API endpoints across 5 core backend modules are fully functional wit
 | Metric / Feature | Target | Status |
 |---|---|---|
 | API Endpoints | 13 REST routes | 100% Complete & Verified |
-| Automated Backend Tests | 37 test cases | 37 / 37 Passing (100%) |
-| Next.js Frontend | 4 Core App Pages | 100% Built & Verified |
+| Automated Backend Tests | 38 test cases | 38 / 38 Passing (100%) |
+| Postman API Collection | 13 Requests + Assertions | Complete & Import-Ready (v2.1.0) |
+| Postman Environments | Local & Production | Configured (`.json` files) |
+| Next.js Frontend | 5 Core App Pages | 100% Built & Verified |
 | Cloud Configs | Render, Vercel, Supabase | Configured & Live Deployed |
-| Production Build | Zero Compiler Errors | `next build` Passed |
-| Authentication Constraint | 0 Auth (Permanent) | Enforced |
+| Production Build | Zero Compiler Errors | `next build` Passed (0 errors) |
+| Authentication Constraint | 0 Auth (Permanent) | Enforced per SRS |
 | Data Integrity Constraint | 0 Hardcoded Data | Enforced (100% DB driven) |
+| Multilingual Support | 8 Languages | Live (EN, MR, HI, GU, MWR, DE, ES, FR) |
 | Multi-Currency Support | INR, USD, EUR, GBP | Live API rates + dynamic formatting |
-| Framer Motion Animations | Cards, rows, logo | Hover/tap springs, AnimatePresence |
+| Anti-Deficit Guard | Strict Budget Cap Protection | Server (400) + Modal Blocking Banner |
+| 3D Animated Logo | Floating 3D + Shimmer Sweep | Live on Mobile Header & Sidebar |
+| Delete Pop-up Modals | Expenses & Categories | Custom Glassmorphic Confirmation Dialogs |
+| Framer Motion Animations | Cards, rows, logo, toasts | Springs, AnimatePresence, Top-Center Toasts |
 | Monthly Stats Report | Predictive health widget | Avg daily, projection, health score |
 | PWA Installability | Manifest + SW + Prompt | Fully installable with custom popup |
 | Daily Budget Limit | Per-month daily cap | DB column + modal + dashboard alert |
+| Settings & Backup Suite | 4 Tabs + Danger Zone | CSV export, JSON backup, live health monitor |
 
 ---
 
-## Key Commits
+## Complete Git Commit Log
 
 | Commit Hash | Description |
 |---|---|
@@ -157,3 +244,15 @@ All 13 REST API endpoints across 5 core backend modules are fully functional wit
 | `3324e7d` | fix: resolve backend bugs, enforce response envelopes, and configure NullPool connection pooling |
 | `f2a1ae2` | fix(cors): allow vercel production domain and add vercel origin regex in CORS middleware |
 | `ae0ff75` | docs: document Phase 13 production CORS resolution |
+| `6ef2ec3` | feat(categories): auto-capitalize category names and format inputs on frontend and backend |
+| `232c600` | style(sidebar): remove redundant currency dropdown and dark mode box for minimalist design |
+| `091a907` | feat(alerts): dynamic near-limit budget thresholds and daily spending warning cards |
+| `ff80700` | feat(expenses): capitalize expense title and add customizable threshold slider in settings |
+| `6a22a20` | feat(budget): enforce strict budget cap protection and block over-budget expenses in backend and modal |
+| `26b95c9` | feat(expenses): add beautiful glassmorphic confirmation popup modal when deleting an expense |
+| `e81378f` | style(toast): position success and alert toast notifications at top-center of the screen |
+| `4bc5840` | feat(ui): add 3D psychology brain logo, category delete popup modal, and screen-center toast notifications |
+| `10e5586` | style(toast): restore toast notifications to center-top position across all pages |
+| `c84ca8f` | feat(i18n): add multilingual localization with Gujarati, Marwadi, German, Marathi, Hindi and simple 3D logo |
+| `d81f6b0` | feat(ui): add gentle floating 3D animation, light shimmer sweep, and synaptic pulse to BrainLogo3D |
+| `81c04d1` | test(postman): create complete Postman collection v2.1.0 and environment configs for local and prod API testing |

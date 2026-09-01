@@ -16,7 +16,8 @@ class TestDashboardSummary:
         data = body["data"]
         assert "total_spent" in data
         assert "recent_expenses" in data
-        assert "budget_status" in data
+        assert "budget" in data
+
 
 
 class TestDashboardByCategory:

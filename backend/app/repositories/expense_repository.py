@@ -1,8 +1,8 @@
 """
-BudgetBrain — Expense Repository
+BudgetBrain — Expense Repository (Multi-Tenant)
 
 All database operations for the expenses table.
-No business logic — that belongs in ExpenseService.
+Strictly scoped by user_id for complete data isolation.
 """
 
 from datetime import date
@@ -23,18 +23,27 @@ class ExpenseRepository(BaseRepository[Expense]):
     def __init__(self, session: AsyncSession) -> None:
         super().__init__(session)
 
+    async def get_by_id_and_user(self, expense_id: str, user_id: str) -> Expense | None:
+        """Fetch a single expense scoped to the tenant user."""
+        stmt = select(Expense).where(
+            (Expense.id == expense_id) & (Expense.user_id == user_id)
+        )
+        res = await self.session.execute(stmt)
+        return res.scalar_one_or_none()
+
     async def list_with_filters(
         self,
+        user_id: str,
         filters: ExpenseFilters,
         *,
         offset: int = 0,
         limit: int = 20,
     ) -> tuple[list[tuple[Expense, str | None]], int]:
         """
-        List expenses with combined search + filter + sort (SRS §3.4).
+        List expenses for user with combined search + filter + sort (SRS §3.4).
         Returns ([(expense, category_name), ...], total).
         """
-        conditions = []
+        conditions = [Expense.user_id == user_id]
 
         if filters.search:
             pattern = f"%{filters.search.strip()}%"
@@ -57,18 +66,19 @@ class ExpenseRepository(BaseRepository[Expense]):
             conditions.append(Expense.is_recurring == filters.is_recurring)
 
         # Count total matching rows
-        count_stmt = select(func.count()).select_from(Expense)
-        if conditions:
-            count_stmt = count_stmt.where(*conditions)
+        count_stmt = select(func.count()).select_from(Expense).where(*conditions)
         total_res = await self.session.execute(count_stmt)
         total = total_res.scalar_one()
 
         # Main query with Category join
-        stmt = select(Expense, Category.name.label("category_name")).outerjoin(
-            Category, Expense.category_id == Category.id
+        stmt = (
+            select(Expense, Category.name.label("category_name"))
+            .outerjoin(
+                Category,
+                (Expense.category_id == Category.id) & (Category.user_id == user_id),
+            )
+            .where(*conditions)
         )
-        if conditions:
-            stmt = stmt.where(*conditions)
 
         # Sorting
         sort_col = Expense.date
@@ -90,15 +100,20 @@ class ExpenseRepository(BaseRepository[Expense]):
 
     async def get_total_spent(
         self,
+        user_id: str,
         *,
         date_from: date | None = None,
         date_to: date | None = None,
         category_id: str | None = None,
     ) -> Decimal:
         """
-        Return the sum of all expense amounts within optional date/category bounds.
+        Return the sum of all expense amounts for a user within optional bounds.
         """
-        stmt = select(func.coalesce(func.sum(Expense.amount), 0)).select_from(Expense)
+        stmt = (
+            select(func.coalesce(func.sum(Expense.amount), 0))
+            .select_from(Expense)
+            .where(Expense.user_id == user_id)
+        )
         if date_from:
             stmt = stmt.where(Expense.date >= date_from)
         if date_to:
@@ -111,10 +126,10 @@ class ExpenseRepository(BaseRepository[Expense]):
         return Decimal(str(val))
 
     async def get_spend_by_category(
-        self, *, date_from: date | None = None, date_to: date | None = None
+        self, user_id: str, *, date_from: date | None = None, date_to: date | None = None
     ) -> list[dict]:
         """
-        Return total spend grouped by category (pie/donut chart).
+        Return total spend grouped by category for a user (pie/donut chart).
         """
         stmt = (
             select(
@@ -122,7 +137,11 @@ class ExpenseRepository(BaseRepository[Expense]):
                 Category.name.label("category_name"),
                 func.sum(Expense.amount).label("total"),
             )
-            .join(Category, Expense.category_id == Category.id)
+            .join(
+                Category,
+                (Expense.category_id == Category.id) & (Category.user_id == user_id),
+            )
+            .where(Expense.user_id == user_id)
             .group_by(Expense.category_id, Category.name)
             .order_by(func.sum(Expense.amount).desc())
         )
@@ -144,17 +163,19 @@ class ExpenseRepository(BaseRepository[Expense]):
 
     async def get_spend_trend(
         self,
+        user_id: str,
         *,
         group_by: str = "day",
         date_from: date | None = None,
         date_to: date | None = None,
     ) -> list[dict]:
         """
-        Return spend grouped by time period (day | week | month).
+        Return spend grouped by time period for a user (day | week | month).
         """
         trunc = func.date_trunc(group_by, Expense.date).label("period")
         stmt = (
             select(trunc, func.sum(Expense.amount).label("total"))
+            .where(Expense.user_id == user_id)
             .group_by(trunc)
             .order_by(trunc.asc())
         )
@@ -173,14 +194,19 @@ class ExpenseRepository(BaseRepository[Expense]):
             for r in rows
         ]
 
-    async def get_recent(self, *, limit: int = 5) -> list[tuple[Expense, str | None]]:
-        """Return the most recent N expenses with category names."""
+    async def get_recent(
+        self, user_id: str, *, limit: int = 5
+    ) -> list[tuple[Expense, str | None]]:
+        """Return the most recent N expenses with category names for user."""
         stmt = (
             select(Expense, Category.name.label("category_name"))
-            .outerjoin(Category, Expense.category_id == Category.id)
+            .outerjoin(
+                Category,
+                (Expense.category_id == Category.id) & (Category.user_id == user_id),
+            )
+            .where(Expense.user_id == user_id)
             .order_by(Expense.date.desc(), Expense.created_at.desc())
             .limit(limit)
         )
         res = await self.session.execute(stmt)
         return [(r[0], r[1]) for r in res.all()]
-

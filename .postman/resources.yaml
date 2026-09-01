@@ -1,0 +1,10 @@
+# Use this workspace to collaborate
+workspace:
+  id: ""
+
+localResources:
+  collections:
+    - ../BudgetBrain.postman_collection.json
+  environments:
+    - ../BudgetBrain.postman_environment.json
+    - ../BudgetBrain_Production.postman_environment.json

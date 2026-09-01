@@ -12,9 +12,10 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.exceptions import register_exception_handlers
-from app.routers import health, categories, expenses, budgets, dashboard
+from app.routers import auth, health, categories, expenses, budgets, dashboard
 
 settings = get_settings()
+
 
 # ── App instance ──────────────────────────────────────────────────────────────
 app = FastAPI(
@@ -50,8 +51,9 @@ app.include_router(health.router)
 # Versioned API routes
 API_V1 = "/api/v1"
 app.include_router(health.router, prefix=API_V1)
-
+app.include_router(auth.router, prefix=API_V1)
 app.include_router(categories.router, prefix=API_V1)
 app.include_router(expenses.router, prefix=API_V1)
 app.include_router(budgets.router, prefix=API_V1)
 app.include_router(dashboard.router, prefix=API_V1)
+

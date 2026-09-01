@@ -1,0 +1,1125 @@
+{
+	"info": {
+		"_postman_id": "budgetbrain-v1-api-collection",
+		"name": "BudgetBrain API - Postman Collection",
+		"description": "Complete Postman testing collection for BudgetBrain — Personal Expense Tracker REST API v1.\n\nCovers all 13 endpoints across Health, Categories, Expenses, Budgets, and Dashboard Analytics modules.\n\nIncludes automated test scripts, status code assertions, and dynamic variable persistence (category_id, expense_id, budget_id).",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://127.0.0.1:8000",
+			"type": "string"
+		},
+		{
+			"key": "category_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "expense_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "budget_id",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "Health Check",
+			"item": [
+				{
+					"name": "Health Check",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Database status is ok\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.status).to.eql(\"ok\");",
+									"    pm.expect(jsonData.database).to.eql(\"ok\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/health",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"health"
+							]
+						},
+						"description": "Verifies server and database connectivity status."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Categories",
+			"item": [
+				{
+					"name": "1. List All Categories",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response contains data and meta\", function () {",
+									"    var res = pm.response.json();",
+									"    pm.expect(res).to.have.property(\"data\");",
+									"    pm.expect(res).to.have.property(\"meta\");",
+									"    pm.expect(Array.isArray(res.data)).to.be.true;",
+									"    ",
+									"    if (res.data.length > 0) {",
+									"        pm.collectionVariables.set(\"category_id\", res.data[0].id);",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/categories?page=1&page_size=20",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"categories"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "page_size",
+									"value": "20"
+								}
+							]
+						},
+						"description": "FR-9: Return all categories with their linked expense counts, paginated."
+					},
+					"response": []
+				},
+				{
+					"name": "2. Create Category",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201 Created\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Category created and saved to variable\", function () {",
+									"    var res = pm.response.json();",
+									"    pm.expect(res.data).to.have.property(\"id\");",
+									"    pm.expect(res.data).to.have.property(\"name\");",
+									"    pm.collectionVariables.set(\"category_id\", res.data.id);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Investment & Savings\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/categories",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"categories"
+							]
+						},
+						"description": "FR-6: Create a new category. Auto-capitalizes the first letter."
+					},
+					"response": []
+				},
+				{
+					"name": "3. Get Category by ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Category details returned\", function () {",
+									"    var res = pm.response.json();",
+									"    pm.expect(res.data.id).to.eql(pm.collectionVariables.get(\"category_id\"));",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/categories/{{category_id}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"categories",
+								"{{category_id}}"
+							]
+						},
+						"description": "Returns a single category by UUID."
+					},
+					"response": []
+				},
+				{
+					"name": "4. Update (Rename) Category",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Category name updated successfully\", function () {",
+									"    var res = pm.response.json();",
+									"    pm.expect(res.data.name).to.eql(\"Mutual Funds & Stocks\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Mutual Funds & Stocks\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/categories/{{category_id}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"categories",
+								"{{category_id}}"
+							]
+						},
+						"description": "FR-7: Rename an existing user-created category."
+					},
+					"response": []
+				},
+				{
+					"name": "5. Delete Category",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 204 No Content\", function () {",
+									"    pm.response.to.have.status(204);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/categories/{{category_id}}?force=true",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"categories",
+								"{{category_id}}"
+							],
+							"query": [
+								{
+									"key": "force",
+									"value": "true",
+									"description": "If true, safely reassigns linked expenses to 'Uncategorized' and deletes."
+								}
+							]
+						},
+						"description": "FR-8: Delete a category with safe reassignment."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Expenses",
+			"item": [
+				{
+					"name": "1. List Expenses (Search & Filter)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Returns paginated expense list\", function () {",
+									"    var res = pm.response.json();",
+									"    pm.expect(res).to.have.property(\"data\");",
+									"    pm.expect(res).to.have.property(\"meta\");",
+									"    pm.expect(Array.isArray(res.data)).to.be.true;",
+									"    ",
+									"    if (res.data.length > 0) {",
+									"        pm.collectionVariables.set(\"expense_id\", res.data[0].id);",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/expenses?page=1&page_size=20&sort_by=date&sort_order=desc",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"expenses"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "page_size",
+									"value": "20"
+								},
+								{
+									"key": "search",
+									"value": "",
+									"description": "Search in title and notes",
+									"disabled": true
+								},
+								{
+									"key": "category_id",
+									"value": "{{category_id}}",
+									"description": "Filter by category UUID",
+									"disabled": true
+								},
+								{
+									"key": "date_from",
+									"value": "2026-08-01",
+									"description": "ISO date YYYY-MM-DD",
+									"disabled": true
+								},
+								{
+									"key": "date_to",
+									"value": "2026-08-31",
+									"description": "ISO date YYYY-MM-DD",
+									"disabled": true
+								},
+								{
+									"key": "amount_min",
+									"value": "10",
+									"disabled": true
+								},
+								{
+									"key": "amount_max",
+									"value": "10000",
+									"disabled": true
+								},
+								{
+									"key": "payment_mode",
+									"value": "UPI",
+									"description": "Cash | UPI | Credit Card | Debit Card | Net Banking",
+									"disabled": true
+								},
+								{
+									"key": "is_recurring",
+									"value": "false",
+									"disabled": true
+								},
+								{
+									"key": "sort_by",
+									"value": "date",
+									"description": "date | amount | category"
+								},
+								{
+									"key": "sort_order",
+									"value": "desc",
+									"description": "asc | desc"
+								}
+							]
+						},
+						"description": "FR-11 to FR-16: List expenses with full search, filter, and sorting."
+					},
+					"response": []
+				},
+				{
+					"name": "2. Create Expense",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Format today's date YYYY-MM-DD",
+									"var today = new Date().toISOString().split('T')[0];",
+									"pm.environment.set(\"today_date\", today);"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201 Created\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Expense created and ID stored\", function () {",
+									"    var res = pm.response.json();",
+									"    pm.expect(res.data).to.have.property(\"id\");",
+									"    pm.expect(res.data.title).to.eql(\"Groceries & Supermarket\");",
+									"    pm.expect(res.data.amount).to.eql(450);",
+									"    pm.collectionVariables.set(\"expense_id\", res.data.id);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Groceries & Supermarket\",\n  \"amount\": 450.00,\n  \"category_id\": \"{{category_id}}\",\n  \"date\": \"2026-08-31\",\n  \"payment_mode\": \"UPI\",\n  \"notes\": \"Organic vegetables and milk\",\n  \"is_recurring\": false\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/expenses",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"expenses"
+							]
+						},
+						"description": "FR-2: Add a new expense. Validates budget ceiling (Anti-Deficit Protection)."
+					},
+					"response": []
+				},
+				{
+					"name": "3. Get Expense by ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Expense data matches\", function () {",
+									"    var res = pm.response.json();",
+									"    pm.expect(res.data.id).to.eql(pm.collectionVariables.get(\"expense_id\"));",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/expenses/{{expense_id}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"expenses",
+								"{{expense_id}}"
+							]
+						},
+						"description": "FR-3: Return a single expense by UUID."
+					},
+					"response": []
+				},
+				{
+					"name": "4. Update Expense",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Expense updated\", function () {",
+									"    var res = pm.response.json();",
+									"    pm.expect(res.data.amount).to.eql(500);",
+									"    pm.expect(res.data.notes).to.eql(\"Updated grocery receipt\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"amount\": 500.00,\n  \"notes\": \"Updated grocery receipt\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/expenses/{{expense_id}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"expenses",
+								"{{expense_id}}"
+							]
+						},
+						"description": "FR-4: Update any field of an existing expense."
+					},
+					"response": []
+				},
+				{
+					"name": "5. Delete Expense",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 204 No Content\", function () {",
+									"    pm.response.to.have.status(204);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/expenses/{{expense_id}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"expenses",
+								"{{expense_id}}"
+							]
+						},
+						"description": "FR-5: Delete an expense by ID."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Budgets",
+			"item": [
+				{
+					"name": "1. List Budgets (Current Month)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Returns active budgets\", function () {",
+									"    var res = pm.response.json();",
+									"    pm.expect(res).to.have.property(\"data\");",
+									"    pm.expect(Array.isArray(res.data)).to.be.true;",
+									"    ",
+									"    if (res.data.length > 0) {",
+									"        pm.collectionVariables.set(\"budget_id\", res.data[0].id);",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/budgets?period_start=2026-08-01",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"budgets"
+							],
+							"query": [
+								{
+									"key": "period_start",
+									"value": "2026-08-01",
+									"description": "Period start date (YYYY-MM-DD)"
+								}
+							]
+						},
+						"description": "FR-26: List all overall and per-category budgets with spent, remaining, and live status."
+					},
+					"response": []
+				},
+				{
+					"name": "2. Create / Upsert Monthly Budget",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201 Created\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Budget goal created\", function () {",
+									"    var res = pm.response.json();",
+									"    pm.expect(res.data).to.have.property(\"id\");",
+									"    pm.expect(res.data.limit_amount).to.eql(75000);",
+									"    pm.expect(res.data.daily_limit).to.eql(2500);",
+									"    pm.collectionVariables.set(\"budget_id\", res.data.id);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"category_id\": null,\n  \"limit_amount\": 75000.00,\n  \"daily_limit\": 2500.00,\n  \"period_type\": \"month\",\n  \"period_start\": \"2026-08-01\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/budgets",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"budgets"
+							]
+						},
+						"description": "FR-26: Set overall or per-category monthly budget with daily limit."
+					},
+					"response": []
+				},
+				{
+					"name": "3. Get Budget by ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Budget tracking returned\", function () {",
+									"    var res = pm.response.json();",
+									"    pm.expect(res.data.id).to.eql(pm.collectionVariables.get(\"budget_id\"));",
+									"    pm.expect(res.data).to.have.property(\"spent_amount\");",
+									"    pm.expect(res.data).to.have.property(\"remaining_amount\");",
+									"    pm.expect(res.data).to.have.property(\"status\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/budgets/{{budget_id}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"budgets",
+								"{{budget_id}}"
+							]
+						},
+						"description": "Return a single budget with live calculation fields."
+					},
+					"response": []
+				},
+				{
+					"name": "4. Update Budget Limit",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Budget limit updated\", function () {",
+									"    var res = pm.response.json();",
+									"    pm.expect(res.data.limit_amount).to.eql(85000);",
+									"    pm.expect(res.data.daily_limit).to.eql(2800);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"limit_amount\": 85000.00,\n  \"daily_limit\": 2800.00\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/budgets/{{budget_id}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"budgets",
+								"{{budget_id}}"
+							]
+						},
+						"description": "FR-26: Update monthly limit or daily limit of an existing budget."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Dashboard & Analytics",
+			"item": [
+				{
+					"name": "1. Dashboard Summary",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Dashboard summary schema validation\", function () {",
+									"    var res = pm.response.json();",
+									"    pm.expect(res.data).to.have.property(\"total_spent\");",
+									"    pm.expect(res.data).to.have.property(\"recent_expenses\");",
+									"    pm.expect(res.data).to.have.property(\"budget_status\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/dashboard/summary",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"dashboard",
+								"summary"
+							]
+						},
+						"description": "FR-17, FR-18, FR-21: Overall total, current month total, recent 5 expenses, and active budget status."
+					},
+					"response": []
+				},
+				{
+					"name": "2. Spend Breakdown by Category (Pie Chart)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Category spend breakdown is an array\", function () {",
+									"    var res = pm.response.json();",
+									"    pm.expect(Array.isArray(res.data)).to.be.true;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/dashboard/by-category?date_from=2026-08-01&date_to=2026-08-31",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"dashboard",
+								"by-category"
+							],
+							"query": [
+								{
+									"key": "date_from",
+									"value": "2026-08-01"
+								},
+								{
+									"key": "date_to",
+									"value": "2026-08-31"
+								}
+							]
+						},
+						"description": "FR-19: Spending grouped by category with total and percentage."
+					},
+					"response": []
+				},
+				{
+					"name": "3. Spend Trend Over Time",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Trend data is an array\", function () {",
+									"    var res = pm.response.json();",
+									"    pm.expect(Array.isArray(res.data)).to.be.true;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/dashboard/trend?group_by=day&date_from=2026-08-01&date_to=2026-08-31",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"dashboard",
+								"trend"
+							],
+							"query": [
+								{
+									"key": "group_by",
+									"value": "day",
+									"description": "day | week | month"
+								},
+								{
+									"key": "date_from",
+									"value": "2026-08-01"
+								},
+								{
+									"key": "date_to",
+									"value": "2026-08-31"
+								}
+							]
+						},
+						"description": "FR-20, FR-22: Spend trend grouped by day, week, or month."
+					},
+					"response": []
+				},
+				{
+					"name": "4. Month-over-Month Comparison",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"MoM comparison validation\", function () {",
+									"    var res = pm.response.json();",
+									"    pm.expect(res.data).to.have.property(\"current_month_total\");",
+									"    pm.expect(res.data).to.have.property(\"previous_month_total\");",
+									"    pm.expect(res.data).to.have.property(\"percentage_change\");",
+									"    pm.expect(res.data).to.have.property(\"is_increase\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/dashboard/comparison",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"dashboard",
+								"comparison"
+							]
+						},
+						"description": "FR-23: Compares current month vs previous month spend."
+					},
+					"response": []
+				},
+				{
+					"name": "5. Top Categories by Spend",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Top categories list is an array\", function () {",
+									"    var res = pm.response.json();",
+									"    pm.expect(Array.isArray(res.data)).to.be.true;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/dashboard/top-categories?limit=5",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"dashboard",
+								"top-categories"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "5"
+								}
+							]
+						},
+						"description": "FR-24: Return top N spending categories for the current month."
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

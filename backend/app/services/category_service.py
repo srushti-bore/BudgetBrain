@@ -12,22 +12,23 @@ from app.schemas.category import CategoryCreate, CategoryOut, CategoryUpdate, Ca
 
 class CategoryService:
     """
-    Handles all business logic for categories.
+    Handles all business logic for categories with multi-tenant isolation.
     Delegates DB access to CategoryRepository.
     """
 
     def __init__(self, session: AsyncSession) -> None:
+        self.session = session
         self.repo = CategoryRepository(session)
 
     async def list_categories(
-        self, *, page: int = 1, page_size: int = 20
+        self, user_id: str, *, page: int = 1, page_size: int = 20
     ) -> tuple[list[CategoryWithCountOut], int]:
         """
-        Return paginated categories with their expense counts (FR-9).
+        Return paginated categories with their expense counts for user (FR-9).
         """
         offset = (page - 1) * page_size
         raw_items, total = await self.repo.list_with_expense_counts(
-            offset=offset, limit=page_size
+            user_id, offset=offset, limit=page_size
         )
         items = [
             CategoryWithCountOut(
@@ -42,76 +43,91 @@ class CategoryService:
         ]
         return items, total
 
-    async def get_category(self, category_id: str) -> CategoryOut:
+    async def get_category(self, category_id: str, user_id: str) -> CategoryOut:
         """
-        Return a single category by ID.
+        Return a single category by ID for user.
         Raises NotFoundException if not found.
         """
-        cat = await self.repo.get_by_id(category_id)
+        cat = await self.repo.get_by_id_and_user(category_id, user_id)
         if not cat:
             raise NotFoundException("Category")
         return CategoryOut.model_validate(cat)
 
-    async def create_category(self, data: CategoryCreate) -> CategoryOut:
+    async def create_category(self, data: CategoryCreate, user_id: str) -> CategoryOut:
         """
-        Create a new category.
-        Raises ConflictException if a category with the same name already exists.
+        Create a new category for user.
+        Raises ConflictException if a category with the same name already exists for this user.
         """
-        existing = await self.repo.get_by_name(data.name)
+        existing = await self.repo.get_by_name(data.name, user_id)
         if existing:
             raise ConflictException(
                 f"Category '{data.name}' already exists.", field="name"
             )
-        cat = await self.repo.create(name=data.name, is_system=False)
+        cat = await self.repo.create(user_id=user_id, name=data.name, is_system=False)
+        await self.session.commit()
         return CategoryOut.model_validate(cat)
 
-    async def update_category(self, category_id: str, data: CategoryUpdate) -> CategoryOut:
+    async def update_category(
+        self, category_id: str, data: CategoryUpdate, user_id: str
+    ) -> CategoryOut:
         """
-        Rename a category.
+        Rename a user-owned category.
         - Cannot rename system categories (is_system=True) → raises SystemCategoryException
-        - New name must not conflict with an existing category → raises ConflictException
+        - New name must not conflict with an existing category for this user → raises ConflictException
         """
-        cat = await self.repo.get_by_id(category_id)
+        cat = await self.repo.get_by_id_and_user(category_id, user_id)
         if not cat:
             raise NotFoundException("Category")
         if cat.is_system:
             raise SystemCategoryException()
 
-        if data.name != cat.name:
-            existing = await self.repo.get_by_name(data.name)
+        if data.name.strip().lower() != cat.name.strip().lower():
+            existing = await self.repo.get_by_name(data.name, user_id)
             if existing and existing.id != category_id:
                 raise ConflictException(
                     f"Category '{data.name}' already exists.", field="name"
                 )
 
         updated = await self.repo.update(cat, name=data.name)
+        await self.session.commit()
         return CategoryOut.model_validate(updated)
 
-    async def delete_category(self, category_id: str, *, force: bool = False) -> None:
+    async def delete_category(
+        self, category_id: str, user_id: str, *, force: bool = False
+    ) -> None:
         """
         Delete a category following the SRS §3.3 deletion flow:
           1. Check is_system → reject if true.
-          2. Count linked expenses.
+          2. Count linked expenses for user.
           3. If linked and not forced → raise CategoryHasExpensesException (409).
           4. If forced → reassign linked expenses to Uncategorized, then delete.
         """
-        cat = await self.repo.get_by_id(category_id)
+        cat = await self.repo.get_by_id_and_user(category_id, user_id)
         if not cat:
             raise NotFoundException("Category")
+
         if cat.is_system:
             raise SystemCategoryException()
 
-        count = await self.repo.count_linked_expenses(category_id)
-        if count > 0:
+        linked_count = await self.repo.count_linked_expenses(category_id, user_id)
+
+        if linked_count > 0:
             if not force:
                 raise CategoryHasExpensesException(
-                    category_name=cat.name, expense_count=count
+                    category_name=cat.name, expense_count=linked_count
                 )
-            # Safe deletion flow: get or create Uncategorized system category
-            uncat = await self.repo.get_uncategorized()
-            if not uncat:
-                uncat = await self.repo.create(name="Uncategorized", is_system=True)
-            await self.repo.reassign_expenses_to_uncategorized(category_id, uncat.id)
+            # Reassign to Uncategorized for this user
+            uncategorized = await self.repo.get_uncategorized(user_id)
+            if not uncategorized:
+                # If uncategorized missing, create it
+                uncategorized = await self.repo.create(
+                    user_id=user_id, name="Uncategorized", is_system=True
+                )
+            await self.repo.reassign_expenses_to_uncategorized(
+                from_category_id=category_id,
+                uncategorized_id=uncategorized.id,
+                user_id=user_id,
+            )
 
         await self.repo.delete(cat)
-
+        await self.session.commit()

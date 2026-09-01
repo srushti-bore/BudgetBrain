@@ -1,17 +1,18 @@
 """
-BudgetBrain — Expenses Router
+BudgetBrain — Expenses Router (Multi-Tenant)
 
 Endpoints under /api/v1/expenses (SRS §5.2).
-All business logic is delegated to ExpenseService.
+Protected by JWT authentication; business logic delegated to ExpenseService.
 """
 
+from datetime import date as dt_date
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from datetime import date as dt_date
-
+from app.core.dependencies import get_current_user
 from app.database import get_db
 from app.models.expense import PaymentMode
+from app.models.user import User
 from app.schemas.common import DataResponse, PaginatedMeta, PaginatedResponse
 from app.schemas.expense import (
     ExpenseCreate,
@@ -46,11 +47,11 @@ async def list_expenses(
     # Sort
     sort_by: str = Query(default="date", pattern="^(amount|date|category)$"),
     sort_order: str = Query(default="desc", pattern="^(asc|desc)$"),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
-    FR-11 to FR-16: List expenses with combined search + filter + sort.
-    All parameters are optional and can be used together.
+    FR-11 to FR-16: List expenses for the authenticated user with search + filter + sort.
     """
     try:
         parsed_date_from = dt_date.fromisoformat(date_from) if date_from else None
@@ -60,6 +61,7 @@ async def list_expenses(
         raise ValidationException(
             "Invalid date format. Use YYYY-MM-DD.", field="date_from/date_to"
         )
+
     filters = ExpenseFilters(
         search=search,
         category_id=category_id,
@@ -73,7 +75,9 @@ async def list_expenses(
         sort_order=sort_order,
     )
     service = ExpenseService(db)
-    items, total = await service.list_expenses(filters, page=page, page_size=page_size)
+    items, total = await service.list_expenses(
+        user_id=current_user.id, filters=filters, page=page, page_size=page_size
+    )
     return PaginatedResponse(
         data=items,
         meta=PaginatedMeta(page=page, page_size=page_size, total=total),
@@ -88,14 +92,14 @@ async def list_expenses(
 )
 async def create_expense(
     body: ExpenseCreate,
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
-    FR-2: Add a new expense.
-    Validates: amount > 0, date not in future, category exists.
+    FR-2: Add a new expense for the authenticated user with anti-deficit protection.
     """
     service = ExpenseService(db)
-    expense = await service.create_expense(body)
+    expense = await service.create_expense(body, user_id=current_user.id)
     return DataResponse(data=expense)
 
 
@@ -106,11 +110,12 @@ async def create_expense(
 )
 async def get_expense(
     expense_id: str,
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """FR-3: Return a single expense. Returns 404 if not found."""
+    """FR-3: Return a single expense belonging to the authenticated user."""
     service = ExpenseService(db)
-    expense = await service.get_expense(expense_id)
+    expense = await service.get_expense(expense_id, user_id=current_user.id)
     return DataResponse(data=expense)
 
 
@@ -122,11 +127,14 @@ async def get_expense(
 async def update_expense(
     expense_id: str,
     body: ExpenseUpdate,
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """FR-4: Update any field of an existing expense."""
+    """FR-4: Update an existing expense belonging to the authenticated user."""
     service = ExpenseService(db)
-    expense = await service.update_expense(expense_id, body)
+    expense = await service.update_expense(
+        expense_id, body, user_id=current_user.id
+    )
     return DataResponse(data=expense)
 
 
@@ -137,8 +145,9 @@ async def update_expense(
 )
 async def delete_expense(
     expense_id: str,
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """FR-5: Delete an expense. Returns 404 if not found."""
+    """FR-5: Delete an expense belonging to the authenticated user."""
     service = ExpenseService(db)
-    await service.delete_expense(expense_id)
+    await service.delete_expense(expense_id, user_id=current_user.id)

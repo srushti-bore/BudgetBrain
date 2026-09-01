@@ -1,16 +1,18 @@
 """
 BudgetBrain — Budget ORM Model
 
-SRS §4.3:
+SRS §4.5:
   id            UUID         PK
+  user_id       UUID         FK → users.id (CASCADE)
   category_id   UUID         Nullable — null = overall budget; cascades on category delete
   period_type   VARCHAR(10)  monthly | weekly; default monthly
   period_start  DATE         Required
   limit_amount  NUMERIC(10,2) Required, > 0
+  daily_limit   NUMERIC(10,2) Nullable
   created_at    TIMESTAMPTZ  Auto-managed
   updated_at    TIMESTAMPTZ  Auto-managed
 
-Uniqueness: one budget per (category_id OR NULL) per period.
+Uniqueness: one budget per (user_id, category_id OR NULL) per period.
 """
 
 import enum
@@ -33,6 +35,12 @@ class Budget(Base, TimestampMixin):
     id: Mapped[str] = mapped_column(
         String(36), primary_key=True, default=new_uuid
     )
+    user_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     category_id: Mapped[str | None] = mapped_column(
         String(36),
         ForeignKey("categories.id", ondelete="CASCADE"),
@@ -43,7 +51,7 @@ class Budget(Base, TimestampMixin):
         String(10), nullable=False, default=PeriodType.MONTHLY
     )
     period_start: Mapped[date] = mapped_column(
-        Date, nullable=False
+        Date, nullable=False, index=True
     )
     limit_amount: Mapped[float] = mapped_column(
         Numeric(10, 2), nullable=False
@@ -53,22 +61,23 @@ class Budget(Base, TimestampMixin):
     )
 
     # Relationships
+    user: Mapped["User"] = relationship(  # noqa: F821
+        "User", back_populates="budgets", lazy="select"
+    )
     category: Mapped["Category | None"] = relationship(  # noqa: F821
         "Category", back_populates="budgets", lazy="select"
     )
 
-    # Uniqueness: one budget per category (or overall) per period
+    # Uniqueness: one budget per category (or overall) per period per user
     __table_args__ = (
         UniqueConstraint(
-            "category_id", "period_type", "period_start",
-            name="uq_budget_category_period",
+            "user_id", "category_id", "period_type", "period_start",
+            name="uq_budget_user_category_period",
         ),
-        # Partial unique index for overall budgets (category_id IS NULL)
-        # PostgreSQL treats NULL != NULL, so the UniqueConstraint above
-        # cannot prevent duplicate overall budgets — this index does.
+        # Partial unique index for overall budgets (category_id IS NULL) per user
         Index(
-            "uq_budget_overall_period",
-            "period_type", "period_start",
+            "uq_budget_user_overall_period",
+            "user_id", "period_type", "period_start",
             unique=True,
             postgresql_where=text("category_id IS NULL"),
         ),
@@ -76,7 +85,7 @@ class Budget(Base, TimestampMixin):
 
     def __repr__(self) -> str:
         return (
-            f"<Budget id={self.id!r} category_id={self.category_id!r} "
+            f"<Budget id={self.id!r} user_id={self.user_id!r} category_id={self.category_id!r} "
             f"period={self.period_type} start={self.period_start} "
             f"limit={self.limit_amount} daily_limit={self.daily_limit}>"
         )

@@ -40,6 +40,16 @@ class Settings(BaseSettings):
         """Parse comma-separated ALLOWED_ORIGINS into a list."""
         return [o.strip() for o in self.ALLOWED_ORIGINS.split(",") if o.strip()]
 
+    # ── Authentication & Security ────────────────────────────────────────────
+    JWT_SECRET_KEY: str = "budgetbrain-super-secret-jwt-key-development-2026"
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    COOKIE_SECURE: bool = False  # Set to True in production with HTTPS
+    COOKIE_SAMESITE: str = "lax"
+
     # ── Budget thresholds ─────────────────────────────────────────────────────
     # Configurable via env (SRS §3.6)
     BUDGET_NEAR_LIMIT_THRESHOLD: int = 80  # percentage
@@ -47,6 +57,7 @@ class Settings(BaseSettings):
     # ── Pagination ───────────────────────────────────────────────────────────
     DEFAULT_PAGE_SIZE: int = 20
     MAX_PAGE_SIZE: int = 100
+
 
 
 @lru_cache

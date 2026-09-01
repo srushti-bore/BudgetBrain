@@ -9,6 +9,7 @@ import { useTranslation } from '@/providers/LanguageProvider';
 import { LanguageCode } from '@/lib/translations';
 import { categoryApi, expenseApi, budgetApi, API_BASE_URL } from '@/lib/api';
 import { exportExpensesToCSV, exportFullBackupJSON, validateBackupJSON } from '@/lib/exportUtils';
+import { useAuth } from '@/providers/AuthProvider';
 import {
   Settings,
   Palette,
@@ -31,6 +32,11 @@ import {
   Wifi,
   ShieldAlert,
   Globe,
+  ShieldCheck,
+  KeyRound,
+  LogOut,
+  User as UserIcon,
+  Lock,
 } from 'lucide-react';
 
 const starterCategories = [
@@ -48,6 +54,7 @@ const starterCategories = [
 export default function SettingsPage() {
   const { theme, toggleTheme } = useTheme();
   const { currency, setCurrency } = useCurrency();
+  const { user, changePassword, logoutAll, logout } = useAuth();
   const {
     dateFormat,
     setDateFormat,
@@ -61,10 +68,18 @@ export default function SettingsPage() {
   } = useSettings();
   const { t, language, setLanguage, languages } = useTranslation();
 
-  const [activeTab, setActiveTab] = useState<'general' | 'budgets' | 'data' | 'about'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'budgets' | 'account' | 'data' | 'about'>('general');
   const [isExportingCSV, setIsExportingCSV] = useState(false);
   const [isExportingJSON, setIsExportingJSON] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+
+  // Password & Session State
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [isLoggingOutAll, setIsLoggingOutAll] = useState(false);
+
 
   // Health Ping State
   const [healthStatus, setHealthStatus] = useState<{
@@ -277,6 +292,7 @@ export default function SettingsPage() {
         {[
           { id: 'general', label: 'Display & Regional', icon: Palette },
           { id: 'budgets', label: 'Budget & Alerts', icon: Sliders },
+          { id: 'account', label: 'Account & Security', icon: ShieldCheck },
           { id: 'data', label: 'Data & Backup', icon: Database },
           { id: 'about', label: 'System & Health', icon: Info },
         ].map((tab) => {
@@ -298,6 +314,7 @@ export default function SettingsPage() {
           );
         })}
       </div>
+
 
       {/* Tab 1: Display & Regional Preferences */}
       {activeTab === 'general' && (
@@ -617,8 +634,167 @@ export default function SettingsPage() {
         </motion.div>
       )}
 
+      {/* Tab: Account & Security */}
+      {activeTab === 'account' && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+          {/* Profile Overview Card */}
+          <div className="glass-card p-6 sm:p-7 space-y-6">
+            <div>
+              <h3 className="font-display font-bold text-base text-ink flex items-center gap-2">
+                <UserIcon className="w-4 h-4 text-sage" />
+                <span>Account Profile</span>
+              </h3>
+              <p className="text-xs text-ink-muted mt-0.5">Your personal credentials and multi-tenant security status</p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="p-4 rounded-xl border border-ink/10 dark:border-white/10 bg-white/60 dark:bg-white/5 space-y-1">
+                <span className="text-[11px] font-bold text-ink-muted uppercase tracking-wider block">Email Address</span>
+                <p className="text-sm font-semibold text-ink font-mono">{user?.email || 'N/A'}</p>
+                <div className="flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 pt-1">
+                  <CheckCircle className="w-3.5 h-3.5" />
+                  <span>Verified Tenant Identity</span>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-xl border border-ink/10 dark:border-white/10 bg-white/60 dark:bg-white/5 space-y-1">
+                <span className="text-[11px] font-bold text-ink-muted uppercase tracking-wider block">Full Name</span>
+                <p className="text-sm font-semibold text-ink">{user?.full_name || 'Not Specified'}</p>
+                <p className="text-[11px] text-ink-muted pt-1">Single-tenant isolated sandbox</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Change Password Card */}
+          <div className="glass-card p-6 sm:p-7 space-y-6">
+            <div>
+              <h3 className="font-display font-bold text-base text-ink flex items-center gap-2">
+                <KeyRound className="w-4 h-4 text-sage" />
+                <span>Change Password</span>
+              </h3>
+              <p className="text-xs text-ink-muted mt-0.5">Update your account password using secure BCrypt hashing</p>
+            </div>
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (newPassword !== confirmNewPassword) {
+                  showToast('New passwords do not match.', 'error');
+                  return;
+                }
+                if (newPassword.length < 8) {
+                  showToast('New password must be at least 8 characters long.', 'error');
+                  return;
+                }
+                setIsUpdatingPassword(true);
+                try {
+                  await changePassword(currentPassword, newPassword);
+                  showToast('Password updated! Please sign in again.');
+                } catch (err: any) {
+                  showToast(err.response?.data?.error?.message || err.message || 'Failed to update password.', 'error');
+                } finally {
+                  setIsUpdatingPassword(false);
+                }
+              }}
+              className="space-y-4 max-w-lg"
+            >
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">
+                  Current Password
+                </label>
+                <input
+                  type="password"
+                  required
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full p-2.5 rounded-xl border border-ink/10 dark:border-white/10 text-sm bg-white dark:bg-white/5"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">
+                  New Password (min 8 chars, 1 uppercase, 1 lowercase, 1 number)
+                </label>
+                <input
+                  type="password"
+                  required
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full p-2.5 rounded-xl border border-ink/10 dark:border-white/10 text-sm bg-white dark:bg-white/5"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">
+                  Confirm New Password
+                </label>
+                <input
+                  type="password"
+                  required
+                  value={confirmNewPassword}
+                  onChange={(e) => setConfirmNewPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full p-2.5 rounded-xl border border-ink/10 dark:border-white/10 text-sm bg-white dark:bg-white/5"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isUpdatingPassword || !currentPassword || !newPassword}
+                className="px-5 py-2.5 rounded-xl bg-sage hover:bg-sage-dark text-white font-bold text-xs sm:text-sm disabled:opacity-50 transition-all cursor-pointer"
+              >
+                {isUpdatingPassword ? 'Updating...' : 'Update Password'}
+              </button>
+            </form>
+          </div>
+
+          {/* Session Management & Multi-Device Logout Card */}
+          <div className="glass-card p-6 sm:p-7 space-y-6">
+            <div>
+              <h3 className="font-display font-bold text-base text-ink flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-sage" />
+                <span>Session Management & Security</span>
+              </h3>
+              <p className="text-xs text-ink-muted mt-0.5">Control active Refresh Tokens and multi-device access</p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={() => logout()}
+                className="px-4 py-2.5 rounded-xl border border-ink/10 dark:border-white/10 text-xs font-bold text-ink hover:bg-ink/5 dark:hover:bg-white/5 transition-all inline-flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <LogOut className="w-4 h-4 text-ink-muted" />
+                <span>Sign Out from this Device</span>
+              </button>
+
+              <button
+                onClick={async () => {
+                  setIsLoggingOutAll(true);
+                  try {
+                    await logoutAll();
+                    showToast('Logged out from all devices!');
+                  } catch {
+                    showToast('Failed to logout from all devices.', 'error');
+                  } finally {
+                    setIsLoggingOutAll(false);
+                  }
+                }}
+                disabled={isLoggingOutAll}
+                className="px-4 py-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/20 text-xs font-bold transition-all inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                <ShieldAlert className="w-4 h-4" />
+                <span>{isLoggingOutAll ? 'Logging Out All...' : 'Sign Out from All Devices'}</span>
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
       {/* Tab 3: Data Management & Backup */}
       {activeTab === 'data' && (
+
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
           {/* Export & Backup Card */}
           <div className="glass-card p-6 sm:p-7 space-y-6">
