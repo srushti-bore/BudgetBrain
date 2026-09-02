@@ -1,14 +1,16 @@
 """
 BudgetBrain — Email Dispatch Service
 
-Handles sending transactional emails (Password Reset, Welcome, Alerts)
-via standard asynchronous/synchronous SMTP (e.g. Gmail SMTP, SendGrid, Amazon SES).
+Handles sending transactional emails (OTP Verification, Password Reset, Welcome)
+via direct Resend HTTPS REST API (for cloud hosting like Render/Vercel) OR
+standard asynchronous/synchronous SMTP (e.g. Gmail SMTP, SendGrid, Amazon SES).
 """
 
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import logging
+import requests
 
 from app.config import get_settings
 
@@ -19,12 +21,83 @@ class EmailService:
     def __init__(self):
         self.settings = get_settings()
 
+    def _dispatch_email(self, to_email: str, subject: str, html_content: str) -> bool:
+        """
+        Robust dual-mode email dispatcher:
+        1. If Resend API Key is detected (re_...), uses Resend's high-speed HTTPS REST API (bypasses all cloud firewall/port 587 blocks).
+        2. Otherwise, uses standard SMTP (e.g. Gmail, SendGrid, AWS SES).
+        """
+        from_name = getattr(self.settings, "SMTP_FROM_NAME", "BudgetBrain Security")
+        from_email = getattr(self.settings, "SMTP_FROM_EMAIL", "onboarding@resend.dev")
+
+        # ── Mode 1: Direct Resend HTTPS REST API (Recommended & Port-Proof) ──
+        smtp_password = getattr(self.settings, "SMTP_PASSWORD", "") or ""
+        smtp_host = getattr(self.settings, "SMTP_HOST", "") or ""
+
+        if smtp_password.startswith("re_") or "resend" in smtp_host.lower():
+            try:
+                payload = {
+                    "from": f"{from_name} <{from_email}>",
+                    "to": [to_email],
+                    "subject": subject,
+                    "html": html_content,
+                }
+                headers = {
+                    "Authorization": f"Bearer {smtp_password}",
+                    "Content-Type": "application/json",
+                }
+                response = requests.post(
+                    "https://api.resend.com/emails",
+                    json=payload,
+                    headers=headers,
+                    timeout=10,
+                )
+                if response.status_code in (200, 201):
+                    logger.info(f"[RESEND SUCCESS] Email successfully dispatched to {to_email} (ID: {response.json().get('id')})")
+                    return True
+                else:
+                    logger.error(
+                        f"[RESEND API ERROR] Status {response.status_code}: {response.text}"
+                    )
+                    # Fallback to SMTP if REST returned error
+            except Exception as resend_err:
+                logger.warning(f"[RESEND REST EXCEPTION] Falling back to standard SMTP: {str(resend_err)}")
+
+        # ── Mode 2: Standard SMTP Transport (Gmail, SES, SendGrid, Resend SMTP) ──
+        if not self.settings.SMTP_HOST or not self.settings.SMTP_USER:
+            logger.warning(f"[EMAIL NOTICE] SMTP is not configured. Email to {to_email} logged only.")
+            return True
+
+        try:
+            msg = MIMEMultipart("alternative")
+            msg["Subject"] = subject
+            msg["From"] = f"{from_name} <{from_email}>"
+            msg["To"] = to_email
+
+            part = MIMEText(html_content, "html")
+            msg.attach(part)
+
+            port = int(self.settings.SMTP_PORT)
+            if port == 465:
+                server = smtplib.SMTP_SSL(self.settings.SMTP_HOST, port, timeout=12)
+            else:
+                server = smtplib.SMTP(self.settings.SMTP_HOST, port, timeout=12)
+                if getattr(self.settings, "SMTP_TLS", True):
+                    server.starttls()
+
+            server.login(self.settings.SMTP_USER, self.settings.SMTP_PASSWORD)
+            server.sendmail(from_email, [to_email], msg.as_string())
+            server.quit()
+            logger.info(f"Email successfully sent to {to_email} via SMTP")
+            return True
+        except Exception as exc:
+            logger.error(f"Failed to send email to {to_email} via SMTP: {str(exc)}")
+            return False
+
     def send_password_reset_email(self, to_email: str, reset_token: str) -> bool:
         """
         Send a beautifully formatted HTML password reset email.
-        Falls back to logger if SMTP is not yet configured.
         """
-        # Default to local frontend during development so emails never redirect to Vercel
         frontend_base = "http://localhost:3000"
         if hasattr(self.settings, "FRONTEND_URL") and self.settings.FRONTEND_URL:
             raw_url = self.settings.FRONTEND_URL.rstrip("/")
@@ -42,16 +115,7 @@ class EmailService:
             print(f"URL: {reset_link}")
             print(f"==========================================\n")
 
-        # If SMTP is not configured, log for development/testing
-        if not self.settings.SMTP_HOST or not self.settings.SMTP_USER:
-            logger.warning(
-                f"[EMAIL NOTICE] SMTP is not configured. Reset link for {to_email}: {reset_link}"
-            )
-            return True
-
         subject = "Reset Your BudgetBrain Password"
-        from_name = getattr(self.settings, "SMTP_FROM_NAME", "BudgetBrain Security")
-        from_email = getattr(self.settings, "SMTP_FROM_EMAIL", self.settings.SMTP_USER)
 
         html_content = f"""
         <!DOCTYPE html>
@@ -96,36 +160,11 @@ class EmailService:
         </html>
         """
 
-        try:
-            msg = MIMEMultipart("alternative")
-            msg["Subject"] = subject
-            msg["From"] = f"{from_name} <{from_email}>"
-            msg["To"] = to_email
-
-            part = MIMEText(html_content, "html")
-            msg.attach(part)
-
-            port = int(self.settings.SMTP_PORT)
-            if port == 465:
-                server = smtplib.SMTP_SSL(self.settings.SMTP_HOST, port, timeout=10)
-            else:
-                server = smtplib.SMTP(self.settings.SMTP_HOST, port, timeout=10)
-                if getattr(self.settings, "SMTP_TLS", True):
-                    server.starttls()
-
-            server.login(self.settings.SMTP_USER, self.settings.SMTP_PASSWORD)
-            server.sendmail(from_email, [to_email], msg.as_string())
-            server.quit()
-            logger.info(f"Password reset email sent to {to_email}")
-            return True
-        except Exception as exc:
-            logger.error(f"Failed to send email to {to_email} via SMTP: {str(exc)}")
-            return False
+        return self._dispatch_email(to_email=to_email, subject=subject, html_content=html_content)
 
     def send_verification_email(self, to_email: str, token: str, full_name: str | None = None) -> bool:
         """
         Send a beautifully formatted HTML account activation / email verification email.
-        Falls back to console/logger if SMTP is not yet configured (perfect for local dev).
         """
         frontend_base = "http://localhost:3000"
         if hasattr(self.settings, "FRONTEND_URL") and self.settings.FRONTEND_URL:
@@ -145,16 +184,7 @@ class EmailService:
             print(f"URL: {verify_link}")
             print(f"==========================================\n")
 
-        # If SMTP is not configured, fallback to console only
-        if not self.settings.SMTP_HOST or not self.settings.SMTP_USER:
-            logger.warning(
-                f"[EMAIL NOTICE] SMTP is not configured. Email verification link for {to_email}: {verify_link}"
-            )
-            return True
-
         subject = "Verify Your BudgetBrain Account"
-        from_name = getattr(self.settings, "SMTP_FROM_NAME", "BudgetBrain Security")
-        from_email = getattr(self.settings, "SMTP_FROM_EMAIL", self.settings.SMTP_USER)
 
         html_content = f"""
         <!DOCTYPE html>
@@ -199,31 +229,7 @@ class EmailService:
         </html>
         """
 
-        try:
-            msg = MIMEMultipart("alternative")
-            msg["Subject"] = subject
-            msg["From"] = f"{from_name} <{from_email}>"
-            msg["To"] = to_email
-
-            part = MIMEText(html_content, "html")
-            msg.attach(part)
-
-            port = int(self.settings.SMTP_PORT)
-            if port == 465:
-                server = smtplib.SMTP_SSL(self.settings.SMTP_HOST, port, timeout=10)
-            else:
-                server = smtplib.SMTP(self.settings.SMTP_HOST, port, timeout=10)
-                if getattr(self.settings, "SMTP_TLS", True):
-                    server.starttls()
-
-            server.login(self.settings.SMTP_USER, self.settings.SMTP_PASSWORD)
-            server.sendmail(from_email, [to_email], msg.as_string())
-            server.quit()
-            logger.info(f"Account verification email sent to {to_email}")
-            return True
-        except Exception as exc:
-            logger.error(f"Failed to send verification email to {to_email} via SMTP: {str(exc)}")
-            return False
+        return self._dispatch_email(to_email=to_email, subject=subject, html_content=html_content)
 
     def send_verification_otp_email(
         self,
@@ -256,14 +262,7 @@ class EmailService:
                 print(f"Direct Link Fallback: {verify_link}")
             print(f"=======================================================\n")
 
-        # Fallback to console if SMTP not configured
-        if not self.settings.SMTP_HOST or not self.settings.SMTP_USER:
-            logger.warning(f"[EMAIL NOTICE] SMTP is not configured. OTP for {to_email}: {otp}")
-            return True
-
         subject = f"{otp} is your BudgetBrain verification code"
-        from_name = getattr(self.settings, "SMTP_FROM_NAME", "BudgetBrain Security")
-        from_email = getattr(self.settings, "SMTP_FROM_EMAIL", self.settings.SMTP_USER)
 
         # Build 6 individual digit cells for 100% email client compatibility (Gmail, Apple Mail, Outlook)
         digit_cells = "".join([
@@ -361,28 +360,4 @@ class EmailService:
         </html>
         """
 
-        try:
-            msg = MIMEMultipart("alternative")
-            msg["Subject"] = subject
-            msg["From"] = f"{from_name} <{from_email}>"
-            msg["To"] = to_email
-
-            part = MIMEText(html_content, "html")
-            msg.attach(part)
-
-            port = int(self.settings.SMTP_PORT)
-            if port == 465:
-                server = smtplib.SMTP_SSL(self.settings.SMTP_HOST, port, timeout=10)
-            else:
-                server = smtplib.SMTP(self.settings.SMTP_HOST, port, timeout=10)
-                if getattr(self.settings, "SMTP_TLS", True):
-                    server.starttls()
-
-            server.login(self.settings.SMTP_USER, self.settings.SMTP_PASSWORD)
-            server.sendmail(from_email, [to_email], msg.as_string())
-            server.quit()
-            logger.info(f"OTP verification email sent to {to_email}")
-            return True
-        except Exception as exc:
-            logger.error(f"Failed to send OTP email to {to_email} via SMTP: {str(exc)}")
-            return False
+        return self._dispatch_email(to_email=to_email, subject=subject, html_content=html_content)
