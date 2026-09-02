@@ -54,6 +54,7 @@ function ResetPasswordContent() {
         router.push('/login');
       }, 2000);
     } catch (err: any) {
+      console.error('Reset Password API Error:', err);
       const msg =
         err.response?.data?.error?.message ||
         err.message ||
@@ -62,6 +63,7 @@ function ResetPasswordContent() {
     } finally {
       setIsSubmitting(false);
     }
+
   };
 
 

@@ -13,18 +13,21 @@ export default function ForgotPasswordPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [responseMessage, setResponseMessage] = useState<string | null>(null);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setIsSubmitting(true);
 
     try {
-      await authApi.forgotPassword(email.trim());
+      const res = await authApi.forgotPassword(email.trim());
+      setResponseMessage(res.message);
       setIsSubmitted(true);
     } catch (err: any) {
       setError(
         err.response?.data?.error?.message ||
-        'Unable to process request. Please try again.'
+        'Unable to process request. Please check your network or try again.'
       );
     } finally {
       setIsSubmitting(false);
@@ -70,18 +73,23 @@ export default function ForgotPasswordPage() {
                   Instructions Dispatched
                 </h3>
                 <p className="text-xs sm:text-sm text-[var(--color-text-muted)] mt-1.5 leading-relaxed">
-                  If an account exists for <span className="text-[var(--color-text-primary)] font-medium">{email}</span>, you will receive password reset instructions shortly.
+                  {responseMessage || (
+                    <>
+                      If an account exists for <span className="text-[var(--color-text-primary)] font-medium">{email}</span>, you will receive password reset instructions shortly.
+                    </>
+                  )}
                 </p>
               </div>
               <div className="pt-3">
                 <Link
                   href="/login"
-                  className="w-full py-2.5 px-4 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] hover:bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] font-medium text-sm inline-flex items-center justify-center gap-2 transition-all"
+                  className="w-full py-2.5 px-4 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] hover:bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] font-medium text-sm inline-flex items-center justify-center gap-2 transition-all cursor-pointer"
                 >
                   <ArrowLeft className="w-4 h-4" /> Return to Sign In
                 </Link>
               </div>
             </motion.div>
+
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               {error && (

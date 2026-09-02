@@ -122,6 +122,52 @@ class ResetPasswordRequest(BaseModel):
         return v
 
 
+class VerifyEmailRequest(BaseModel):
+    token: str = Field(..., min_length=1, description="Signed JWT email verification token")
+
+
+class ResendVerificationRequest(BaseModel):
+    email: EmailStr
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalize_email(cls, v: str) -> str:
+        return v.strip().lower() if isinstance(v, str) else v
+
+
+class RegisterResponse(BaseModel):
+    message: str
+    user: UserOut
+    requires_verification: bool = True
+
+
+class VerifyOtpRequest(BaseModel):
+    email: EmailStr
+    otp: str = Field(..., min_length=6, max_length=6, description="6-digit numeric OTP")
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalize_email(cls, v: str) -> str:
+        return v.strip().lower() if isinstance(v, str) else v
+
+    @field_validator("otp")
+    @classmethod
+    def validate_otp_digits(cls, v: str) -> str:
+        v = v.strip()
+        if not v.isdigit() or len(v) != 6:
+            raise ValueError("OTP must be exactly 6 digits.")
+        return v
+
+
+class ResendOtpRequest(BaseModel):
+    email: EmailStr
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalize_email(cls, v: str) -> str:
+        return v.strip().lower() if isinstance(v, str) else v
+
+
 class MessageResponse(BaseModel):
     message: str
     success: bool = True

@@ -3,14 +3,15 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { authApi, setAccessToken } from '@/lib/api';
-import { User, TokenResponse } from '@/types';
+import { User, TokenResponse, RegisterResponse } from '@/types';
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<TokenResponse>;
-  register: (email: string, password: string, fullName?: string) => Promise<TokenResponse>;
+  register: (email: string, password: string, fullName?: string) => Promise<RegisterResponse>;
+  verifyOtp: (email: string, otp: string) => Promise<TokenResponse>;
   googleLogin: (idToken: string) => Promise<TokenResponse>;
   logout: () => Promise<void>;
   logoutAll: () => Promise<void>;
@@ -81,8 +82,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return res;
   };
 
-  const register = async (email: string, password: string, fullName?: string): Promise<TokenResponse> => {
+  const register = async (email: string, password: string, fullName?: string): Promise<RegisterResponse> => {
     const res = await authApi.register({ email, password, full_name: fullName });
+    return res;
+  };
+
+  const verifyOtp = async (email: string, otp: string): Promise<TokenResponse> => {
+    const res = await authApi.verifyOtp(email, otp);
     handleAuthSuccess(res);
     return res;
   };
@@ -132,6 +138,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAuthenticated: !!user,
         login,
         register,
+        verifyOtp,
         googleLogin,
         logout,
         logoutAll,

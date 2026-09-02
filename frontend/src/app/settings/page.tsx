@@ -656,11 +656,23 @@ export default function SettingsPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="p-4 rounded-xl border border-ink/10 dark:border-white/10 bg-white/60 dark:bg-white/5 space-y-1">
-                <span className="text-[11px] font-bold text-ink-muted uppercase tracking-wider block">Email Address</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-ink-muted uppercase tracking-wider block">Email Address</span>
+                  {user?.is_verified ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold">
+                      <Check className="w-3 h-3 stroke-[3]" />
+                      Verified ✓
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-600 dark:text-amber-400 text-[10px] font-bold">
+                      Unverified
+                    </span>
+                  )}
+                </div>
                 <p className="text-sm font-semibold text-ink font-mono">{user?.email || 'N/A'}</p>
                 <div className="flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 pt-1">
                   <CheckCircle className="w-3.5 h-3.5" />
-                  <span>Verified Tenant Identity</span>
+                  <span>{user?.is_verified ? 'Verified Tenant Identity' : 'Pending Email Verification'}</span>
                 </div>
               </div>
 

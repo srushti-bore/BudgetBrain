@@ -6,7 +6,7 @@ SRS §3.1, §4.1, §4.2 & §5.1:
   token rotation, session revocation, and multi-tenant user seeding.
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,6 +15,10 @@ from app.core.security import (
     create_access_token,
     create_password_reset_token,
     create_refresh_token,
+    create_verification_token,
+    decode_verification_token,
+    generate_numeric_otp,
+    hash_otp,
     hash_password,
     hash_token,
     verify_google_id_token,
@@ -23,6 +27,7 @@ from app.core.security import (
 from app.exceptions import (
     AuthenticationException,
     ConflictException,
+    EmailNotVerifiedException,
     NotFoundException,
     ValidationException,
 )
@@ -32,6 +37,7 @@ from app.models.user import User
 from app.schemas.auth import (
     ChangePasswordRequest,
     GoogleLoginRequest,
+    RegisterResponse,
     ResetPasswordRequest,
     TokenResponse,
     UserLogin,
@@ -72,12 +78,10 @@ class AuthService:
     async def register(
         self,
         data: UserRegister,
-        user_agent: str | None = None,
-        ip_address: str | None = None,
-    ) -> tuple[TokenResponse, str]:
+    ) -> tuple[User, str, str]:
         """
         Register a new user account with BCrypt password hashing.
-        Automatically seeds default starter categories and issues token pair.
+        Automatically seeds default starter categories, generates a 6-digit OTP (10m) and 24h JWT token.
         """
         # Check if email is already taken
         stmt = select(User).where(User.email == data.email)
@@ -88,6 +92,11 @@ class AuthService:
                 field="email",
             )
 
+        # Generate 6-digit numeric OTP and expiry
+        otp = generate_numeric_otp(6)
+        now = datetime.now(timezone.utc)
+        otp_expiry = now + timedelta(minutes=10)
+
         # Create user
         user = User(
             email=data.email,
@@ -95,14 +104,28 @@ class AuthService:
             full_name=data.full_name,
             is_active=True,
             is_verified=False,
+            otp_hash=hash_otp(otp),
+            otp_expires_at=otp_expiry,
         )
         self.db.add(user)
         await self.db.flush()
 
         # Seed starter categories
         await self.seed_starter_categories(user.id)
+        await self.db.commit()
+        await self.db.refresh(user)
 
-        # Issue token pair
+        # Generate signed 24h verification token
+        verification_token = create_verification_token(user_id=user.id, email=user.email)
+        return user, otp, verification_token
+
+    async def _create_session(
+        self,
+        user: User,
+        user_agent: str | None = None,
+        ip_address: str | None = None,
+    ) -> tuple[TokenResponse, str]:
+        """Issue access token and refresh token session for an authenticated user."""
         raw_refresh, token_hash, expires_at = create_refresh_token()
         refresh_entity = RefreshToken(
             user_id=user.id,
@@ -113,7 +136,6 @@ class AuthService:
         )
         self.db.add(refresh_entity)
         await self.db.commit()
-        await self.db.refresh(user)
 
         access_token = create_access_token(user_id=user.id, email=user.email)
         token_response = TokenResponse(
@@ -124,13 +146,134 @@ class AuthService:
         )
         return token_response, raw_refresh
 
+    async def verify_otp(
+        self,
+        email: str,
+        otp: str,
+        user_agent: str | None = None,
+        ip_address: str | None = None,
+    ) -> tuple[TokenResponse, str]:
+        """
+        Verify a 6-digit numeric OTP for account activation.
+        On success, marks is_verified=True, clears OTP, and issues session tokens for instant login.
+        """
+        stmt = select(User).where(User.email == email.lower().strip())
+        user = (await self.db.execute(stmt)).scalar_one_or_none()
+        if not user:
+            raise ValidationException(
+                message="No account found with this email address.",
+                field="email",
+            )
+
+        if not user.is_active:
+            raise AuthenticationException(
+                message="Your account has been deactivated.",
+                field="email",
+            )
+
+        # If already verified, log them in directly
+        if user.is_verified:
+            return await self._create_session(user, user_agent, ip_address)
+
+        if not user.otp_hash or not user.otp_expires_at:
+            raise ValidationException(
+                message="No verification code pending. Please request a new code.",
+                field="otp",
+            )
+
+        now = datetime.now(timezone.utc)
+        if now > user.otp_expires_at:
+            raise ValidationException(
+                message="Verification code has expired. Please click 'Resend Code'.",
+                field="otp",
+            )
+
+        if hash_otp(otp) != user.otp_hash:
+            raise ValidationException(
+                message="Invalid 6-digit verification code. Please check and try again.",
+                field="otp",
+            )
+
+        # Mark user as verified and clear OTP
+        user.is_verified = True
+        user.otp_hash = None
+        user.otp_expires_at = None
+        await self.db.commit()
+        await self.db.refresh(user)
+
+        # Issue immediate session tokens
+        return await self._create_session(user, user_agent, ip_address)
+
+    async def resend_otp(self, email: str) -> tuple[User | None, str | None, str | None]:
+        """Generate a fresh 6-digit OTP and 24h verification token for unverified user."""
+        stmt = select(User).where(User.email == email.lower().strip())
+        user = (await self.db.execute(stmt)).scalar_one_or_none()
+        if not user or user.is_verified or not user.is_active:
+            return user, None, None
+
+        otp = generate_numeric_otp(6)
+        user.otp_hash = hash_otp(otp)
+        user.otp_expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)
+        await self.db.commit()
+        await self.db.refresh(user)
+
+        token = create_verification_token(user_id=user.id, email=user.email)
+        return user, otp, token
+
+    async def verify_email(self, token: str) -> User:
+        """
+        Verify a user's email address using a valid verification JWT token.
+        Updates user.is_verified = True.
+        """
+        try:
+            payload = decode_verification_token(token)
+        except Exception as exc:
+            raise ValidationException(
+                message="Email verification link is invalid or has expired. Please request a new link.",
+                field="token",
+            ) from exc
+
+        if payload.get("type") != "email_verification":
+            raise ValidationException(
+                message="Invalid token type.",
+                field="token",
+            )
+
+        user_id = payload.get("sub")
+        stmt = select(User).where(User.id == user_id)
+        user = (await self.db.execute(stmt)).scalar_one_or_none()
+        if not user:
+            raise ValidationException(
+                message="User account not found.",
+                field="token",
+            )
+
+        if not user.is_verified:
+            user.is_verified = True
+            user.otp_hash = None
+            user.otp_expires_at = None
+            await self.db.commit()
+            await self.db.refresh(user)
+
+        return user
+
+    async def resend_verification(self, email: str) -> tuple[User | None, str | None]:
+        """Generate a fresh verification token for unverified user."""
+        stmt = select(User).where(User.email == email.lower().strip())
+        user = (await self.db.execute(stmt)).scalar_one_or_none()
+        if not user or user.is_verified or not user.is_active:
+            return user, None
+
+        token = create_verification_token(user_id=user.id, email=user.email)
+        return user, token
+
     async def login(
         self,
         data: UserLogin,
         user_agent: str | None = None,
         ip_address: str | None = None,
     ) -> tuple[TokenResponse, str]:
-        """Authenticate user by email and password, issuing a fresh token pair."""
+        """Authenticate user by email and password, enforcing email verification under Strict Gate."""
         stmt = select(User).where(User.email == data.email)
         user = (await self.db.execute(stmt)).scalar_one_or_none()
 
@@ -152,26 +295,13 @@ class AuthService:
                 field="email",
             )
 
-        # Issue token pair
-        raw_refresh, token_hash, expires_at = create_refresh_token()
-        refresh_entity = RefreshToken(
-            user_id=user.id,
-            token_hash=token_hash,
-            expires_at=expires_at,
-            user_agent=user_agent,
-            ip_address=ip_address,
-        )
-        self.db.add(refresh_entity)
-        await self.db.commit()
+        if not user.is_verified:
+            raise EmailNotVerifiedException(
+                message="Your email address is not verified. Please check your inbox for the activation link or click 'Resend Verification' below."
+            )
 
-        access_token = create_access_token(user_id=user.id, email=user.email)
-        token_response = TokenResponse(
-            access_token=access_token,
-            token_type="bearer",
-            expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-            user=UserOut.model_validate(user),
-        )
-        return token_response, raw_refresh
+        # Issue token pair
+        return await self._create_session(user, user_agent, ip_address)
 
     async def google_login(
         self,
@@ -359,20 +489,14 @@ class AuthService:
         user = (await self.db.execute(stmt)).scalar_one_or_none()
         if not user:
             return None
-        from datetime import timedelta
-        reset_token = create_access_token(
-            user_id=user.id,
-            email=user.email,
-            expires_delta=timedelta(minutes=15),
-            extra_claims={"type": "password_reset"},
-        )
-        return reset_token
+        from app.core.security import create_reset_token
+        return create_reset_token(user_id=user.id, email=user.email)
 
     async def reset_password(self, data: ResetPasswordRequest) -> None:
         """Verify password reset token and update user password."""
-        from app.core.security import decode_token
+        from app.core.security import decode_reset_token
         try:
-            payload = decode_token(data.token)
+            payload = decode_reset_token(data.token)
         except Exception as exc:
             raise ValidationException(
                 message="Password reset link is invalid or has expired. Please request a new link.",
@@ -402,4 +526,5 @@ class AuthService:
             .values(revoked=True)
         )
         await self.db.commit()
+
 

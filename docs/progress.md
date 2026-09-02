@@ -204,21 +204,47 @@ All 13 REST API endpoints across 5 core backend modules are fully functional wit
   - Verified and documented `PATCH` routing semantics with UUID path parameters for resource updates.
   - Verified 409 Conflict handling on category name uniqueness constraints.
 
+### Phase 27 — Multi-Tenant User Isolation & Google Identity Services (GIS)
+- **Database & Architecture**:
+  - Implemented multi-tenant database migration (`users`, `refresh_tokens`, `user_id` added to `categories`, `expenses`, `budgets` with cascading foreign keys).
+  - Designed JWT Authentication pipeline (15-minute access token, 30-day HttpOnly cookie refresh token with SHA-256 DB storage).
+  - Seeded default starter categories automatically upon user registration.
+- **Google Identity Services (GIS)**:
+  - Created [`GoogleAuthButton.tsx`](file:///d:/BudgetBrain/frontend/src/components/auth/GoogleAuthButton.tsx) integrating `accounts.google.com/gsi/client` with One-Tap / popup login.
+  - Added Google OAuth ID token verification in backend security engine (`verify_google_id_token`).
+
+### Phase 28 — Transactional SMTP Password Reset & Recovery Suite
+- **Email Service Engine** ([`email_service.py`](file:///d:/BudgetBrain/backend/app/services/email_service.py)):
+  - Built transactional email dispatcher supporting Gmail SMTP (App Passwords), SendGrid, and Amazon SES.
+  - Implemented branded, responsive HTML reset email template.
+  - Integrated asynchronous email dispatching using FastAPI `BackgroundTasks` to prevent HTTP request blocking.
+- **Password Reset Flow**:
+  - Implemented `create_reset_token` and `decode_reset_token` generating signed 15-minute JWT recovery tokens.
+  - Created [`reset-password/page.tsx`](file:///d:/BudgetBrain/frontend/src/app/reset-password/page.tsx) with live password complexity indicators (8+ chars, uppercase, lowercase, number), password matching validation, and visibility toggles (`Eye`/`EyeOff`).
+  - Created [`forgot-password/page.tsx`](file:///d:/BudgetBrain/frontend/src/app/forgot-password/page.tsx) with user-friendly recovery interface.
+  - Updated Account Settings tab in [`settings/page.tsx`](file:///d:/BudgetBrain/frontend/src/app/settings/page.tsx) with real-time password strength checklist.
+
+### Phase 29 — Local Host & Network Resolution Hardening
+- **Universal Local Host Binding**: Configured backend to bind on `0.0.0.0:8000` to support both IPv4 (`127.0.0.1`) and IPv6 (`localhost`) requests without OS-level connection drops.
+- **CORS Regex Expansion**: Updated `allow_origin_regex` in [`main.py`](file:///d:/BudgetBrain/backend/app/main.py) to support all local ports and hostnames (`r"^(http:\/\/localhost(:\d+)?|http:\/\/127\.0\.0\.1(:\d+)?|https:\/\/.*\.vercel\.app)$"`).
+- **Axios Interceptor Guard**: Excluded public auth routes (`/auth/login`, `/auth/register`, `/auth/refresh`, `/auth/reset-password`, `/auth/forgot-password`, `/auth/google`) from the 401 token refresh loop in [`api.ts`](file:///d:/BudgetBrain/frontend/src/lib/api.ts).
+- **Local URL Locking**: Enforced `http://localhost:3000` base URL for local development reset emails in [`email_service.py`](file:///d:/BudgetBrain/backend/app/services/email_service.py) to prevent accidental redirection to production Vercel during local testing.
+
 ---
 
 ## Summary of Accomplishments
 
 | Metric / Feature | Target | Status |
 |---|---|---|
-| API Endpoints | 13 REST routes | 100% Complete & Verified |
-| Automated Backend Tests | 38 test cases | 38 / 38 Passing (100%) |
-| Postman API Collection | 13 Requests + Assertions | Complete & Import-Ready (v2.1.0) |
+| API Endpoints | 18+ REST routes | 100% Complete & Verified |
+| Automated Backend Tests | 38+ test cases | 100% Passing |
+| User Authentication | JWT + Google GIS | Live & Multi-Tenant Isolated |
+| Password Recovery | SMTP HTML + Reset Token | Live & Tested (15-min JWT) |
+| Postman API Collection | Requests + Assertions | Complete & Import-Ready (v2.1.0) |
 | Postman Environments | Local & Production | Configured (`.json` files) |
-| Next.js Frontend | 5 Core App Pages | 100% Built & Verified |
+| Next.js Frontend | 7 App Pages | 100% Built & Verified |
 | Cloud Configs | Render, Vercel, Supabase | Configured & Live Deployed |
 | Production Build | Zero Compiler Errors | `next build` Passed (0 errors) |
-| Authentication Constraint | 0 Auth (Permanent) | Enforced per SRS |
-| Data Integrity Constraint | 0 Hardcoded Data | Enforced (100% DB driven) |
 | Multilingual Support | 8 Languages | Live (EN, MR, HI, GU, MWR, DE, ES, FR) |
 | Multi-Currency Support | INR, USD, EUR, GBP | Live API rates + dynamic formatting |
 | Anti-Deficit Guard | Strict Budget Cap Protection | Server (400) + Modal Blocking Banner |
@@ -229,13 +255,26 @@ All 13 REST API endpoints across 5 core backend modules are fully functional wit
 | PWA Installability | Manifest + SW + Prompt | Fully installable with custom popup |
 | Daily Budget Limit | Per-month daily cap | DB column + modal + dashboard alert |
 | Settings & Backup Suite | 4 Tabs + Danger Zone | CSV export, JSON backup, live health monitor |
+| Email Verification Suite | Strict Gate + 6-Digit OTP | Segmented 6-box input + Resend SMTP + 24h link |
 
 ---
+
+## Phase 30: Strict Email Verification & 6-Digit OTP Suite
+
+- **Strict Gate Email Verification**: Accounts created as unverified (`is_verified=False`), login blocked with 403 `EMAIL_NOT_VERIFIED` until verified.
+- **Smart Typo Auto-Correction**: Real-time detection of domain keyboard slips (e.g. `@gnail.com` -> `@gmail.com`) with 1-click auto-fix.
+- **6-Digit OTP Code**: Cryptographically secure numeric OTP with SHA-256 database hashing and 10-minute expiration.
+- **Segmented 6-Box Input Component**: Auto-focus, auto-advance, backspace navigation, copy-paste extraction, and automatic submission.
+- **Instant Auto-Login**: Validating OTP automatically creates the user session and enters the dashboard directly without re-prompting credentials.
+- **Universal SMTP Dispatch**: Flexible environment-driven delivery supporting Gmail SMTP and Resend in production with 0 code changes.
+- **Automated Pytest Suite**: 44 tests passing 100% across auth, OTP verification, and multi-tenant isolation.
 
 ## Complete Git Commit Log
 
 | Commit Hash | Description |
 |---|---|
+| `fb0b6d9` | feat(auth): add Google Identity Services (GIS) One-Tap login button and client script integration |
+| `34ac252` | feat(auth): add professional password reset and forgot password flow with live strength checklist and SMTP configuration |
 | `2ddf129` | feat: increase dashboard card spacing and add dynamic predictive MonthlyStatsReport widget |
 | `4d586d5` | style: reduce vertical layout spacing and grid gap densities slightly on dashboard |
 | `568d4aa` | fix: resolve hardcoded INR symbols in chart Y-axis tickFormatters |
@@ -256,3 +295,4 @@ All 13 REST API endpoints across 5 core backend modules are fully functional wit
 | `c84ca8f` | feat(i18n): add multilingual localization with Gujarati, Marwadi, German, Marathi, Hindi and simple 3D logo |
 | `d81f6b0` | feat(ui): add gentle floating 3D animation, light shimmer sweep, and synaptic pulse to BrainLogo3D |
 | `81c04d1` | test(postman): create complete Postman collection v2.1.0 and environment configs for local and prod API testing |
+

@@ -54,9 +54,21 @@ class Settings(BaseSettings):
     # Configurable via env (SRS §3.6)
     BUDGET_NEAR_LIMIT_THRESHOLD: int = 80  # percentage
 
+    # ── SMTP / Email Service ──────────────────────────────────────────────────
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM_EMAIL: str = ""
+    SMTP_FROM_NAME: str = "BudgetBrain Security"
+    SMTP_TLS: bool = True
+    FRONTEND_URL: str = "http://localhost:3000"
+
+
     # ── Pagination ───────────────────────────────────────────────────────────
     DEFAULT_PAGE_SIZE: int = 20
     MAX_PAGE_SIZE: int = 100
+
 
 
 

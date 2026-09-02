@@ -125,6 +125,12 @@ export interface TokenResponse {
   user: User;
 }
 
+export interface RegisterResponse {
+  message: string;
+  user: User;
+  requires_verification?: boolean;
+}
+
 export interface MessageResponse {
   message: string;
   success?: boolean;

@@ -108,6 +108,74 @@ def create_password_reset_token() -> tuple[str, str, datetime]:
     return raw_token, token_hash, expires_at
 
 
+def create_reset_token(user_id: str, email: str) -> str:
+    """Generate a 15-minute signed JWT password reset token."""
+    now = datetime.now(timezone.utc)
+    expire = now + timedelta(minutes=15)
+    payload = {
+        "sub": user_id,
+        "email": email.lower(),
+        "type": "password_reset",
+        "iat": int(now.timestamp()),
+        "exp": int(expire.timestamp()),
+    }
+    return jwt.encode(
+        payload,
+        settings.JWT_SECRET_KEY,
+        algorithm=settings.JWT_ALGORITHM,
+    )
+
+
+def decode_reset_token(token: str) -> dict:
+    """Decode and validate a signed password reset JWT token."""
+    return jwt.decode(
+        token,
+        settings.JWT_SECRET_KEY,
+        algorithms=[settings.JWT_ALGORITHM],
+        options={"require": ["sub", "exp", "type"]},
+    )
+
+
+def create_verification_token(user_id: str, email: str, expires_hours: int = 24) -> str:
+    """Generate a 24-hour signed JWT email verification token."""
+    now = datetime.now(timezone.utc)
+    expire = now + timedelta(hours=expires_hours)
+    payload = {
+        "sub": user_id,
+        "email": email.lower(),
+        "type": "email_verification",
+        "iat": int(now.timestamp()),
+        "exp": int(expire.timestamp()),
+    }
+    return jwt.encode(
+        payload,
+        settings.JWT_SECRET_KEY,
+        algorithm=settings.JWT_ALGORITHM,
+    )
+
+
+def decode_verification_token(token: str) -> dict:
+    """Decode and validate a signed email verification JWT token."""
+    return jwt.decode(
+        token,
+        settings.JWT_SECRET_KEY,
+        algorithms=[settings.JWT_ALGORITHM],
+        options={"require": ["sub", "exp", "type"]},
+    )
+
+
+def generate_numeric_otp(length: int = 6) -> str:
+    """Generate a cryptographically secure numeric OTP."""
+    digits = "0123456789"
+    return "".join(secrets.choice(digits) for _ in range(length))
+
+
+def hash_otp(otp: str) -> str:
+    """SHA-256 hash for secure storage of numeric OTPs."""
+    return hashlib.sha256(otp.strip().encode("utf-8")).hexdigest()
+
+
+
 def verify_google_id_token(id_token_str: str) -> dict:
     """
     Verify a Google OAuth 2.0 / OpenID Connect ID token.

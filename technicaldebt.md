@@ -175,6 +175,40 @@ The application is designed as a lightweight, single-user expense tracker using 
 
 ---
 
+### TD-20: Multi-Tenant Schema Evolution & Backward-Compatible Legacy Linking
+- **Context**: Evolution from single-tenant V1 to full multi-user authentication required scoping all categories, expenses, and budgets under unique `user_id` foreign keys.
+- **Solution Implemented**:
+  - Migration `20260831_1945_add_auth_and_user_isolation.py` created `users` and `refresh_tokens` tables and added `user_id` to all domain tables.
+  - Automatically created a fallback seed user (`00000000-0000-0000-0000-000000000001`) to seamlessly reassign legacy rows without data loss.
+  - Deduplicated legacy overall budgets before applying the partial unique index `uq_budget_user_overall_period`.
+- **Status**: **Resolved & Migrated**.
+
+---
+
+### TD-21: Transactional SMTP Mailing Service & Asynchronous Background Dispatch
+- **Context**: Synchronous SMTP connection (`smtplib.SMTP`) during HTTP request handlers blocks the FastAPI event loop, causing 5-10s latency or request timeouts on slow SMTP connections (e.g. Gmail).
+- **Solution Implemented**: Integrated FastAPI `BackgroundTasks` in [`backend/app/routers/auth.py`](file:///d:/BudgetBrain/backend/app/routers/auth.py) so `POST /api/v1/auth/forgot-password` returns `HTTP 200` in <5ms while email delivery executes in a background thread.
+- **Status**: **Resolved**.
+
+---
+
+### TD-22: Client-Side Axios 401 Interceptor Loop Bypass for Public Auth Endpoints
+- **Context**: Axios response interceptors configured to refresh expired tokens on HTTP 401 intercept unauthenticated public requests (`/auth/reset-password`, `/auth/forgot-password`, `/auth/login`), causing circular refresh failures and false `"Network Error"` exceptions.
+- **Solution Implemented**: Explicitly excluded all public auth endpoints from the 401 refresh loop in [`frontend/src/lib/api.ts`](file:///d:/BudgetBrain/frontend/src/lib/api.ts).
+- **Status**: **Resolved**.
+
+---
+
+### TD-23: Localhost DNS Normalization (IPv4 / IPv6 Resolution in Windows)
+- **Context**: Chromium on Windows resolves `localhost` to IPv6 (`[::1]`) by default. If Uvicorn listens strictly on IPv4 (`127.0.0.1`), cross-origin browser requests throw `ERR_CONNECTION_REFUSED` / `"Network Error"`.
+- **Solution Implemented**:
+  - Bound Uvicorn to `0.0.0.0:8000` to listen on all interfaces.
+  - Dynamically configured `getApiBaseUrl()` to mirror the browser's hostname (`http://localhost:8000/api/v1` for `localhost` and `http://127.0.0.1:8000/api/v1` for `127.0.0.1`).
+  - Broadened backend CORS regex to match all local ports and hostnames.
+- **Status**: **Resolved**.
+
+---
+
 ## 3. Maintenance & Code Quality Standards
 
 - **PEP 8 Compliance**: All top-level imports clean; no mid-file or inline module imports.
@@ -183,3 +217,4 @@ The application is designed as a lightweight, single-user expense tracker using 
 - **Currency Formatting Standard**: All user-facing monetary values must use `useFormatCurrency()` hook or `formatCurrency()` utility. Never hardcode currency symbols (`₹`, `$`, `€`, `£`) in display components.
 - **Animation Consistency**: All interactive card/button components should use Framer Motion `whileHover` and `whileTap` props with consistent spring physics (`type: "spring", stiffness: 300, damping: 20`).
 - **Confirmation Dialogue Standard**: Destructive actions (deleting expenses, deleting categories, database resets) must ALWAYS use glassmorphic modal confirmation popups with clear impact descriptions; never use native browser `window.confirm()`.
+

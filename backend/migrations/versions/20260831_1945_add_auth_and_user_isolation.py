@@ -76,6 +76,7 @@ def upgrade() -> None:
     
     op.execute("ALTER TABLE categories DROP CONSTRAINT IF EXISTS categories_name_key CASCADE")
     op.execute("ALTER TABLE categories DROP CONSTRAINT IF EXISTS uq_categories_name CASCADE")
+    op.execute("DROP INDEX IF EXISTS ix_categories_name CASCADE")
     op.execute("ALTER TABLE categories DROP CONSTRAINT IF EXISTS fk_categories_user_id CASCADE")
     op.execute("ALTER TABLE categories ADD CONSTRAINT fk_categories_user_id FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE")
     
@@ -83,6 +84,7 @@ def upgrade() -> None:
     op.execute("ALTER TABLE categories ADD CONSTRAINT uq_category_user_name UNIQUE (user_id, name)")
     op.execute("CREATE INDEX IF NOT EXISTS ix_categories_user_id ON categories(user_id)")
     op.execute("CREATE INDEX IF NOT EXISTS ix_categories_user_name ON categories(user_id, name)")
+
 
     # 4. Add user_id to expenses
     op.execute("ALTER TABLE expenses ADD COLUMN IF NOT EXISTS user_id VARCHAR(36)")
@@ -107,12 +109,19 @@ def upgrade() -> None:
     
     op.execute("ALTER TABLE budgets DROP CONSTRAINT IF EXISTS uq_budget_category_period CASCADE")
     op.execute("ALTER TABLE budgets DROP CONSTRAINT IF EXISTS uq_budget_user_category_period CASCADE")
-    op.execute("ALTER TABLE budgets ADD CONSTRAINT uq_budget_user_category_period UNIQUE (user_id, category_id, period_type, period_start)")
-    
     op.execute("DROP INDEX IF EXISTS uq_budget_overall_period")
     op.execute("DROP INDEX IF EXISTS uq_budget_user_overall_period")
+    op.execute("""
+        DELETE FROM budgets a USING budgets b
+        WHERE a.id < b.id
+          AND a.user_id = b.user_id
+          AND a.period_type = b.period_type
+          AND a.period_start = b.period_start
+          AND a.category_id IS NULL AND b.category_id IS NULL
+    """)
     op.execute("CREATE UNIQUE INDEX uq_budget_user_overall_period ON budgets(user_id, period_type, period_start) WHERE category_id IS NULL")
     op.execute("CREATE INDEX IF NOT EXISTS ix_budgets_user_id ON budgets(user_id)")
+
 
 
 def downgrade() -> None:

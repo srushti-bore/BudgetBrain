@@ -8,7 +8,7 @@ SRS §5.1 & PRD FR-AUTH:
   - Current User Profile, Password Management
 """
 
-from fastapi import APIRouter, Cookie, Depends, Request, Response, status
+from fastapi import APIRouter, BackgroundTasks, Cookie, Depends, Query, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
@@ -21,20 +21,27 @@ from app.schemas.auth import (
     ForgotPasswordRequest,
     GoogleLoginRequest,
     MessageResponse,
+    RegisterResponse,
+    ResendOtpRequest,
+    ResendVerificationRequest,
     ResetPasswordRequest,
     TokenResponse,
     UserLogin,
     UserOut,
     UserRegister,
+    VerifyEmailRequest,
+    VerifyOtpRequest,
 )
 from app.schemas.common import DataResponse
 from app.services.auth_service import AuthService
+from app.services.email_service import EmailService
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 settings = get_settings()
 
 login_rate_limiter = RateLimiter(requests=10, window_seconds=60)
 forgot_rate_limiter = RateLimiter(requests=5, window_seconds=300)
+verification_rate_limiter = RateLimiter(requests=5, window_seconds=300)
 
 
 def set_refresh_cookie(response: Response, raw_refresh_token: str) -> None:
@@ -64,30 +71,170 @@ def clear_refresh_cookie(response: Response) -> None:
 
 @router.post(
     "/register",
-    response_model=DataResponse[TokenResponse],
+    response_model=DataResponse[RegisterResponse],
     status_code=status.HTTP_201_CREATED,
     summary="Register a new user account",
 )
 async def register(
     body: UserRegister,
-    request: Request,
-    response: Response,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ):
     """
     FR-AUTH-1: Register a new user account with BCrypt password hashing.
-    Automatically seeds default starter categories and issues access + refresh tokens.
+    Automatically seeds default starter categories and dispatches account verification OTP & link.
     """
-    user_agent = request.headers.get("user-agent")
-    client_ip = request.headers.get("x-forwarded-for") or (
-        request.client.host if request.client else None
-    )
     service = AuthService(db)
-    token_response, raw_refresh = await service.register(
-        data=body, user_agent=user_agent, ip_address=client_ip
+    user, otp, verification_token = await service.register(data=body)
+
+    # Dispatch verification email with OTP and direct link asynchronously
+    try:
+        email_svc = EmailService()
+        background_tasks.add_task(
+            email_svc.send_verification_otp_email,
+            user.email,
+            otp,
+            user.full_name,
+            verification_token,
+        )
+    except Exception:
+        pass
+
+    return DataResponse(
+        data=RegisterResponse(
+            message="Account created successfully! Enter the 6-digit code sent to your email to activate.",
+            user=UserOut.model_validate(user),
+            requires_verification=True,
+        )
+    )
+
+
+@router.post(
+    "/verify-otp",
+    response_model=DataResponse[TokenResponse],
+    summary="Verify account using 6-digit numeric OTP and sign in",
+    dependencies=[Depends(verification_rate_limiter)],
+)
+async def verify_otp(
+    body: VerifyOtpRequest,
+    request: Request,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+):
+    """Verify 6-digit OTP, mark account verified, and issue immediate session tokens."""
+    service = AuthService(db)
+    user_agent = request.headers.get("user-agent")
+    ip_address = request.client.host if request.client else None
+    token_response, raw_refresh = await service.verify_otp(
+        email=body.email,
+        otp=body.otp,
+        user_agent=user_agent,
+        ip_address=ip_address,
     )
     set_refresh_cookie(response, raw_refresh)
     return DataResponse(data=token_response)
+
+
+@router.post(
+    "/resend-otp",
+    response_model=DataResponse[MessageResponse],
+    summary="Resend 6-digit verification OTP",
+    dependencies=[Depends(verification_rate_limiter)],
+)
+async def resend_otp(
+    body: ResendOtpRequest,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+):
+    """Generate and dispatch fresh 6-digit verification code to unverified user."""
+    service = AuthService(db)
+    user, otp, token = await service.resend_otp(body.email)
+    if user and otp:
+        try:
+            email_svc = EmailService()
+            background_tasks.add_task(
+                email_svc.send_verification_otp_email,
+                user.email,
+                otp,
+                user.full_name,
+                token,
+            )
+        except Exception:
+            pass
+
+    return DataResponse(
+        data=MessageResponse(
+            message="If an unverified account with this email exists, a fresh 6-digit code has been sent."
+        )
+    )
+
+
+@router.get(
+    "/verify-email",
+    response_model=DataResponse[MessageResponse],
+    summary="Verify user email address via token link",
+)
+async def verify_email_get(
+    token: str = Query(..., min_length=1, description="Verification JWT token"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Verify email address using URL query parameter token."""
+    service = AuthService(db)
+    await service.verify_email(token=token)
+    return DataResponse(
+        data=MessageResponse(message="Email verified successfully! You can now log in.")
+    )
+
+
+@router.post(
+    "/verify-email",
+    response_model=DataResponse[MessageResponse],
+    summary="Verify user email address via JSON payload",
+)
+async def verify_email_post(
+    body: VerifyEmailRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Verify email address using JSON request body token."""
+    service = AuthService(db)
+    await service.verify_email(token=body.token)
+    return DataResponse(
+        data=MessageResponse(message="Email verified successfully! You can now log in.")
+    )
+
+
+@router.post(
+    "/resend-verification",
+    response_model=DataResponse[MessageResponse],
+    summary="Resend email verification link & OTP",
+    dependencies=[Depends(verification_rate_limiter)],
+)
+async def resend_verification(
+    body: ResendVerificationRequest,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+):
+    """Resend activation link & OTP to unverified user."""
+    service = AuthService(db)
+    user, otp, token = await service.resend_otp(body.email)
+    if user and otp:
+        try:
+            email_svc = EmailService()
+            background_tasks.add_task(
+                email_svc.send_verification_otp_email,
+                user.email,
+                otp,
+                user.full_name,
+                token,
+            )
+        except Exception:
+            pass
+
+    return DataResponse(
+        data=MessageResponse(
+            message="If an unverified account with this email exists, a fresh verification code has been sent to your inbox."
+        )
+    )
 
 
 @router.post(
@@ -266,18 +413,26 @@ async def change_password(
 )
 async def forgot_password(
     body: ForgotPasswordRequest,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ):
     """
     FR-AUTH-7: Initiate password recovery.
-    Generates reset token and dispatches reset instructions.
+    Generates reset token and dispatches reset instructions in background.
     """
     service = AuthService(db)
     reset_token = await service.forgot_password(body.email)
-    msg = "If an account with this email exists, password reset instructions have been dispatched."
-    if settings.APP_DEBUG and reset_token:
-        msg = f"{msg} [Dev Token: {reset_token}]"
+    if reset_token:
+        try:
+            from app.services.email_service import EmailService
+            email_svc = EmailService()
+            background_tasks.add_task(email_svc.send_password_reset_email, body.email, reset_token)
+        except Exception:
+            pass  # Non-blocking email dispatch failure
+    msg = "If an account with this email exists, password reset instructions have been dispatched to your inbox."
     return DataResponse(data=MessageResponse(message=msg))
+
+
 
 
 @router.post(

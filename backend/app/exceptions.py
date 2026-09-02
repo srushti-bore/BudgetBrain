@@ -146,6 +146,21 @@ class RateLimitException(BudgetBrainException):
         )
 
 
+class EmailNotVerifiedException(BudgetBrainException):
+    """Raised when an unverified user attempts to log in under Strict Gate."""
+
+    def __init__(
+        self,
+        message: str = "Your email address is not verified. Please check your inbox or request a new verification link.",
+    ):
+        super().__init__(
+            code="EMAIL_NOT_VERIFIED",
+            message=message,
+            field="email",
+            status_code=status.HTTP_403_FORBIDDEN,
+        )
+
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Error Response Helper

@@ -11,17 +11,21 @@ import {
   TopCategory,
   User,
   TokenResponse,
+  RegisterResponse,
   MessageResponse,
 } from '@/types';
 
-const getApiBaseUrl = () => {
+export const getApiBaseUrl = () => {
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return `http://${hostname}:8000/api/v1`;
+    }
+  }
+
   let url = process.env.NEXT_PUBLIC_API_URL || '';
   if (!url) {
-    if (typeof window !== 'undefined' && !window.location.hostname.includes('localhost')) {
-      url = 'https://budgetbrain-ojnr.onrender.com/api/v1';
-    } else {
-      url = 'http://localhost:8000/api/v1';
-    }
+    url = 'https://budgetbrain-ojnr.onrender.com/api/v1';
   }
   url = url.replace(/\/+$/, '');
   if (!url.endsWith('/api/v1')) {
@@ -30,7 +34,9 @@ const getApiBaseUrl = () => {
   return url;
 };
 
+
 export const API_BASE_URL = getApiBaseUrl();
+
 
 // ── In-Memory Token Store ──────────────────────────────────────────────────
 let inMemoryAccessToken: string | null = null;
@@ -62,9 +68,10 @@ export const apiClient = axios.create({
 
 
 
-// Request Interceptor: Attach Access Token
+// Request Interceptor: Attach Access Token & Dynamic BaseURL
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    config.baseURL = getApiBaseUrl();
     const token = getAccessToken();
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -73,6 +80,7 @@ apiClient.interceptors.request.use(
   },
   (error) => Promise.reject(error)
 );
+
 
 // Response Interceptor: Auto Refresh on 401
 let isRefreshing = false;
@@ -104,8 +112,16 @@ apiClient.interceptors.response.use(
       !originalRequest._retry &&
       !originalRequest.url?.includes('/auth/login') &&
       !originalRequest.url?.includes('/auth/register') &&
-      !originalRequest.url?.includes('/auth/refresh')
+      !originalRequest.url?.includes('/auth/refresh') &&
+      !originalRequest.url?.includes('/auth/reset-password') &&
+      !originalRequest.url?.includes('/auth/forgot-password') &&
+      !originalRequest.url?.includes('/auth/verify-email') &&
+      !originalRequest.url?.includes('/auth/verify-otp') &&
+      !originalRequest.url?.includes('/auth/resend-otp') &&
+      !originalRequest.url?.includes('/auth/resend-verification') &&
+      !originalRequest.url?.includes('/auth/google')
     ) {
+
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
@@ -151,9 +167,8 @@ apiClient.interceptors.response.use(
 
 // ── Auth API ───────────────────────────────────────────────────────────────
 export const authApi = {
-  register: async (data: { email: string; password: string; full_name?: string }): Promise<TokenResponse> => {
-    const response = await apiClient.post<APIEnvelope<TokenResponse>>('/auth/register', data);
-    setAccessToken(response.data.data.access_token);
+  register: async (data: { email: string; password: string; full_name?: string }): Promise<RegisterResponse> => {
+    const response = await apiClient.post<APIEnvelope<RegisterResponse>>('/auth/register', data);
     return response.data.data;
   },
   login: async (data: { email: string; password: string }): Promise<TokenResponse> => {
@@ -199,6 +214,23 @@ export const authApi = {
   },
   resetPassword: async (data: { token: string; new_password: string }): Promise<MessageResponse> => {
     const response = await apiClient.post<APIEnvelope<MessageResponse>>('/auth/reset-password', data);
+    return response.data.data;
+  },
+  verifyEmail: async (token: string): Promise<MessageResponse> => {
+    const response = await apiClient.post<APIEnvelope<MessageResponse>>('/auth/verify-email', { token });
+    return response.data.data;
+  },
+  verifyOtp: async (email: string, otp: string): Promise<TokenResponse> => {
+    const response = await apiClient.post<APIEnvelope<TokenResponse>>('/auth/verify-otp', { email, otp });
+    setAccessToken(response.data.data.access_token);
+    return response.data.data;
+  },
+  resendOtp: async (email: string): Promise<MessageResponse> => {
+    const response = await apiClient.post<APIEnvelope<MessageResponse>>('/auth/resend-otp', { email });
+    return response.data.data;
+  },
+  resendVerification: async (email: string): Promise<MessageResponse> => {
+    const response = await apiClient.post<APIEnvelope<MessageResponse>>('/auth/resend-verification', { email });
     return response.data.data;
   },
 };

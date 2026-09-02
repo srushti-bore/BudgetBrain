@@ -14,7 +14,8 @@ SRS §4.1:
   updated_at      TIMESTAMPTZ  Auto-managed
 """
 
-from sqlalchemy import Boolean, String
+from datetime import datetime
+from sqlalchemy import Boolean, DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin, new_uuid
@@ -46,6 +47,12 @@ class User(Base, TimestampMixin):
     )
     is_verified: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False
+    )
+    otp_hash: Mapped[str | None] = mapped_column(
+        String(64), nullable=True
+    )
+    otp_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
     )
 
     # Relationships
