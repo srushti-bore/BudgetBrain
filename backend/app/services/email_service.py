@@ -27,17 +27,28 @@ class EmailService:
         1. If Resend API Key is detected (re_...), uses Resend's high-speed HTTPS REST API (bypasses all cloud firewall/port 587 blocks).
         2. Otherwise, uses standard SMTP (e.g. Gmail, SendGrid, AWS SES).
         """
-        from_name = getattr(self.settings, "SMTP_FROM_NAME", "BudgetBrain Security")
-        from_email = getattr(self.settings, "SMTP_FROM_EMAIL", "onboarding@resend.dev")
+        from_name = getattr(self.settings, "SMTP_FROM_NAME", "") or "BudgetBrain Security"
+        from_email = (
+            getattr(self.settings, "SMTP_FROM_EMAIL", None)
+            or (self.settings.SMTP_USER if "@" in getattr(self.settings, "SMTP_USER", "") else None)
+            or "onboarding@resend.dev"
+        )
+        if not from_email or not from_email.strip():
+            from_email = "onboarding@resend.dev"
+
+        from_header = f"{from_name} <{from_email}>"
+
+        smtp_password = (getattr(self.settings, "SMTP_PASSWORD", "") or "").strip()
+        smtp_host = (getattr(self.settings, "SMTP_HOST", "") or "").strip()
+
+        is_resend = smtp_password.startswith("re_") or "resend" in smtp_host.lower()
+        print(f"[EMAIL DISPATCH] Sending to {to_email} | Method: {'Resend REST API' if is_resend else 'SMTP'} | From: {from_header}")
 
         # ── Mode 1: Direct Resend HTTPS REST API (Recommended & Port-Proof) ──
-        smtp_password = getattr(self.settings, "SMTP_PASSWORD", "") or ""
-        smtp_host = getattr(self.settings, "SMTP_HOST", "") or ""
-
-        if smtp_password.startswith("re_") or "resend" in smtp_host.lower():
+        if is_resend and smtp_password:
             try:
                 payload = {
-                    "from": f"{from_name} <{from_email}>",
+                    "from": from_header,
                     "to": [to_email],
                     "subject": subject,
                     "html": html_content,
@@ -53,15 +64,18 @@ class EmailService:
                     timeout=10,
                 )
                 if response.status_code in (200, 201):
-                    logger.info(f"[RESEND SUCCESS] Email successfully dispatched to {to_email} (ID: {response.json().get('id')})")
+                    msg_id = response.json().get("id", "unknown")
+                    print(f"[RESEND SUCCESS] OTP Email dispatched to {to_email} (ID: {msg_id})")
+                    logger.info(f"[RESEND SUCCESS] Email dispatched to {to_email} (ID: {msg_id})")
                     return True
                 else:
-                    logger.error(
-                        f"[RESEND API ERROR] Status {response.status_code}: {response.text}"
-                    )
-                    # Fallback to SMTP if REST returned error
+                    err_msg = f"[RESEND API ERROR] HTTP {response.status_code}: {response.text}"
+                    print(err_msg)
+                    logger.error(err_msg)
             except Exception as resend_err:
-                logger.warning(f"[RESEND REST EXCEPTION] Falling back to standard SMTP: {str(resend_err)}")
+                err_msg = f"[RESEND REST EXCEPTION] {str(resend_err)}"
+                print(err_msg)
+                logger.warning(err_msg)
 
         # ── Mode 2: Standard SMTP Transport (Gmail, SES, SendGrid, Resend SMTP) ──
         if not self.settings.SMTP_HOST or not self.settings.SMTP_USER:
