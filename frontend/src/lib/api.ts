@@ -333,16 +333,17 @@ export const expenseApi = {
 
 // ── Budget API ─────────────────────────────────────────────────────────────
 export const budgetApi = {
-  list: async (period_start?: string): Promise<Budget[]> => {
+  list: async (period_start?: string | any): Promise<Budget[]> => {
+    const validPeriod = typeof period_start === 'string' && period_start.trim() ? period_start.trim() : undefined;
     const response = await apiClient.get<APIEnvelope<Budget[]>>('/budgets', {
-      params: period_start ? { period_start } : undefined,
+      params: validPeriod ? { period_start: validPeriod } : undefined,
     });
     return response.data.data;
   },
   create: async (data: {
     category_id?: string | null;
     period_type?: string;
-    period_start: string;
+    period_start?: string;
     limit_amount: number;
     daily_limit?: number | null;
   }): Promise<Budget> => {
@@ -363,9 +364,12 @@ export const budgetApi = {
     limit_amount: number;
     daily_limit?: number | null;
   }): Promise<Budget> => {
+    const now = new Date();
+    const periodStart = data.period_start || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+    const targetCatId = data.category_id || null;
+
     try {
-      const existingList = await budgetApi.list(data.period_start);
-      const targetCatId = data.category_id || null;
+      const existingList = await budgetApi.list(periodStart);
       const match = existingList.find((b) => (b.category_id || null) === targetCatId);
 
       if (match) {
@@ -380,19 +384,16 @@ export const budgetApi = {
 
     try {
       const payload: any = {
-        category_id: data.category_id || null,
+        category_id: targetCatId,
         period_type: data.period_type || 'monthly',
+        period_start: periodStart,
         limit_amount: data.limit_amount,
         daily_limit: data.daily_limit !== undefined ? data.daily_limit : null,
       };
-      if (data.period_start) {
-        payload.period_start = data.period_start;
-      }
       return await budgetApi.create(payload);
     } catch (err: any) {
       if (err?.response?.status === 409) {
-        const existingList = await budgetApi.list(data.period_start);
-        const targetCatId = data.category_id || null;
+        const existingList = await budgetApi.list(periodStart);
         const match = existingList.find((b) => (b.category_id || null) === targetCatId);
         if (match) {
           return await budgetApi.update(match.id, {

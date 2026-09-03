@@ -28,12 +28,12 @@ export default function BudgetsPage() {
 
   const { data: budgets = [], isLoading: isBudgetsLoading } = useQuery({
     queryKey: ['budgets'],
-    queryFn: budgetApi.list,
+    queryFn: () => budgetApi.list(),
   });
 
   const { data: categories = [] } = useQuery({
     queryKey: ['categories'],
-    queryFn: categoryApi.list,
+    queryFn: () => categoryApi.list(),
   });
 
   const overallBudget = budgets.find((b) => b.category_id === null);
@@ -81,6 +81,9 @@ export default function BudgetsPage() {
     const limitAmountInBase = Number(convertToBase(amountInView).toFixed(2));
     const dailyLimitInBase = dailyLimitInView !== null ? Number(convertToBase(dailyLimitInView).toFixed(2)) : null;
 
+    const now = new Date();
+    const currentPeriodStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+
     setIsSubmitting(true);
     setErrorMsg('');
     try {
@@ -89,6 +92,7 @@ export default function BudgetsPage() {
         limit_amount: limitAmountInBase,
         daily_limit: selectedCatId === 'overall' ? dailyLimitInBase : null,
         period_type: 'monthly',
+        period_start: currentPeriodStart,
       });
       setIsModalOpen(false);
       showToast(
@@ -98,7 +102,13 @@ export default function BudgetsPage() {
         'success'
       );
     } catch (err: any) {
-      setErrorMsg(err?.response?.data?.error?.message || 'Failed to save budget limit');
+      const msg =
+        err?.response?.data?.error?.message ||
+        err?.response?.data?.detail?.[0]?.msg ||
+        err?.response?.data?.detail ||
+        err?.message ||
+        'Failed to save budget limit';
+      setErrorMsg(typeof msg === 'string' ? msg : 'Failed to save budget limit');
     } finally {
       setIsSubmitting(false);
     }

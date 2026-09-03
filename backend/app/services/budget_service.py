@@ -118,10 +118,13 @@ class BudgetService:
             period_start=data.period_start,
         )
         if existing:
-            raise ConflictException(
-                "A budget for this category and period already exists.",
-                field="period_start",
+            updated = await self.repo.update(
+                existing,
+                limit_amount=data.limit_amount,
+                daily_limit=data.daily_limit,
             )
+            await self.session.commit()
+            return await self._enrich_budget(updated, user_id)
 
         budget = await self.repo.create(
             user_id=user_id,
