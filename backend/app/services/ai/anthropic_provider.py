@@ -13,6 +13,7 @@ from app.schemas.ai import (
     SuggestBudgetResponse,
     SuggestCategoryResponse,
 )
+from app.schemas.emotional_spending import EmotionalAIAdvice
 from app.services.ai.base import BaseLLMProvider
 from app.services.ai.rules_provider import RulesProvider
 
@@ -209,4 +210,56 @@ No explanations, just the JSON array.
             print(f"[AnthropicProvider] chat warning: {e}, using fallback.")
 
         return await self.fallback.chat(messages, financial_context)
+
+    async def generate_emotional_insights(
+        self,
+        user_name: str,
+        currency_symbol: str,
+        mood_breakdown: list[dict],
+        impulse_data: dict,
+        dominant_triggers: list[dict],
+    ) -> list[EmotionalAIAdvice]:
+        if not self.api_key:
+            return await self.fallback.generate_emotional_insights(
+                user_name, currency_symbol, mood_breakdown, impulse_data, dominant_triggers
+            )
+
+        sym = currency_symbol or "₹"
+        system_prompt = (
+            "You are BudgetBrain AI, an expert behavioral economist. "
+            "Analyze the user's emotion-aware spend metrics and output JSON with an array 'insights' of 2-3 objects: "
+            "id, title, message, severity ('info' | 'warning' | 'opportunity'), icon ('alert-triangle' | 'flame' | 'sparkles' | 'heart')."
+        )
+        user_prompt = f"User: {user_name}, Currency: {sym}, Moods: {json.dumps(mood_breakdown)}, Impulse: {json.dumps(impulse_data)}"
+
+        headers = {
+            "x-api-key": self.api_key,
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+        }
+        payload = {
+            "model": self.model_name,
+            "max_tokens": 1000,
+            "temperature": 0.3,
+            "system": system_prompt,
+            "messages": [{"role": "user", "content": user_prompt}],
+        }
+
+        try:
+            async with httpx.AsyncClient(timeout=12.0) as client:
+                res = await client.post("https://api.anthropic.com/v1/messages", headers=headers, json=payload)
+                if res.status_code == 200:
+                    data = res.json()
+                    parsed = json.loads(data["content"][0]["text"])
+                    if isinstance(parsed, dict) and "insights" in parsed:
+                        parsed = parsed["insights"]
+                    if isinstance(parsed, list):
+                        return [EmotionalAIAdvice(**item) for item in parsed[:3]]
+        except Exception as e:
+            print(f"[AnthropicProvider] generate_emotional_insights warning: {e}, using fallback.")
+
+        return await self.fallback.generate_emotional_insights(
+            user_name, currency_symbol, mood_breakdown, impulse_data, dominant_triggers
+        )
+
 

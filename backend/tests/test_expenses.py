@@ -191,3 +191,24 @@ class TestDeleteExpense:
 
         get_res = client.get(f"{BASE_URL}/{exp_id}")
         assert get_res.status_code == 404
+
+    def test_create_and_filter_expense_with_mood(self, client: TestClient):
+        cat_id = helper_create_category(client)
+        # Create with mood 'stressed'
+        create_res = client.post(BASE_URL, json={
+            "title": "Midnight Fast Food",
+            "amount": 420.00,
+            "category_id": cat_id,
+            "date": TEST_DATE,
+            "mood": "stressed"
+        })
+        assert create_res.status_code == 201
+        data = create_res.json()["data"]
+        assert data["mood"] == "stressed"
+
+        # Filter by mood=stressed
+        filter_res = client.get(f"{BASE_URL}?mood=stressed")
+        assert filter_res.status_code == 200
+        items = filter_res.json()["data"]
+        assert any(item["title"] == "Midnight Fast Food" and item["mood"] == "stressed" for item in items)
+

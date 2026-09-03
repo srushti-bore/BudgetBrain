@@ -12,6 +12,7 @@ from app.schemas.ai import (
     SuggestBudgetResponse,
     SuggestCategoryResponse,
 )
+from app.schemas.emotional_spending import EmotionalAIAdvice
 from app.services.ai.base import BaseLLMProvider
 
 
@@ -418,4 +419,104 @@ class RulesProvider(BaseLLMProvider):
             provider=self.provider_name,
             model=self.default_model,
         )
+
+    async def generate_emotional_insights(
+        self,
+        user_name: str,
+        currency_symbol: str,
+        mood_breakdown: list[dict],
+        impulse_data: dict,
+        dominant_triggers: list[dict],
+    ) -> list[EmotionalAIAdvice]:
+        sym = currency_symbol or "₹"
+        insights: list[EmotionalAIAdvice] = []
+
+        mood_map = {m.get("mood"): m for m in mood_breakdown}
+        stressed = mood_map.get("stressed")
+        excited = mood_map.get("excited")
+        sad = mood_map.get("sad")
+        happy = mood_map.get("happy")
+
+        # 1. Stressed Spending Trigger
+        if stressed and stressed.get("total_amount", 0) > 0:
+            s_amt = stressed.get("total_amount", 0)
+            dom_cat = stressed.get("dominant_category") or "discretionary items"
+            pct = stressed.get("percentage", 0)
+            insights.append(
+                EmotionalAIAdvice(
+                    id="emotion-stressed-trigger",
+                    title="Stress-Induced Spending Detected",
+                    message=(
+                        f"You spent {sym}{s_amt:,.2f} ({pct:.0f}% of tracked mood spend) while stressed, "
+                        f"concentrated in {dom_cat}. Applying a 24-hour pause when feeling overwhelmed can safeguard your monthly budget."
+                    ),
+                    severity="warning" if pct >= 25 else "info",
+                    icon="alert-triangle",
+                )
+            )
+
+        # 2. Impulse & Excitement Pattern
+        impulse_amt = impulse_data.get("total_impulse_amount", 0)
+        impulse_count = impulse_data.get("flagged_transactions_count", 0)
+        if impulse_amt > 0:
+            insights.append(
+                EmotionalAIAdvice(
+                    id="emotion-impulse-surge",
+                    title="Impulse Spending Alert",
+                    message=(
+                        f"Detected {impulse_count} high-ticket impulse transactions totaling {sym}{impulse_amt:,.2f}. "
+                        f"These occurred during heightened emotional moments. Setting a hard ₹1,000 threshold for unplanned buys protects against regret."
+                    ),
+                    severity="warning",
+                    icon="flame",
+                )
+            )
+        elif excited and excited.get("total_amount", 0) > 0:
+            e_amt = excited.get("total_amount", 0)
+            insights.append(
+                EmotionalAIAdvice(
+                    id="emotion-excited-spree",
+                    title="Celebratory Spending Discipline",
+                    message=(
+                        f"You celebrated with {sym}{e_amt:,.2f} spent in an excited state. "
+                        f"Allocating a dedicated 'Guilt-Free Fun' envelope keeps excitement rewarding without derailing savings."
+                    ),
+                    severity="opportunity",
+                    icon="sparkles",
+                )
+            )
+
+        # 3. Sad / Retail Therapy
+        if sad and sad.get("total_amount", 0) > 0:
+            sad_amt = sad.get("total_amount", 0)
+            insights.append(
+                EmotionalAIAdvice(
+                    id="emotion-retail-therapy",
+                    title="Retail Therapy Check-In",
+                    message=(
+                        f"You logged {sym}{sad_amt:,.2f} while feeling down. "
+                        f"Remember that shopping provides temporary dopamine; experimenting with no-spend mood boosters (music, friends) builds lasting peace of mind."
+                    ),
+                    severity="info",
+                    icon="heart",
+                )
+            )
+
+        # 4. Mindful / Happy default
+        if len(insights) < 2:
+            happy_amt = happy.get("total_amount", 0) if happy else 0
+            insights.append(
+                EmotionalAIAdvice(
+                    id="emotion-mindful-baseline",
+                    title="Emotionally Mindful Spending",
+                    message=(
+                        f"Great emotional balance, {user_name}! Tagging expenses by emotion reveals subconscious financial habits and prevents impulsive deficit triggers."
+                    ),
+                    severity="opportunity",
+                    icon="sparkles",
+                )
+            )
+
+        return insights[:3]
+
 

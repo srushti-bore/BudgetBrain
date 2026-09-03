@@ -355,7 +355,23 @@ All 13 REST API endpoints across 5 core backend modules are fully functional wit
   - Backend: Added `POST /api/v1/ai/chat` endpoint and schemas (`ChatMessage`, `ChatRequest`, `ChatResponse`). Injects live financial telemetry (spending velocity, deficit status, remaining budget, top categories) into provider prompts with structured affordability calculation and deficit recovery plans.
   - Frontend: Created `AskBudgetBrainChat.tsx` mounted globally in `AppShell.tsx` featuring a floating action button (`✨ Ask BudgetBrain`), live financial telemetry strip, quick question chips, and interactive chat history.
 - **Automated Verification**:
-  - Backend pytest: **50 / 50 tests passing (100%)** including `test_ai_chat_endpoint` and `test_suggest_budget_endpoint`.
+## Phase 35: Emotion-Aware Spending & Behavioral Analytics
+
+- **Database & Migration**:
+  - Added migration `20260903_2000_add_mood_to_expenses.py` adding nullable `mood VARCHAR(20)` and composite index `ix_expenses_user_mood`.
+  - Updated `Expense` model with `ExpenseMood` enum (`happy`, `normal`, `sad`, `stressed`, `excited`).
+  - Added mood support in `ExpenseCreate`, `ExpenseUpdate`, `ExpenseOut`, `ExpenseFilters`, `ExpenseRepository`, and `ExpenseService`.
+- **Emotional Spending Analytics**:
+  - Added `GET /api/v1/dashboard/emotional-spending` endpoint in `routers/dashboard.py`.
+  - Implemented `get_emotional_spending` in `DashboardService` computing mood breakdown, dominant category correlation, and impulse spending pattern detection.
+  - Implemented `generate_emotional_insights` across all AI providers (`GeminiProvider`, `OpenAIProvider`, `AnthropicProvider`, `RulesProvider`) driven by `AI_PROVIDER` environment variable.
+- **Frontend Integration**:
+  - `ExpenseModal.tsx`: Added interactive mood selector grid (😊 Happy, 😐 Normal, 😔 Sad, 😰 Stressed, 🤩 Excited) with 1-click toggle and clear.
+  - `expenses/page.tsx`: Added mood badge on table rows and mobile cards; added "All Moods" filter dropdown.
+  - `EmotionalSpendingWidget.tsx`: Created glassmorphic behavioral widget mounted on main dashboard analytics page with mood breakdown bars, impulse radar, and AI guidance cards.
+- **Automated Verification**:
+  - Backend pytest: **52 / 52 tests passing (100%)** including `test_create_and_filter_expense_with_mood` and `test_emotional_spending_returns_200`.
   - Frontend production build: **14 / 14 pages compiled cleanly with 0 errors** via `next build`.
+
 
 

@@ -8,6 +8,7 @@ export interface Category {
 }
 
 export type PaymentMode = 'cash' | 'card' | 'upi' | 'other';
+export type ExpenseMood = 'happy' | 'normal' | 'sad' | 'stressed' | 'excited';
 
 export interface Expense {
   id: string;
@@ -18,6 +19,7 @@ export interface Expense {
   date: string;
   notes?: string | null;
   payment_mode?: PaymentMode | null;
+  mood?: ExpenseMood | null;
   is_recurring?: boolean;
   created_at: string;
   updated_at: string;
@@ -135,3 +137,38 @@ export interface MessageResponse {
   message: string;
   success?: boolean;
 }
+
+export interface MoodSummary {
+  mood: ExpenseMood;
+  total_amount: number;
+  count: number;
+  percentage: number;
+  dominant_category?: string | null;
+}
+
+export interface ImpulsePattern {
+  total_impulse_amount: number;
+  impulse_percentage: number;
+  flagged_transactions_count: number;
+  trigger_moods: string[];
+}
+
+export interface EmotionalAIAdvice {
+  id: string;
+  title: string;
+  message: string;
+  severity: 'info' | 'warning' | 'opportunity' | 'critical';
+  icon: string;
+}
+
+export interface EmotionalSpendingResponse {
+  period_start: string;
+  period_end: string;
+  total_tracked_amount: number;
+  mood_breakdown: MoodSummary[];
+  impulse_patterns: ImpulsePattern;
+  ai_insights: EmotionalAIAdvice[];
+  provider: string;
+  model: string;
+}
+

@@ -31,6 +31,14 @@ class PaymentMode(str, enum.Enum):
     OTHER = "other"
 
 
+class ExpenseMood(str, enum.Enum):
+    HAPPY = "happy"       # 😊 Happy
+    NORMAL = "normal"     # 😐 Normal
+    SAD = "sad"           # 😔 Sad
+    STRESSED = "stressed" # 😰 Stressed
+    EXCITED = "excited"   # 🤩 Excited
+
+
 class Expense(Base, TimestampMixin):
     __tablename__ = "expenses"
 
@@ -62,6 +70,9 @@ class Expense(Base, TimestampMixin):
     payment_mode: Mapped[str | None] = mapped_column(
         String(20), nullable=True
     )
+    mood: Mapped[str | None] = mapped_column(
+        String(20), nullable=True
+    )
     is_recurring: Mapped[bool] = mapped_column(
         Boolean, default=False, nullable=False
     )
@@ -80,6 +91,7 @@ class Expense(Base, TimestampMixin):
         Index("ix_expenses_user_category", "user_id", "category_id"),
         Index("ix_expenses_user_amount", "user_id", "amount"),
         Index("ix_expenses_date_category", "date", "category_id"),
+        Index("ix_expenses_user_mood", "user_id", "mood"),
     )
 
     def __repr__(self) -> str:

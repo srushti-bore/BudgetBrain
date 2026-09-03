@@ -13,6 +13,8 @@ import {
   TokenResponse,
   RegisterResponse,
   MessageResponse,
+  ExpenseMood,
+  EmotionalSpendingResponse,
 } from '@/types';
 
 const PRODUCTION_API_URL = 'https://budgetbrain-ojnr.onrender.com/api/v1';
@@ -265,6 +267,7 @@ export interface ExpenseQueryParams {
   min_amount?: number;
   max_amount?: number;
   payment_mode?: string;
+  mood?: ExpenseMood;
   is_recurring?: boolean;
   sort_by?: 'amount' | 'date' | 'category';
   sort_order?: 'asc' | 'desc';
@@ -307,6 +310,7 @@ export const expenseApi = {
     date: string;
     notes?: string | null;
     payment_mode?: string | null;
+    mood?: ExpenseMood | null;
     is_recurring?: boolean;
   }): Promise<Expense> => {
     const response = await apiClient.post<APIEnvelope<Expense>>('/expenses', data);
@@ -321,6 +325,7 @@ export const expenseApi = {
       date?: string;
       notes?: string | null;
       payment_mode?: string | null;
+      mood?: ExpenseMood | null;
       is_recurring?: boolean;
     }
   ): Promise<Expense> => {
@@ -433,6 +438,7 @@ export const dashboardApi = {
         date: e.date,
         notes: e.notes,
         payment_mode: e.payment_mode,
+        mood: e.mood,
         is_recurring: e.is_recurring,
         created_at: e.created_at,
         updated_at: e.updated_at,
@@ -487,6 +493,12 @@ export const dashboardApi = {
       category_name: item.category_name,
       total_spent: Number(item.total),
     }));
+  },
+  getEmotionalSpending: async (currencySymbol: string = '₹'): Promise<EmotionalSpendingResponse> => {
+    const response = await apiClient.get<APIEnvelope<EmotionalSpendingResponse>>('/dashboard/emotional-spending', {
+      params: { currency_symbol: currencySymbol },
+    });
+    return response.data.data;
   },
 };
 

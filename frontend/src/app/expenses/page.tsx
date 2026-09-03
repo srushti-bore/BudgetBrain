@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { expenseApi, categoryApi, ExpenseQueryParams } from '@/lib/api';
-import { Expense, Category } from '@/types';
+import { Expense, Category, ExpenseMood } from '@/types';
 import { formatDate } from '@/lib/utils';
 import { useFormatCurrency, useCurrency } from '@/providers/CurrencyProvider';
 import { useSettings } from '@/providers/SettingsProvider';
@@ -41,7 +41,8 @@ function ExpensesContent() {
   const [minAmount, setMinAmount] = useState('');
   const [maxAmount, setMaxAmount] = useState('');
   const [paymentMode, setPaymentMode] = useState('');
-  const [isRecurringFilter, setIsRecurringFilter] = useState<string>('');
+  const [moodFilter, setMoodFilter] = useState<ExpenseMood | ''>('');
+  const [isRecurringFilter, setIsRecurringFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'amount' | 'date' | 'category'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [page, setPage] = useState(1);
@@ -85,6 +86,7 @@ function ExpensesContent() {
     min_amount: minAmount ? convertToBase(parseFloat(minAmount)) : undefined,
     max_amount: maxAmount ? convertToBase(parseFloat(maxAmount)) : undefined,
     payment_mode: paymentMode || undefined,
+    mood: moodFilter || undefined,
     is_recurring: isRecurringFilter === 'true' ? true : isRecurringFilter === 'false' ? false : undefined,
     sort_by: sortBy,
     sort_order: sortOrder,
@@ -175,7 +177,8 @@ function ExpensesContent() {
     setMinAmount('');
     setMaxAmount('');
     setPaymentMode('');
-    setIsRecurringFilter('');
+    setMoodFilter('');
+    setIsRecurringFilter('all');
     setSortBy('date');
     setSortOrder('desc');
     setPage(1);
@@ -280,6 +283,23 @@ function ExpensesContent() {
                 {mode.toUpperCase()}
               </option>
             ))}
+          </select>
+
+          {/* Mood Filter */}
+          <select
+            value={moodFilter}
+            onChange={(e) => {
+              setMoodFilter(e.target.value as any);
+              setPage(1);
+            }}
+            className="px-3.5 py-2 rounded-xl bg-white/70 dark:bg-white/5 border border-ink/10 dark:border-white/10 text-xs text-ink focus:outline-none focus:border-sage transition-all"
+          >
+            <option value="">All Moods</option>
+            <option value="happy">😊 Happy</option>
+            <option value="normal">😐 Normal</option>
+            <option value="sad">😔 Sad</option>
+            <option value="stressed">😰 Stressed</option>
+            <option value="excited">🤩 Excited</option>
           </select>
 
           {/* Sort By Controls */}
@@ -407,7 +427,14 @@ function ExpensesContent() {
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-bold text-sm text-ink">{expense.title}</span>
+                          <span className="font-bold text-ink text-sm flex items-center gap-1.5">
+                            {expense.mood === 'happy' && <span title="Happy">😊</span>}
+                            {expense.mood === 'normal' && <span title="Normal">😐</span>}
+                            {expense.mood === 'sad' && <span title="Sad">😔</span>}
+                            {expense.mood === 'stressed' && <span title="Stressed">😰</span>}
+                            {expense.mood === 'excited' && <span title="Excited">🤩</span>}
+                            {expense.title}
+                          </span>
                           {expense.is_recurring && (
                             <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-sage-light text-sage text-[10px] font-extrabold border border-sage/30">
                               <Repeat className="w-3 h-3" /> Recurring
@@ -487,7 +514,22 @@ function ExpensesContent() {
                       className="hover:bg-white/50 dark:hover:bg-white/5 transition-colors"
                     >
                       <td className="py-3 px-4">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {expense.mood && (
+                            <span
+                              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-300 text-[11px] font-bold border border-amber-500/20"
+                              title={`Logged with mood: ${expense.mood}`}
+                            >
+                              <span>
+                                {expense.mood === 'happy' && '😊'}
+                                {expense.mood === 'normal' && '😐'}
+                                {expense.mood === 'sad' && '😔'}
+                                {expense.mood === 'stressed' && '😰'}
+                                {expense.mood === 'excited' && '🤩'}
+                              </span>
+                              <span className="capitalize">{expense.mood}</span>
+                            </span>
+                          )}
                           <span className="font-bold text-sm text-ink">{expense.title}</span>
                           {expense.is_recurring && (
                             <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-sage-light text-sage text-[10px] font-extrabold border border-sage/30">

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Expense, Category, PaymentMode } from '@/types';
+import { Expense, Category, PaymentMode, ExpenseMood } from '@/types';
 import { getTodayDateString, capitalizeFirstLetter } from '@/lib/utils';
 import { X, Plus, AlertCircle, Repeat, Flame, AlertTriangle, ShieldCheck, ShieldAlert, Sparkles, Wand2 } from 'lucide-react';
 import { categoryApi, dashboardApi, aiApi, SuggestCategoryResponse } from '@/lib/api';
@@ -20,6 +20,7 @@ interface ExpenseModalProps {
     date: string;
     notes?: string | null;
     payment_mode?: PaymentMode | null;
+    mood?: ExpenseMood | null;
     is_recurring?: boolean;
   }) => Promise<void>;
   initialData?: Expense | null;
@@ -44,6 +45,7 @@ export default function ExpenseModal({
   const [categoryId, setCategoryId] = useState('');
   const [date, setDate] = useState(getTodayDateString());
   const [paymentMode, setPaymentMode] = useState<PaymentMode | ''>('');
+  const [mood, setMood] = useState<ExpenseMood | ''>('');
   const [notes, setNotes] = useState('');
   const [isRecurring, setIsRecurring] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -75,6 +77,7 @@ export default function ExpenseModal({
       setCategoryId(initialData.category_id);
       setDate(initialData.date);
       setPaymentMode(initialData.payment_mode || '');
+      setMood(initialData.mood || '');
       setNotes(initialData.notes || '');
       setIsRecurring(Boolean(initialData.is_recurring));
     } else {
@@ -83,6 +86,7 @@ export default function ExpenseModal({
       setCategoryId(categories.length > 0 ? categories[0].id : '');
       setDate(getTodayDateString());
       setPaymentMode('');
+      setMood('');
       setNotes('');
       setIsRecurring(false);
       setAiSuggestion(null);
@@ -220,6 +224,7 @@ export default function ExpenseModal({
         category_id: categoryId,
         date,
         payment_mode: (paymentMode as PaymentMode) || null,
+        mood: (mood as ExpenseMood) || null,
         notes: notes.trim() || null,
         is_recurring: isRecurring,
       });
@@ -516,6 +521,47 @@ export default function ExpenseModal({
                   }`}
                 >
                   {mode}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Emotion / Mood Selector (Optional) */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-semibold text-ink-muted">
+                How did you feel? <span className="text-[11px] font-normal text-ink-muted/80">(Optional)</span>
+              </label>
+              {mood && (
+                <button
+                  type="button"
+                  onClick={() => setMood('')}
+                  className="text-[11px] text-ink-muted hover:text-coral transition-colors cursor-pointer"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+            <div className="grid grid-cols-5 gap-2">
+              {[
+                { id: 'happy', label: 'Happy', emoji: '😊' },
+                { id: 'normal', label: 'Normal', emoji: '😐' },
+                { id: 'sad', label: 'Sad', emoji: '😔' },
+                { id: 'stressed', label: 'Stressed', emoji: '😰' },
+                { id: 'excited', label: 'Excited', emoji: '🤩' },
+              ].map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setMood(mood === item.id ? '' : (item.id as ExpenseMood))}
+                  className={`py-2 px-1 rounded-xl text-center flex flex-col items-center gap-1 border transition-all cursor-pointer ${
+                    mood === item.id
+                      ? 'bg-sage/15 border-sage dark:bg-sage/25 shadow-xs font-bold'
+                      : 'bg-white/60 dark:bg-white/5 border-ink/10 dark:border-white/10 hover:bg-white text-ink-muted'
+                  }`}
+                >
+                  <span className="text-lg leading-none">{item.emoji}</span>
+                  <span className="text-[10px] truncate max-w-full leading-none">{item.label}</span>
                 </button>
               ))}
             </div>

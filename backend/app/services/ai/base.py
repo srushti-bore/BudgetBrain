@@ -13,6 +13,7 @@ from app.schemas.ai import (
     SuggestBudgetResponse,
     SuggestCategoryResponse,
 )
+from app.schemas.emotional_spending import EmotionalAIAdvice
 
 
 class BaseLLMProvider(ABC):
@@ -85,4 +86,19 @@ class BaseLLMProvider(ABC):
         FR-AI-5: Multi-turn conversational financial advice with user context.
         """
         pass
+
+    @abstractmethod
+    async def generate_emotional_insights(
+        self,
+        user_name: str,
+        currency_symbol: str,
+        mood_breakdown: list[dict],
+        impulse_data: dict,
+        dominant_triggers: list[dict],
+    ) -> list[EmotionalAIAdvice]:
+        """
+        Analyze emotion-aware spending telemetry and generate psychological advice cards.
+        """
+        pass
+
 

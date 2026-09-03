@@ -71,3 +71,17 @@ class TestDashboardTopCategories:
         assert "data" in body
         assert isinstance(body["data"], list)
 
+
+class TestEmotionalSpending:
+    def test_emotional_spending_returns_200(self, client: TestClient):
+        res = client.get("/api/v1/dashboard/emotional-spending")
+        assert res.status_code == 200, res.text
+        data = res.json()["data"]
+        assert "mood_breakdown" in data
+        assert isinstance(data["mood_breakdown"], list)
+        assert len(data["mood_breakdown"]) == 5  # happy, normal, sad, stressed, excited
+        assert "impulse_patterns" in data
+        assert "ai_insights" in data
+        assert isinstance(data["ai_insights"], list)
+
+

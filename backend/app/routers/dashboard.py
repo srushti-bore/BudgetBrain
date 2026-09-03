@@ -13,6 +13,7 @@ from app.core.dependencies import get_current_user
 from app.database import get_db
 from app.models.user import User
 from app.schemas.common import DataResponse
+from app.schemas.emotional_spending import EmotionalSpendingResponse
 from app.services.dashboard_service import DashboardService
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
@@ -125,3 +126,28 @@ async def get_top_categories(
         user_id=current_user.id, limit=limit
     )
     return DataResponse(data=result)
+
+
+@router.get(
+    "/emotional-spending",
+    response_model=DataResponse[EmotionalSpendingResponse],
+    summary="Emotion-Aware Spending Analytics & AI Insights",
+)
+async def get_emotional_spending(
+    currency_symbol: str = Query(default="₹", max_length=5),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Emotion-Aware Spending: Returns mood breakdown, impulse spending flags,
+    and AI-generated psychological spending habits.
+    """
+    service = DashboardService(db)
+    user_display = current_user.full_name or current_user.email.split("@")[0]
+    result = await service.get_emotional_spending(
+        user_id=current_user.id,
+        user_name=user_display,
+        currency_symbol=currency_symbol,
+    )
+    return DataResponse(data=result)
+

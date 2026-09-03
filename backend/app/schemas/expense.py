@@ -9,7 +9,7 @@ from decimal import Decimal
 
 from pydantic import BaseModel, Field, field_validator
 
-from app.models.expense import PaymentMode
+from app.models.expense import ExpenseMood, PaymentMode
 
 
 class ExpenseCreate(BaseModel):
@@ -20,6 +20,7 @@ class ExpenseCreate(BaseModel):
     date: dt_date = Field(..., description="Expense date — cannot be in the future")
     notes: str | None = Field(default=None, max_length=1000)
     payment_mode: PaymentMode | None = Field(default=None)
+    mood: ExpenseMood | None = Field(default=None, description="Optional emotional state: happy | normal | sad | stressed | excited")
     is_recurring: bool = Field(default=False)
 
     @field_validator("date")
@@ -46,6 +47,7 @@ class ExpenseUpdate(BaseModel):
     date: dt_date | None = Field(default=None)
     notes: str | None = Field(default=None, max_length=1000)
     payment_mode: PaymentMode | None = Field(default=None)
+    mood: ExpenseMood | None = Field(default=None, description="Optional emotional state: happy | normal | sad | stressed | excited")
     is_recurring: bool | None = Field(default=None)
 
     @field_validator("title")
@@ -76,6 +78,7 @@ class ExpenseOut(BaseModel):
     date: dt_date
     notes: str | None
     payment_mode: str | None
+    mood: str | None = None
     is_recurring: bool = False
     created_at: datetime
     updated_at: datetime
@@ -95,6 +98,7 @@ class ExpenseFilters(BaseModel):
     amount_min: Decimal | None = Field(default=None, ge=0)
     amount_max: Decimal | None = Field(default=None, ge=0)
     payment_mode: PaymentMode | None = Field(default=None)
+    mood: ExpenseMood | None = Field(default=None)
     is_recurring: bool | None = Field(default=None)
     sort_by: str | None = Field(
         default="date",

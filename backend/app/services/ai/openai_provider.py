@@ -14,6 +14,7 @@ from app.schemas.ai import (
     SuggestBudgetResponse,
     SuggestCategoryResponse,
 )
+from app.schemas.emotional_spending import EmotionalAIAdvice
 from app.services.ai.base import BaseLLMProvider
 from app.services.ai.rules_provider import RulesProvider
 
@@ -252,4 +253,51 @@ Format:
             print(f"[OpenAIProvider] chat warning: {e}, using fallback.")
 
         return await self.fallback.chat(messages, financial_context)
+
+    async def generate_emotional_insights(
+        self,
+        user_name: str,
+        currency_symbol: str,
+        mood_breakdown: list[dict],
+        impulse_data: dict,
+        dominant_triggers: list[dict],
+    ) -> list[EmotionalAIAdvice]:
+        if not self.api_key:
+            return await self.fallback.generate_emotional_insights(
+                user_name, currency_symbol, mood_breakdown, impulse_data, dominant_triggers
+            )
+
+        sym = currency_symbol or "₹"
+        system_prompt = (
+            "You are BudgetBrain AI, a behavioral financial psychology expert. "
+            "Output strictly valid JSON with an array of 2-3 psychological advice objects with fields: "
+            "id, title (short), message (1-2 sentences), severity ('info' | 'warning' | 'opportunity'), icon."
+        )
+        user_prompt = f"User: {user_name}, Currency: {sym}, Moods: {json.dumps(mood_breakdown)}, Impulse: {json.dumps(impulse_data)}"
+
+        headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
+        payload = {
+            "model": self.model_name,
+            "messages": [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}],
+            "temperature": 0.3,
+            "response_format": {"type": "json_object"} if "gpt-4" in self.model_name else None,
+        }
+
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                res = await client.post(f"{self.base_url}/chat/completions", headers=headers, json=payload)
+                if res.status_code == 200:
+                    data = res.json()
+                    parsed = json.loads(data["choices"][0]["message"]["content"])
+                    if isinstance(parsed, dict) and "insights" in parsed:
+                        parsed = parsed["insights"]
+                    if isinstance(parsed, list):
+                        return [EmotionalAIAdvice(**item) for item in parsed[:3]]
+        except Exception as e:
+            print(f"[OpenAIProvider] generate_emotional_insights warning: {e}, using fallback.")
+
+        return await self.fallback.generate_emotional_insights(
+            user_name, currency_symbol, mood_breakdown, impulse_data, dominant_triggers
+        )
+
 

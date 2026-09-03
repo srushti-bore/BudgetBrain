@@ -13,6 +13,7 @@ import TopCategoriesWidget from '@/components/dashboard/TopCategoriesWidget';
 import RecentExpensesSnapshot from '@/components/dashboard/RecentExpensesSnapshot';
 import MonthlyStatsReport from '@/components/dashboard/MonthlyStatsReport';
 import AiInsightsWidget from '@/components/dashboard/AiInsightsWidget';
+import EmotionalSpendingWidget from '@/components/dashboard/EmotionalSpendingWidget';
 import { useFormatCurrency, useCurrency } from '@/providers/CurrencyProvider';
 import { useSettings } from '@/providers/SettingsProvider';
 import { useTranslation } from '@/providers/LanguageProvider';
@@ -384,6 +385,11 @@ export default function DashboardPage() {
       {/* AI Financial Intelligence Widget */}
       <motion.div variants={itemVariants}>
         <AiInsightsWidget currencySymbol={currencySymbol} />
+      </motion.div>
+
+      {/* Emotion-Aware Spending Behavioral Analytics Widget */}
+      <motion.div variants={itemVariants}>
+        <EmotionalSpendingWidget currencySymbol={currencySymbol} />
       </motion.div>
 
       {/* Bento Grid Layer 1: Budget Ring & Weekly/Monthly Category Pie Chart */}

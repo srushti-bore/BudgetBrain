@@ -14,6 +14,7 @@ from app.schemas.ai import (
     SuggestBudgetResponse,
     SuggestCategoryResponse,
 )
+from app.schemas.emotional_spending import EmotionalAIAdvice
 from app.services.ai.base import BaseLLMProvider
 from app.services.ai.rules_provider import RulesProvider
 
@@ -365,4 +366,89 @@ Instructions:
             print(f"[GeminiProvider] chat warning: {e}, using fallback.")
 
         return await self.fallback.chat(messages, financial_context)
+
+    async def generate_emotional_insights(
+        self,
+        user_name: str,
+        currency_symbol: str,
+        mood_breakdown: list[dict],
+        impulse_data: dict,
+        dominant_triggers: list[dict],
+    ) -> list[EmotionalAIAdvice]:
+        if not self.api_key:
+            return await self.fallback.generate_emotional_insights(
+                user_name, currency_symbol, mood_breakdown, impulse_data, dominant_triggers
+            )
+
+        sym = currency_symbol or "₹"
+        prompt = f"""
+You are BudgetBrain AI, a behavioral economics and emotional spending advisor.
+Analyze the user's emotion-tagged expense metrics and produce 2-3 psychological, highly actionable advice cards.
+
+User Data:
+- Name: {user_name}
+- Currency: {sym}
+- Spend by Mood: {json.dumps(mood_breakdown)}
+- Impulse Spending Telemetry: {json.dumps(impulse_data)}
+- Dominant Category Triggers: {json.dumps(dominant_triggers)}
+
+JSON Output Format (Array of 2-3 objects):
+[
+  {{
+    "id": "emotion-1",
+    "title": "Short title (max 5 words)",
+    "message": "1-2 empathetic sentences analyzing their emotion-spend pattern with specific numbers.",
+    "severity": "info" | "warning" | "opportunity",
+    "icon": "alert-triangle" | "flame" | "sparkles" | "heart"
+  }}
+]
+Return ONLY raw JSON array.
+"""
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model_name}:generateContent?key={self.api_key}"
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {
+                "temperature": 0.3,
+                "response_mime_type": "application/json",
+            },
+        }
+
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                res = await client.post(url, json=payload)
+                if res.status_code == 200:
+                    data = res.json()
+                    candidates = data.get("candidates", [])
+                    if candidates:
+                        parts = candidates[0].get("content", {}).get("parts", [])
+                        if parts:
+                            raw = parts[0].get("text", "").strip()
+                            if raw.startswith("```"):
+                                lines = raw.splitlines()
+                                if lines[0].startswith("```"):
+                                    lines = lines[1:]
+                                if lines and lines[-1].strip() == "```":
+                                    lines = lines[:-1]
+                                raw = "\n".join(lines).strip()
+                            parsed = json.loads(raw)
+                            if isinstance(parsed, dict) and "insights" in parsed:
+                                parsed = parsed["insights"]
+                            if isinstance(parsed, list) and len(parsed) > 0:
+                                return [
+                                    EmotionalAIAdvice(
+                                        id=item.get("id", f"gemini-emo-{i}"),
+                                        title=item.get("title", "Emotional Insight"),
+                                        message=item.get("message", ""),
+                                        severity=item.get("severity", "info"),
+                                        icon=item.get("icon", "sparkles"),
+                                    )
+                                    for i, item in enumerate(parsed[:3])
+                                ]
+        except Exception as e:
+            print(f"[GeminiProvider] generate_emotional_insights warning: {e}, using fallback.")
+
+        return await self.fallback.generate_emotional_insights(
+            user_name, currency_symbol, mood_breakdown, impulse_data, dominant_triggers
+        )
+
 
