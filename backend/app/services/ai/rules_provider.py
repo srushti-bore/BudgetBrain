@@ -156,54 +156,97 @@ class RulesProvider(BaseLLMProvider):
     ) -> SuggestCategoryResponse:
         title_lower = expense_title.lower().strip()
 
-        food_keywords = ["swiggy", "zomato", "starbucks", "mcdonalds", "restaurant", "cafe", "dinner", "lunch", "grocery", "dmart", "blinkit", "zepto"]
-        travel_keywords = ["uber", "ola", "metro", "petrol", "diesel", "fuel", "flight", "train", "auto", "taxi", "bus"]
-        bill_keywords = ["electricity", "recharge", "wifi", "broadband", "rent", "water", "gas", "netflix", "spotify", "prime", "gym", "subscription"]
-        shopping_keywords = ["amazon", "flipkart", "myntra", "clothes", "shoes", "mall", "electronics"]
+        # Category keyword taxonomies
+        taxonomy = {
+            "Food & Dining": [
+                "swiggy", "zomato", "starbucks", "mcdonalds", "kfc", "burger", "pizza",
+                "dominos", "subway", "restaurant", "cafe", "dinner", "lunch", "breakfast",
+                "chai", "tea", "coffee", "boba", "bakery", "cake", "snack", "dhaba",
+                "bar", "pub", "groceries", "grocery", "dmart", "blinkit", "zepto",
+                "instamart", "bigbasket", "vegetables", "fruits", "milk", "food"
+            ],
+            "Transportation": [
+                "uber", "ola", "rapido", "metro", "petrol", "diesel", "fuel", "cng",
+                "flight", "airline", "indigo", "air india", "train", "irctc", "railway",
+                "auto", "taxi", "cab", "bus", "toll", "fastag", "parking", "commute", "travel"
+            ],
+            "Utilities & Bills": [
+                "electricity", "power", "recharge", "mobile", "jio", "airtel", "vi",
+                "wifi", "broadband", "act", "fiber", "rent", "water", "gas", "cylinder",
+                "lpg", "maintenance", "society", "netflix", "spotify", "prime", "hotstar",
+                "youtube", "gym", "fitness", "subscription", "bill", "emi", "loan"
+            ],
+            "Shopping": [
+                "amazon", "flipkart", "myntra", "ajio", "meesho", "zara", "h&m",
+                "clothes", "clothing", "shoes", "sneakers", "mall", "electronics",
+                "croma", "apple", "gadget", "watch", "jewel", "shopping", "gift"
+            ],
+            "Healthcare": [
+                "pharmacy", "chemist", "apollo", "1mg", "medicine", "doctor",
+                "clinic", "hospital", "dental", "test", "lab", "meds", "medical"
+            ],
+            "Entertainment": [
+                "movie", "cinema", "pvr", "inox", "bookmyshow", "game", "gaming",
+                "concert", "show", "bowling", "trip", "hotel", "resort", "airbnb"
+            ],
+            "Education": [
+                "book", "udemy", "coursera", "tuition", "school", "college",
+                "fees", "course", "exam", "stationary"
+            ],
+        }
 
         predicted = "General"
-        reason = "Matched typical personal finance patterns"
+        reason = "Matched typical expense profile"
+        matched_keyword = None
 
-        for word in food_keywords:
-            if word in title_lower:
-                predicted = "Food & Dining"
-                reason = f"Identified dining/grocery keyword '{word}'"
+        for cat_label, keywords in taxonomy.items():
+            for kw in keywords:
+                if kw in title_lower:
+                    predicted = cat_label
+                    matched_keyword = kw
+                    reason = f"Identified '{kw}' matching {cat_label}"
+                    break
+            if predicted != "General":
                 break
 
-        if predicted == "General":
-            for word in travel_keywords:
-                if word in title_lower:
-                    predicted = "Transportation"
-                    reason = f"Identified transit/commute keyword '{word}'"
-                    break
-
-        if predicted == "General":
-            for word in bill_keywords:
-                if word in title_lower:
-                    predicted = "Utilities & Bills"
-                    reason = f"Identified recurring bill keyword '{word}'"
-                    break
-
-        if predicted == "General":
-            for word in shopping_keywords:
-                if word in title_lower:
-                    predicted = "Shopping"
-                    reason = f"Identified retail keyword '{word}'"
-                    break
-
-        # Match against user's actual category list if available
-        matched_category = None
-        for cat in available_categories:
-            if cat.lower() in predicted.lower() or predicted.lower() in cat.lower():
-                matched_category = cat
+        # Check if any user category matches the title directly
+        direct_user_cat = None
+        for u_cat in available_categories:
+            if u_cat.lower() in title_lower:
+                direct_user_cat = u_cat
                 break
+
+        # Match against user's actual category list
+        matched_category = direct_user_cat
+        if not matched_category:
+            for cat in available_categories:
+                if cat.lower() in predicted.lower() or predicted.lower() in cat.lower():
+                    matched_category = cat
+                    break
 
         final_category = matched_category or (available_categories[0] if available_categories else predicted)
 
+        # Payment mode heuristics
+        upi_triggers = ["swiggy", "zomato", "blinkit", "zepto", "instamart", "chai", "tea", "auto", "rapido", "recharge", "grocery", "snack", "upi"]
+        card_triggers = ["amazon", "flipkart", "flight", "hotel", "airline", "myntra", "apple", "electronics", "zara", "subscription", "annual", "card"]
+        cash_triggers = ["cash", "rickshaw", "vegetable", "fruit", "tip", "maid", "chai stall"]
+
+        suggested_mode = "upi"
+        if any(w in title_lower for w in cash_triggers):
+            suggested_mode = "cash"
+        elif any(w in title_lower for w in card_triggers):
+            suggested_mode = "card"
+        elif any(w in title_lower for w in upi_triggers):
+            suggested_mode = "upi"
+        elif amount is not None and amount > 5000:
+            suggested_mode = "card"
+
+        conf = 0.95 if direct_user_cat else (0.88 if matched_keyword else 0.65)
+
         return SuggestCategoryResponse(
             suggested_category=final_category,
-            confidence=0.85 if matched_category else 0.60,
-            suggested_payment_mode="upi" if any(w in title_lower for w in ["swiggy", "blinkit", "tea", "chai", "auto"]) else "card",
+            confidence=conf,
+            suggested_payment_mode=suggested_mode,
             reasoning=reason,
         )
 

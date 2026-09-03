@@ -329,3 +329,20 @@ All 13 REST API endpoints across 5 core backend modules are fully functional wit
   - Backend test suite: 49 / 49 tests passing (100%), including new test suite `tests/test_ai.py`.
   - Frontend production build: 14 / 14 pages compiled (0 errors) via `next build`.
 
+## Phase 33: Feature 2 — Smart Expense Auto-Categorization & Tag Suggestions (FR-AI-3)
+
+- **LLM Provider Implementations**:
+  - `GeminiProvider`: Added `suggest_category` requesting structured JSON matching user categories and payment modes.
+  - `OpenAIProvider`: Added `suggest_category` using chat completions and JSON format.
+  - `AnthropicProvider`: Added `suggest_category` using Claude messages API with JSON extraction.
+- **Enhanced Rules Engine Taxonomy**:
+  - Expanded `RulesProvider.suggest_category` with rich Indian and international merchant keyword sets (Food/Dining, Transit, Utilities, Shopping, Healthcare, Entertainment, Education).
+  - Added intelligent payment mode heuristics (`UPI`, `Card`, `Cash`, `Other`) based on merchant profiles and transaction sizes.
+- **Frontend ExpenseModal Auto-Categorization UX**:
+  - Added 400ms debounced prediction hook calling `POST /api/v1/ai/suggest-category`.
+  - Added animated suggestion banner (`✨ Suggested: Food & Dining (95% match) UPI • [Apply]`).
+  - Auto-selects predicted category and suggested payment mode on new expenses while preserving user manual selections.
+- **Automated Verification**:
+  - Backend pytest: 49/49 tests passing (100%), including expanded multi-merchant test suite in `tests/test_ai.py`.
+  - Frontend production build: 14/14 routes compiled with 0 errors via `npm run build`.
+

@@ -63,6 +63,7 @@ def test_get_financial_insights_endpoint(client: TestClient):
 
 
 def test_suggest_category_endpoint(client: TestClient):
+    # 1. Food test
     res = client.post(
         "/api/v1/ai/suggest-category",
         json={"title": "Swiggy Gourmet Dinner", "amount": 450.0},
@@ -71,7 +72,23 @@ def test_suggest_category_endpoint(client: TestClient):
     data = res.json()["data"]
     assert "suggested_category" in data
     assert data["confidence"] > 0
-    assert "reasoning" in data
+    assert data["suggested_payment_mode"] == "upi"
+
+    # 2. Transit test
+    res_uber = client.post(
+        "/api/v1/ai/suggest-category",
+        json={"title": "Uber ride to office", "amount": 280.0},
+    )
+    assert res_uber.status_code == 200
+    assert res_uber.json()["data"]["confidence"] >= 0.80
+
+    # 3. Shopping test
+    res_amazon = client.post(
+        "/api/v1/ai/suggest-category",
+        json={"title": "Amazon Prime shopping sneakers", "amount": 3499.0},
+    )
+    assert res_amazon.status_code == 200
+    assert res_amazon.json()["data"]["suggested_payment_mode"] == "card"
 
 
 def test_suggest_budget_endpoint(client: TestClient):

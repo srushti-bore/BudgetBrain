@@ -96,6 +96,53 @@ No explanations, just the JSON array.
         amount: float | None,
         available_categories: list[str],
     ) -> SuggestCategoryResponse:
+        system_prompt = (
+            "You are BudgetBrain AI, an intelligent personal finance categorization assistant. "
+            "Return valid JSON ONLY with fields: suggested_category (string, preferably from available categories), "
+            "confidence (float between 0.0 and 1.0), suggested_payment_mode ('upi', 'card', 'cash', or 'other'), "
+            "and reasoning (short explanation)."
+        )
+        user_prompt = f"Title: '{expense_title}', Amount: {amount}, Available categories: {json.dumps(available_categories)}"
+
+        headers = {
+            "x-api-key": self.api_key,
+            "anthropic-version": "2023-06-01",
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "model": self.model_name,
+            "max_tokens": 200,
+            "system": system_prompt,
+            "messages": [{"role": "user", "content": user_prompt}],
+            "temperature": 0.1,
+        }
+
+        try:
+            async with httpx.AsyncClient(timeout=8.0) as client:
+                res = await client.post("https://api.anthropic.com/v1/messages", headers=headers, json=payload)
+                if res.status_code == 200:
+                    data = res.json()
+                    text = data["content"][0]["text"].strip()
+                    if text.startswith("```"):
+                        lines = text.splitlines()
+                        if lines[0].startswith("```"):
+                            lines = lines[1:]
+                        if lines and lines[-1].strip() == "```":
+                            lines = lines[:-1]
+                        text = "\n".join(lines).strip()
+                    parsed = json.loads(text)
+                    mode = str(parsed.get("suggested_payment_mode", "upi")).lower()
+                    if mode not in ["cash", "card", "upi", "other"]:
+                        mode = "upi" if "upi" in mode else "card"
+                    return SuggestCategoryResponse(
+                        suggested_category=parsed.get("suggested_category") or (available_categories[0] if available_categories else "General"),
+                        confidence=float(parsed.get("confidence", 0.90)),
+                        suggested_payment_mode=mode,
+                        reasoning=parsed.get("reasoning", "Suggested by Claude AI"),
+                    )
+        except Exception as e:
+            print(f"[AnthropicProvider] suggest_category warning: {e}, using fallback.")
+
         return await self.fallback.suggest_category(expense_title, amount, available_categories)
 
     async def suggest_budget(

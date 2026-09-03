@@ -153,6 +153,66 @@ Return ONLY the raw JSON array. Do not enclose in markdown ticks if possible.
         amount: float | None,
         available_categories: list[str],
     ) -> SuggestCategoryResponse:
+        prompt = f"""
+You are BudgetBrain AI, an intelligent personal finance categorization engine.
+Categorize this transaction and suggest the most appropriate payment mode:
+- Expense Title: "{expense_title}"
+- Amount: {f"{amount}" if amount else "Not specified"}
+- User's Available Categories: {json.dumps(available_categories)}
+
+Rules:
+1. "suggested_category" MUST preferably match one of the User's Available Categories if relevant.
+2. "suggested_payment_mode" MUST be one of: "upi", "card", "cash", "other".
+3. "confidence" MUST be a float between 0.0 and 1.0.
+4. "reasoning" should be 1 short concise sentence.
+
+Return ONLY raw JSON with structure:
+{{
+  "suggested_category": "Category Name",
+  "confidence": 0.95,
+  "suggested_payment_mode": "upi",
+  "reasoning": "Reason for suggestion"
+}}
+"""
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model_name}:generateContent?key={self.api_key}"
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {
+                "temperature": 0.1,
+                "response_mime_type": "application/json",
+            },
+        }
+
+        try:
+            async with httpx.AsyncClient(timeout=8.0) as client:
+                res = await client.post(url, json=payload)
+                if res.status_code == 200:
+                    data = res.json()
+                    candidates = data.get("candidates", [])
+                    if candidates:
+                        parts = candidates[0].get("content", {}).get("parts", [])
+                        if parts:
+                            raw = parts[0].get("text", "").strip()
+                            if raw.startswith("```"):
+                                lines = raw.splitlines()
+                                if lines[0].startswith("```"):
+                                    lines = lines[1:]
+                                if lines and lines[-1].strip() == "```":
+                                    lines = lines[:-1]
+                                raw = "\n".join(lines).strip()
+                            parsed = json.loads(raw)
+                            mode = str(parsed.get("suggested_payment_mode", "upi")).lower()
+                            if mode not in ["cash", "card", "upi", "other"]:
+                                mode = "upi" if "upi" in mode else "card"
+                            return SuggestCategoryResponse(
+                                suggested_category=parsed.get("suggested_category") or (available_categories[0] if available_categories else "General"),
+                                confidence=float(parsed.get("confidence", 0.90)),
+                                suggested_payment_mode=mode,
+                                reasoning=parsed.get("reasoning", "Suggested by Gemini AI"),
+                            )
+        except Exception as e:
+            print(f"[GeminiProvider] suggest_category warning: {e}, using fallback.")
+
         return await self.fallback.suggest_category(expense_title, amount, available_categories)
 
     async def suggest_budget(

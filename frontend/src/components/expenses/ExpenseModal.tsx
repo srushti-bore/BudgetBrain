@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { Expense, Category, PaymentMode } from '@/types';
 import { getTodayDateString, capitalizeFirstLetter } from '@/lib/utils';
-import { X, Plus, AlertCircle, Repeat, Flame, AlertTriangle, ShieldCheck, ShieldAlert } from 'lucide-react';
-import { categoryApi, dashboardApi } from '@/lib/api';
+import { X, Plus, AlertCircle, Repeat, Flame, AlertTriangle, ShieldCheck, ShieldAlert, Sparkles, Wand2 } from 'lucide-react';
+import { categoryApi, dashboardApi, aiApi, SuggestCategoryResponse } from '@/lib/api';
 import { useCurrency, useFormatCurrency } from '@/providers/CurrencyProvider';
 import { useSettings } from '@/providers/SettingsProvider';
 import { useQuery } from '@tanstack/react-query';
@@ -54,6 +54,12 @@ export default function ExpenseModal({
   const [newCatName, setNewCatName] = useState('');
   const [catCreating, setCatCreating] = useState(false);
 
+  // AI Auto-Categorization state (FR-AI-3)
+  const [aiSuggestion, setAiSuggestion] = useState<SuggestCategoryResponse | null>(null);
+  const [isPredicting, setIsPredicting] = useState(false);
+  const [hasManuallySelectedCategory, setHasManuallySelectedCategory] = useState(false);
+  const [hasManuallySelectedPaymentMode, setHasManuallySelectedPaymentMode] = useState(false);
+
   // Fetch current dashboard summary to calculate budget impact in real time
   const { data: summary } = useQuery({
     queryKey: ['dashboardSummary'],
@@ -79,6 +85,9 @@ export default function ExpenseModal({
       setPaymentMode('');
       setNotes('');
       setIsRecurring(false);
+      setAiSuggestion(null);
+      setHasManuallySelectedCategory(false);
+      setHasManuallySelectedPaymentMode(false);
     }
     setErrorMsg('');
   }, [initialData, isOpen, categories, currency]);
@@ -114,6 +123,70 @@ export default function ExpenseModal({
   const projectedDailyPercent = dailyLimit > 0 ? Math.round((projectedTodaySpent / dailyLimit) * 100) : 0;
   const isOverDaily = isToday && dailyLimit > 0 && projectedTodaySpent > dailyLimit;
   const isNearDaily = isToday && dailyLimit > 0 && !isOverDaily && projectedDailyPercent >= nearLimitThreshold;
+
+  // Real-time AI Auto-Categorization (FR-AI-3)
+  useEffect(() => {
+    if (!isOpen || initialData) return;
+    const cleanTitle = title.trim();
+    if (cleanTitle.length < 3) {
+      setAiSuggestion(null);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsPredicting(true);
+      try {
+        const res = await aiApi.suggestCategory(cleanTitle, parsedBaseAmount > 0 ? parsedBaseAmount : undefined);
+        if (res && res.suggested_category) {
+          setAiSuggestion(res);
+
+          // Auto-select category if user hasn't explicitly chosen one yet
+          if (!hasManuallySelectedCategory) {
+            const matched = categories.find(
+              (c) => c.name.toLowerCase() === res.suggested_category.toLowerCase()
+            );
+            if (matched) {
+              setCategoryId(matched.id);
+            }
+          }
+
+          // Auto-select payment mode if suggested and user hasn't explicitly chosen one
+          if (res.suggested_payment_mode && !hasManuallySelectedPaymentMode && !paymentMode) {
+            const validModes: PaymentMode[] = ['upi', 'card', 'cash', 'other'];
+            const m = res.suggested_payment_mode.toLowerCase() as PaymentMode;
+            if (validModes.includes(m)) {
+              setPaymentMode(m);
+            }
+          }
+        }
+      } catch (err) {
+        // Silently preserve manual inputs
+      } finally {
+        setIsPredicting(false);
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [title, parsedBaseAmount, isOpen, initialData, categories, hasManuallySelectedCategory, hasManuallySelectedPaymentMode, paymentMode]);
+
+  const handleApplyAiSuggestion = () => {
+    if (!aiSuggestion) return;
+    const matched = categories.find(
+      (c) => c.name.toLowerCase() === aiSuggestion.suggested_category.toLowerCase()
+    );
+    if (matched) {
+      setCategoryId(matched.id);
+      setHasManuallySelectedCategory(true);
+    }
+    if (aiSuggestion.suggested_payment_mode) {
+      const validModes: PaymentMode[] = ['upi', 'card', 'cash', 'other'];
+      const m = aiSuggestion.suggested_payment_mode.toLowerCase() as PaymentMode;
+      if (validModes.includes(m)) {
+        setPaymentMode(m);
+        setHasManuallySelectedPaymentMode(true);
+      }
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -209,12 +282,56 @@ export default function ExpenseModal({
             </label>
             <input
               type="text"
-              placeholder="e.g. Grocery Shopping, House Rent, Fuel"
+              placeholder="e.g. Swiggy gourmet dinner, Uber airport ride, Rent"
               value={title}
               onChange={(e) => setTitle(capitalizeFirstLetter(e.target.value))}
               className="w-full px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-white/5 border border-ink/15 dark:border-white/15 text-sm text-ink focus:outline-none focus:border-sage transition-all"
               required
             />
+
+            {/* AI Auto-Categorization & Smart Tag Banner (FR-AI-3) */}
+            <AnimatePresence>
+              {(isPredicting || aiSuggestion) && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0, y: -4 }}
+                  animate={{ opacity: 1, height: 'auto', y: 0 }}
+                  exit={{ opacity: 0, height: 0, y: -4 }}
+                  className="mt-2 p-2.5 rounded-xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-transparent border border-emerald-500/25 flex items-center justify-between gap-2 overflow-hidden text-xs"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Sparkles className={`w-3.5 h-3.5 text-emerald-500 shrink-0 ${isPredicting ? 'animate-spin' : 'animate-pulse'}`} />
+                    {isPredicting ? (
+                      <span className="text-[11px] text-[var(--color-text-muted)] italic">
+                        Predicting category...
+                      </span>
+                    ) : aiSuggestion ? (
+                      <span className="text-[11px] text-[var(--color-text-muted)] truncate">
+                        Suggested: <strong className="text-[var(--color-text-primary)] font-semibold">{aiSuggestion.suggested_category}</strong>
+                        {aiSuggestion.confidence ? (
+                          <span className="ml-1 text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
+                            ({Math.round(aiSuggestion.confidence * 100)}% match)
+                          </span>
+                        ) : null}
+                        {aiSuggestion.suggested_payment_mode && (
+                          <span className="ml-1.5 px-1.5 py-0.5 rounded bg-white/60 dark:bg-black/40 border border-emerald-500/20 text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400">
+                            {aiSuggestion.suggested_payment_mode}
+                          </span>
+                        )}
+                      </span>
+                    ) : null}
+                  </div>
+                  {aiSuggestion && !isPredicting && (
+                    <button
+                      type="button"
+                      onClick={handleApplyAiSuggestion}
+                      className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold transition-all shrink-0 cursor-pointer shadow-xs"
+                    >
+                      Apply
+                    </button>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           {/* Amount and Date Grid */}
@@ -360,7 +477,10 @@ export default function ExpenseModal({
 
             <select
               value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value)}
+              onChange={(e) => {
+                setCategoryId(e.target.value);
+                setHasManuallySelectedCategory(true);
+              }}
               className="w-full px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-white/5 border border-ink/15 dark:border-white/15 text-sm text-ink focus:outline-none focus:border-sage transition-all cursor-pointer"
               required
             >
@@ -383,7 +503,10 @@ export default function ExpenseModal({
                 <button
                   key={mode}
                   type="button"
-                  onClick={() => setPaymentMode(paymentMode === mode ? '' : mode)}
+                  onClick={() => {
+                    setPaymentMode(paymentMode === mode ? '' : mode);
+                    setHasManuallySelectedPaymentMode(true);
+                  }}
                   className={`py-2 text-xs font-bold capitalize rounded-xl border transition-all cursor-pointer ${
                     paymentMode === mode
                       ? 'bg-sage-light text-sage border-sage/40 dark:bg-sage/20 shadow-xs'

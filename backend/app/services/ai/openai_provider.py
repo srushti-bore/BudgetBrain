@@ -122,6 +122,47 @@ Format:
         amount: float | None,
         available_categories: list[str],
     ) -> SuggestCategoryResponse:
+        system_prompt = (
+            "You are BudgetBrain AI, an intelligent finance categorization engine. "
+            "Return valid JSON with: suggested_category (string, preferably from available categories), "
+            "confidence (float 0.0-1.0), suggested_payment_mode ('upi', 'card', 'cash', or 'other'), "
+            "and reasoning (short explanation)."
+        )
+        user_prompt = f"Title: '{expense_title}', Amount: {amount}, Available categories: {json.dumps(available_categories)}"
+
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "model": self.model_name,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            "temperature": 0.1,
+            "response_format": {"type": "json_object"} if "gpt-4" in self.model_name else None,
+        }
+
+        try:
+            async with httpx.AsyncClient(timeout=8.0) as client:
+                res = await client.post(f"{self.base_url}/chat/completions", headers=headers, json=payload)
+                if res.status_code == 200:
+                    data = res.json()
+                    content = data["choices"][0]["message"]["content"]
+                    parsed = json.loads(content)
+                    mode = str(parsed.get("suggested_payment_mode", "upi")).lower()
+                    if mode not in ["cash", "card", "upi", "other"]:
+                        mode = "upi" if "upi" in mode else "card"
+                    return SuggestCategoryResponse(
+                        suggested_category=parsed.get("suggested_category") or (available_categories[0] if available_categories else "General"),
+                        confidence=float(parsed.get("confidence", 0.92)),
+                        suggested_payment_mode=mode,
+                        reasoning=parsed.get("reasoning", "Suggested by OpenAI"),
+                    )
+        except Exception as e:
+            print(f"[OpenAIProvider] suggest_category warning: {e}, using fallback.")
+
         return await self.fallback.suggest_category(expense_title, amount, available_categories)
 
     async def suggest_budget(
