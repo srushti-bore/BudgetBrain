@@ -85,16 +85,53 @@ Return ONLY the raw JSON array. Do not enclose in markdown ticks if possible.
         }
 
         try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
+            async with httpx.AsyncClient(timeout=15.0) as client:
                 res = await client.post(url, json=payload)
                 if res.status_code == 200:
                     data = res.json()
-                    text_content = data["candidates"][0]["content"]["parts"][0]["text"]
-                    parsed = json.loads(text_content.strip("```json\n").strip("```"))
-                    return [FinancialInsight(**item) for item in parsed][:3]
+                    candidates = data.get("candidates", [])
+                    if candidates:
+                        parts = candidates[0].get("content", {}).get("parts", [])
+                        if parts:
+                            raw_text = parts[0].get("text", "").strip()
+                            if raw_text.startswith("```"):
+                                lines = raw_text.splitlines()
+                                if lines[0].startswith("```"):
+                                    lines = lines[1:]
+                                if lines and lines[-1].strip() == "```":
+                                    lines = lines[:-1]
+                                raw_text = "\n".join(lines).strip()
+
+                            parsed = json.loads(raw_text)
+                            if isinstance(parsed, dict):
+                                for k in ["insights", "recommendations", "items", "data"]:
+                                    if k in parsed and isinstance(parsed[k], list):
+                                        parsed = parsed[k]
+                                        break
+                                else:
+                                    parsed = [parsed]
+
+                            if isinstance(parsed, list) and len(parsed) > 0:
+                                valid_items = []
+                                for idx, item in enumerate(parsed[:3]):
+                                    if isinstance(item, dict):
+                                        valid_items.append(
+                                            FinancialInsight(
+                                                id=item.get("id", f"gemini-insight-{idx+1}"),
+                                                type=item.get("type", "saving_tip"),
+                                                title=item.get("title", "Financial Tip"),
+                                                message=item.get("message", ""),
+                                                icon=item.get("icon", "lightbulb"),
+                                                severity=item.get("severity", "info"),
+                                                metric=item.get("metric"),
+                                            )
+                                        )
+                                if valid_items:
+                                    return valid_items
+                else:
+                    print(f"[GeminiProvider] API Error {res.status_code}: {res.text}")
         except Exception as e:
-            # Fallback seamlessly if API limits reached or network error
-            print(f"[GeminiProvider] Warning: {e}, falling back to rules engine.")
+            print(f"[GeminiProvider] Exception: {e}, falling back to rules engine.")
 
         return await self.fallback.generate_financial_insights(
             user_name, currency_symbol, total_spent, monthly_budget,

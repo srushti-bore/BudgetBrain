@@ -119,21 +119,30 @@ class RulesProvider(BaseLLMProvider):
                         )
                     )
 
-        # Insight 3: Daily Spend Velocity
-        if daily_average > 0:
-            projected_30d = daily_average * 30
+        # Fallback starter cards if user has few or zero transactions yet
+        if len(insights) < 2:
             insights.append(
                 FinancialInsight(
-                    id="insight-velocity",
+                    id="insight-starter-habit",
+                    type="saving_tip",
+                    title="Adopt the 50/30/20 Rule",
+                    message="Aim to allocate 50% of income to essential needs, 30% to lifestyle wants, and 20% to emergency savings.",
+                    icon="pie-chart",
+                    severity="opportunity",
+                    metric="50/30/20 Target",
+                )
+            )
+
+        if len(insights) < 3:
+            insights.append(
+                FinancialInsight(
+                    id="insight-starter-logging",
                     type="spending_velocity",
-                    title="Daily Spending Velocity",
-                    message=(
-                        f"You are spending an average of {sym}{daily_average:,.2f} per active day. "
-                        f"At this pace, your 30-day projected outlay is {sym}{projected_30d:,.2f}."
-                    ),
+                    title="Rapid Expense Logging",
+                    message="Logging expenses daily under 30 seconds keeps your spending velocity visible and prevents month-end deficits.",
                     icon="trending-up",
                     severity="info",
-                    metric=f"{sym}{daily_average:,.0f}/day",
+                    metric="Track Daily",
                 )
             )
 
