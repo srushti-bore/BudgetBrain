@@ -209,6 +209,21 @@ The application is designed as a lightweight, single-user expense tracker using 
 
 ---
 
+### TD-24: Strict Email Verification, 6-Digit OTP Suite & Dual-Mode Resend REST / SMTP Transport
+- **Context & Requirement**: Implemented Strict Gate verification where newly registered accounts are `is_verified=False` and unverified logins return HTTP 403 `EMAIL_NOT_VERIFIED`.
+- **Solution & Architecture Decisions**:
+  1. **Cryptographic OTP Security**: Cryptographically secure 6-digit numeric OTP generated in memory, hashed with SHA-256 before storing in `users.otp_hash` with `otp_expires_at` (10-minute expiry). Zero plaintext OTP is ever written to disk/database.
+  2. **Dual-Mode Port-Proof Email Transport**: Cloud hosts (e.g., Render free/standard tiers) frequently block or delay outbound raw TCP ports 587/465. Designed `EmailService._dispatch_email()`:
+     - **Mode 1 (Cloud / Resend)**: When `SMTP_PASSWORD` starts with `re_` or `SMTP_HOST` includes `resend`, dispatches via Resend's HTTPS REST API (`https://api.resend.com/emails`) over Port 443 (firewall-proof, <300ms latency).
+     - **Mode 2 (SMTP Fallback / Gmail)**: Connects via standard `smtplib` (`STARTTLS` or `SSL`) for Gmail SMTP, AWS SES, SendGrid.
+  3. **Domain Typo Detection & 1-Click Auto-Fix**: Added `suggestEmailCorrection` in [`frontend/src/lib/utils.ts`](file:///d:/BudgetBrain/frontend/src/lib/utils.ts) with dictionary lookup and single-edit Levenshtein distance for popular domains (e.g. `@gnail.com` &rarr; `@gmail.com`).
+  4. **Segmented UI & Instant Session Creation**: Built [`OTPInput.tsx`](file:///d:/BudgetBrain/frontend/src/components/auth/OTPInput.tsx) (auto-focus, paste extraction, digit jumping). On 6th digit, `verify_otp` endpoint marks account verified and issues both access token and HttpOnly refresh cookie for instant dashboard entry.
+- **Status**: **Resolved & Tested (44/44 backend tests passing, 0 TypeScript build errors)**.
+
+---
+
+---
+
 ## 3. Maintenance & Code Quality Standards
 
 - **PEP 8 Compliance**: All top-level imports clean; no mid-file or inline module imports.

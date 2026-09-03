@@ -295,4 +295,7 @@ All 13 REST API endpoints across 5 core backend modules are fully functional wit
 | `c84ca8f` | feat(i18n): add multilingual localization with Gujarati, Marwadi, German, Marathi, Hindi and simple 3D logo |
 | `d81f6b0` | feat(ui): add gentle floating 3D animation, light shimmer sweep, and synaptic pulse to BrainLogo3D |
 | `81c04d1` | test(postman): create complete Postman collection v2.1.0 and environment configs for local and prod API testing |
+| `2a1a5c0` | feat(auth): add strict email verification, 6-digit OTP suite, smart typo auto-fix, and Resend SMTP support |
+| `06c3398` | feat(email): add high-speed Resend REST API integration for port-proof cloud delivery |
+| `17322ca` | fix(email): ensure robust fallback for from_email and add explicit Resend delivery logging |
 
