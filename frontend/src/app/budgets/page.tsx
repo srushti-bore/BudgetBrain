@@ -2,10 +2,10 @@
 
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { budgetApi, categoryApi } from '@/lib/api';
+import { budgetApi, categoryApi, aiApi } from '@/lib/api';
 import { Budget, Category } from '@/types';
 import { useFormatCurrency, useCurrency } from '@/providers/CurrencyProvider';
-import { Target, Plus, CheckCircle, AlertTriangle, Flame, Edit2, ShieldAlert } from 'lucide-react';
+import { Target, Plus, CheckCircle, AlertTriangle, Flame, Edit2, ShieldAlert, Sparkles, Wand2, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function BudgetsPage() {
@@ -36,6 +36,18 @@ export default function BudgetsPage() {
     queryFn: () => categoryApi.list(),
   });
 
+  // AI Adaptive Budget Recommendation (FR-AI-4)
+  const {
+    data: aiBudget,
+    isLoading: isAiBudgetLoading,
+    isFetching: isAiBudgetFetching,
+    refetch: refetchAiBudget,
+  } = useQuery({
+    queryKey: ['aiBudgetSuggestion'],
+    queryFn: () => aiApi.suggestBudget(),
+    staleTime: 5 * 60 * 1000,
+  });
+
   const overallBudget = budgets.find((b) => b.category_id === null);
   const categoryBudgets = budgets.filter((b) => b.category_id !== null);
 
@@ -60,6 +72,21 @@ export default function BudgetsPage() {
       setDailyLimitAmount('');
     }
     setErrorMsg('');
+    setIsModalOpen(true);
+  };
+
+  const handleApplyAiRecommendation = (monthlyLimit?: number, dailyLimit?: number) => {
+    const m = monthlyLimit ?? aiBudget?.recommended_monthly_limit;
+    const d = dailyLimit ?? aiBudget?.recommended_daily_limit;
+    if (m !== undefined) {
+      const viewM = convertToView(m);
+      setLimitAmount(Number(viewM.toFixed(2)).toString());
+    }
+    if (d !== undefined) {
+      const viewD = convertToView(d);
+      setDailyLimitAmount(Number(viewD.toFixed(2)).toString());
+    }
+    setSelectedCatId('overall');
     setIsModalOpen(true);
   };
 
@@ -171,12 +198,70 @@ export default function BudgetsPage() {
 
         <button
           onClick={() => handleOpenModal('overall', overallBudget?.limit_amount, overallBudget?.daily_limit)}
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-sage hover:bg-[#3E7259] text-white font-semibold text-xs md:text-sm rounded-xl shadow-md shadow-sage/20 transition-all self-start sm:self-auto"
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-sage hover:bg-[#3E7259] text-white font-semibold text-xs md:text-sm rounded-xl shadow-md shadow-sage/20 transition-all self-start sm:self-auto cursor-pointer"
         >
           <Target className="w-4 h-4" />
           <span>{overallBudget ? 'Edit Overall Limit' : 'Set Overall Budget'}</span>
         </button>
       </div>
+
+      {/* AI Adaptive Budget Limit Recommendation Card (FR-AI-4) */}
+      {aiBudget && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="glass-card p-5 sm:p-6 border-emerald-500/30 bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-transparent relative overflow-hidden"
+        >
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shrink-0 text-emerald-600 dark:text-emerald-400">
+                <Sparkles className="w-5 h-5 animate-pulse" />
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                    AI Adaptive Recommendation
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
+                    {aiBudget.estimated_savings_rate}% Target Savings
+                  </span>
+                </div>
+                <h3 className="font-display font-bold text-base sm:text-lg text-ink">
+                  Optimal Target: {formatCurrency(aiBudget.recommended_monthly_limit)} / month
+                  {aiBudget.recommended_daily_limit > 0 && (
+                    <span className="text-xs text-ink-muted font-normal ml-2">
+                      ({formatCurrency(aiBudget.recommended_daily_limit)} / day cap)
+                    </span>
+                  )}
+                </h3>
+                <p className="text-xs text-ink-muted max-w-2xl leading-relaxed">
+                  {aiBudget.rationale}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
+              <button
+                type="button"
+                onClick={() => refetchAiBudget()}
+                disabled={isAiBudgetFetching}
+                className="p-2 rounded-xl border border-ink/10 dark:border-white/10 text-ink-muted hover:text-ink transition-colors cursor-pointer disabled:opacity-50"
+                title="Recalculate AI Recommendation"
+              >
+                <RefreshCw className={`w-4 h-4 ${isAiBudgetFetching ? 'animate-spin' : ''}`} />
+              </button>
+              <button
+                type="button"
+                onClick={() => handleApplyAiRecommendation()}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-600/20 transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <Wand2 className="w-3.5 h-3.5" />
+                <span>Adopt Recommendation</span>
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       {/* Main Overall Monthly Budget Card */}
       <div className="glass-card p-6 border-sage/30 bg-gradient-to-br from-white/80 via-white/50 to-sage-light/20 dark:from-white/5 dark:to-sage/10">
@@ -348,6 +433,26 @@ export default function BudgetsPage() {
             )}
 
             <form onSubmit={handleSaveBudget} className="space-y-4">
+              {/* AI Auto-fill helper inside modal */}
+              {selectedCatId === 'overall' && aiBudget && (
+                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between gap-2 text-xs">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <span className="text-ink-muted truncate">
+                      AI Target: <strong className="text-ink font-semibold">{formatCurrency(aiBudget.recommended_monthly_limit)}</strong>
+                      {aiBudget.recommended_daily_limit > 0 ? ` (${formatCurrency(aiBudget.recommended_daily_limit)}/day)` : ''}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyAiRecommendation()}
+                    className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold transition-all shrink-0 cursor-pointer"
+                  >
+                    Auto-fill
+                  </button>
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs font-semibold text-ink-muted mb-1">Monthly Limit ({currency})</label>
                 <input

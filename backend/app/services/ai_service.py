@@ -13,6 +13,9 @@ from app.config import get_settings
 from app.models.user import User
 from app.repositories.category_repository import CategoryRepository
 from app.schemas.ai import (
+    ChatMessage,
+    ChatRequest,
+    ChatResponse,
     InsightsResponse,
     SuggestBudgetResponse,
     SuggestCategoryRequest,
@@ -124,3 +127,44 @@ class AIService:
             daily_avg=daily_average,
             top_categories=top_categories,
         )
+
+    async def chat(
+        self,
+        user: User,
+        request: ChatRequest,
+        currency_symbol: str = "₹",
+    ) -> ChatResponse:
+        """
+        FR-AI-5: Conversational financial assistant with real-time financial context.
+        """
+        summary = await self.dashboard_service.get_summary(user.id)
+        top_cats = await self.dashboard_service.get_top_categories(user.id, limit=5)
+
+        total_spent = float(summary.get("total_spent", 0.0) or 0.0)
+        monthly_budget = float(summary.get("monthly_budget", 0.0)) if summary.get("monthly_budget") is not None else None
+        remaining_budget = float(summary.get("remaining_budget", 0.0)) if summary.get("remaining_budget") is not None else None
+        daily_average = float(summary.get("daily_spending_average", 0.0) or 0.0)
+
+        top_categories = [
+            {"name": cat.get("name"), "amount": float(cat.get("amount", 0.0))}
+            for cat in top_cats
+        ]
+
+        user_display = user.full_name or user.email.split("@")[0]
+
+        financial_context = {
+            "user_name": user_display,
+            "currency_symbol": currency_symbol,
+            "total_spent": total_spent,
+            "monthly_budget": monthly_budget,
+            "remaining_budget": remaining_budget,
+            "daily_average": daily_average,
+            "top_categories": top_categories,
+        }
+
+        provider = get_ai_provider(self.settings)
+        return await provider.chat(
+            messages=request.messages,
+            financial_context=financial_context,
+        )
+

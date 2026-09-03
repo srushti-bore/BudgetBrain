@@ -6,7 +6,13 @@ Integrates with Anthropic Messages API (claude-3-5-haiku, claude-3-5-sonnet).
 
 import json
 import httpx
-from app.schemas.ai import FinancialInsight, SuggestBudgetResponse, SuggestCategoryResponse
+from app.schemas.ai import (
+    ChatMessage,
+    ChatResponse,
+    FinancialInsight,
+    SuggestBudgetResponse,
+    SuggestCategoryResponse,
+)
 from app.services.ai.base import BaseLLMProvider
 from app.services.ai.rules_provider import RulesProvider
 
@@ -152,3 +158,55 @@ No explanations, just the JSON array.
         top_categories: list[dict],
     ) -> SuggestBudgetResponse:
         return await self.fallback.suggest_budget(monthly_spend, daily_avg, top_categories)
+
+    async def chat(
+        self,
+        messages: list[ChatMessage],
+        financial_context: dict,
+    ) -> ChatResponse:
+        if not self.api_key:
+            return await self.fallback.chat(messages, financial_context)
+
+        system_prompt = (
+            "You are BudgetBrain AI, an intelligent personal finance assistant. "
+            f"User telemetry: {json.dumps(financial_context)}. "
+            "Answer questions using their exact numbers in friendly markdown. "
+            "Output valid JSON with 'reply' (markdown string) and 'suggested_actions' (list of 3 short questions)."
+        )
+
+        claude_msgs = []
+        for m in messages:
+            role = "user" if m.role == "user" else "assistant"
+            claude_msgs.append({"role": role, "content": m.content})
+
+        headers = {
+            "x-api-key": self.api_key,
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+        }
+        payload = {
+            "model": self.model_name,
+            "max_tokens": 1000,
+            "temperature": 0.4,
+            "system": system_prompt,
+            "messages": claude_msgs,
+        }
+
+        try:
+            async with httpx.AsyncClient(timeout=12.0) as client:
+                res = await client.post("https://api.anthropic.com/v1/messages", headers=headers, json=payload)
+                if res.status_code == 200:
+                    data = res.json()
+                    content = data["content"][0]["text"]
+                    parsed = json.loads(content)
+                    return ChatResponse(
+                        reply=parsed.get("reply", content),
+                        suggested_actions=parsed.get("suggested_actions", [])[:3],
+                        provider=self.provider_name,
+                        model=self.model_name,
+                    )
+        except Exception as e:
+            print(f"[AnthropicProvider] chat warning: {e}, using fallback.")
+
+        return await self.fallback.chat(messages, financial_context)
+

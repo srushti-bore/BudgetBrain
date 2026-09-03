@@ -99,3 +99,34 @@ def test_suggest_budget_endpoint(client: TestClient):
     assert "recommended_daily_limit" in data
     assert data["recommended_monthly_limit"] > 0
     assert data["recommended_daily_limit"] > 0
+
+
+def test_ai_chat_endpoint(client: TestClient):
+    # 1. General greeting
+    res_greet = client.post(
+        "/api/v1/ai/chat",
+        json={"messages": [{"role": "user", "content": "Hi, what is my spending summary?"}]},
+    )
+    assert res_greet.status_code == 200, res_greet.text
+    data = res_greet.json()["data"]
+    assert "reply" in data
+    assert len(data["reply"]) > 0
+    assert "suggested_actions" in data
+    assert len(data["suggested_actions"]) > 0
+
+    # 2. Affordability question
+    res_afford = client.post(
+        "/api/v1/ai/chat",
+        json={"messages": [{"role": "user", "content": "Can I afford a ₹5,000 gadget right now?"}]},
+    )
+    assert res_afford.status_code == 200
+    assert "afford" in res_afford.json()["data"]["reply"].lower()
+
+    # 3. Category question
+    res_cat = client.post(
+        "/api/v1/ai/chat",
+        json={"messages": [{"role": "user", "content": "How much did I spend on food?"}]},
+    )
+    assert res_cat.status_code == 200
+    assert len(res_cat.json()["data"]["reply"]) > 0
+

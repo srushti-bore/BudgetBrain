@@ -7,7 +7,13 @@ compatible endpoints (Ollama, Groq, vLLM, DeepSeek) via OPENAI_BASE_URL.
 
 import json
 import httpx
-from app.schemas.ai import FinancialInsight, SuggestBudgetResponse, SuggestCategoryResponse
+from app.schemas.ai import (
+    ChatMessage,
+    ChatResponse,
+    FinancialInsight,
+    SuggestBudgetResponse,
+    SuggestCategoryResponse,
+)
 from app.services.ai.base import BaseLLMProvider
 from app.services.ai.rules_provider import RulesProvider
 
@@ -171,4 +177,79 @@ Format:
         daily_avg: float,
         top_categories: list[dict],
     ) -> SuggestBudgetResponse:
+        if not self.api_key:
+            return await self.fallback.suggest_budget(monthly_spend, daily_avg, top_categories)
+
+        system_prompt = "You are BudgetBrain AI, a certified financial advisor. Return valid JSON with recommended_monthly_limit, recommended_daily_limit, estimated_savings_rate, and rationale."
+        user_prompt = f"Monthly spend: {monthly_spend}, Daily avg: {daily_avg}, Categories: {json.dumps(top_categories)}"
+
+        headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
+        payload = {
+            "model": self.model_name,
+            "messages": [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}],
+            "temperature": 0.2,
+            "response_format": {"type": "json_object"} if "gpt-4" in self.model_name else None,
+        }
+
+        try:
+            async with httpx.AsyncClient(timeout=8.0) as client:
+                res = await client.post(f"{self.base_url}/chat/completions", headers=headers, json=payload)
+                if res.status_code == 200:
+                    data = res.json()
+                    parsed = json.loads(data["choices"][0]["message"]["content"])
+                    return SuggestBudgetResponse(
+                        recommended_monthly_limit=float(parsed["recommended_monthly_limit"]),
+                        recommended_daily_limit=float(parsed["recommended_daily_limit"]),
+                        estimated_savings_rate=float(parsed.get("estimated_savings_rate", 15.0)),
+                        rationale=parsed.get("rationale", "Calculated by OpenAI."),
+                    )
+        except Exception as e:
+            print(f"[OpenAIProvider] suggest_budget warning: {e}, using fallback.")
+
         return await self.fallback.suggest_budget(monthly_spend, daily_avg, top_categories)
+
+    async def chat(
+        self,
+        messages: list[ChatMessage],
+        financial_context: dict,
+    ) -> ChatResponse:
+        if not self.api_key:
+            return await self.fallback.chat(messages, financial_context)
+
+        sym = financial_context.get("currency_symbol", "₹")
+        system_prompt = (
+            "You are BudgetBrain AI, a smart personal finance advisor. "
+            f"User telemetry: {json.dumps(financial_context)}. "
+            "Answer questions using their exact numbers. "
+            "Output JSON with 'reply' (markdown string) and 'suggested_actions' (list of 3 short question strings)."
+        )
+
+        chat_history = [{"role": "system", "content": system_prompt}]
+        for m in messages:
+            chat_history.append({"role": m.role, "content": m.content})
+
+        headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
+        payload = {
+            "model": self.model_name,
+            "messages": chat_history,
+            "temperature": 0.4,
+            "response_format": {"type": "json_object"} if "gpt-4" in self.model_name else None,
+        }
+
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                res = await client.post(f"{self.base_url}/chat/completions", headers=headers, json=payload)
+                if res.status_code == 200:
+                    data = res.json()
+                    parsed = json.loads(data["choices"][0]["message"]["content"])
+                    return ChatResponse(
+                        reply=parsed.get("reply", "Here is your advice."),
+                        suggested_actions=parsed.get("suggested_actions", [])[:3],
+                        provider=self.provider_name,
+                        model=self.model_name,
+                    )
+        except Exception as e:
+            print(f"[OpenAIProvider] chat warning: {e}, using fallback.")
+
+        return await self.fallback.chat(messages, financial_context)
+

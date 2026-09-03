@@ -46,3 +46,20 @@ class SuggestBudgetResponse(BaseModel):
     recommended_daily_limit: float
     estimated_savings_rate: float
     rationale: str
+
+
+class ChatMessage(BaseModel):
+    role: Literal["user", "assistant", "system"]
+    content: str = Field(..., min_length=1, max_length=2000)
+
+
+class ChatRequest(BaseModel):
+    messages: list[ChatMessage] = Field(..., min_length=1, max_length=20)
+
+
+class ChatResponse(BaseModel):
+    reply: str
+    suggested_actions: list[str] = Field(default_factory=list)
+    provider: str
+    model: str
+

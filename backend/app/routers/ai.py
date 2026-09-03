@@ -15,6 +15,8 @@ from app.core.dependencies import get_current_user
 from app.database import get_db
 from app.models.user import User
 from app.schemas.ai import (
+    ChatRequest,
+    ChatResponse,
     InsightsResponse,
     SuggestBudgetResponse,
     SuggestCategoryRequest,
@@ -78,3 +80,23 @@ async def suggest_budget(
     service = AIService(db)
     result = await service.suggest_budget(current_user)
     return DataResponse(data=result)
+
+
+@router.post(
+    "/chat",
+    response_model=DataResponse[ChatResponse],
+    summary="Conversational financial assistant with user telemetry",
+)
+async def chat(
+    request: ChatRequest,
+    currency_symbol: str = Query(default="₹", max_length=5),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    FR-AI-5: Ask BudgetBrain conversational financial advisor questions.
+    """
+    service = AIService(db)
+    result = await service.chat(current_user, request, currency_symbol=currency_symbol)
+    return DataResponse(data=result)
+

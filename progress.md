@@ -346,3 +346,16 @@ All 13 REST API endpoints across 5 core backend modules are fully functional wit
   - Backend pytest: 49/49 tests passing (100%), including expanded multi-merchant test suite in `tests/test_ai.py`.
   - Frontend production build: 14/14 routes compiled with 0 errors via `npm run build`.
 
+## Phase 34: Feature 3 (Adaptive Budget Recommendations) & Feature 4 (Ask BudgetBrain Conversational Chat)
+
+- **Feature 3: Adaptive Budget Limit Recommendations (FR-AI-4)**:
+  - Backend: Enhanced `suggest_budget` across `GeminiProvider`, `OpenAIProvider`, `AnthropicProvider`, and `RulesProvider` to compute realistic monthly targets, daily pacing caps, and target savings rates.
+  - Frontend (`/budgets`): Added glassmorphic `AI Adaptive Recommendation` card with 1-click **"Adopt Recommendation"** and refresh button; added **"Auto-fill"** helper chip inside the master budget modal.
+- **Feature 4: "Ask BudgetBrain" Conversational Financial Chat (FR-AI-5)**:
+  - Backend: Added `POST /api/v1/ai/chat` endpoint and schemas (`ChatMessage`, `ChatRequest`, `ChatResponse`). Injects live financial telemetry (spending velocity, deficit status, remaining budget, top categories) into provider prompts with structured affordability calculation and deficit recovery plans.
+  - Frontend: Created `AskBudgetBrainChat.tsx` mounted globally in `AppShell.tsx` featuring a floating action button (`✨ Ask BudgetBrain`), live financial telemetry strip, quick question chips, and interactive chat history.
+- **Automated Verification**:
+  - Backend pytest: **50 / 50 tests passing (100%)** including `test_ai_chat_endpoint` and `test_suggest_budget_endpoint`.
+  - Frontend production build: **14 / 14 pages compiled cleanly with 0 errors** via `next build`.
+
+

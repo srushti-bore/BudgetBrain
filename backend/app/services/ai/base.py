@@ -6,7 +6,13 @@ Supports Gemini, OpenAI, Anthropic Claude, and rule-based fallback.
 """
 
 from abc import ABC, abstractmethod
-from app.schemas.ai import FinancialInsight, SuggestBudgetResponse, SuggestCategoryResponse
+from app.schemas.ai import (
+    ChatMessage,
+    ChatResponse,
+    FinancialInsight,
+    SuggestBudgetResponse,
+    SuggestCategoryResponse,
+)
 
 
 class BaseLLMProvider(ABC):
@@ -68,3 +74,15 @@ class BaseLLMProvider(ABC):
         Suggest realistic monthly and daily budget caps based on past transactions.
         """
         pass
+
+    @abstractmethod
+    async def chat(
+        self,
+        messages: list[ChatMessage],
+        financial_context: dict,
+    ) -> ChatResponse:
+        """
+        FR-AI-5: Multi-turn conversational financial advice with user context.
+        """
+        pass
+

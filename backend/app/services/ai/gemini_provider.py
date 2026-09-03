@@ -7,7 +7,13 @@ via official REST API with zero external client dependencies.
 
 import json
 import httpx
-from app.schemas.ai import FinancialInsight, SuggestBudgetResponse, SuggestCategoryResponse
+from app.schemas.ai import (
+    ChatMessage,
+    ChatResponse,
+    FinancialInsight,
+    SuggestBudgetResponse,
+    SuggestCategoryResponse,
+)
 from app.services.ai.base import BaseLLMProvider
 from app.services.ai.rules_provider import RulesProvider
 
@@ -221,4 +227,142 @@ Return ONLY raw JSON with structure:
         daily_avg: float,
         top_categories: list[dict],
     ) -> SuggestBudgetResponse:
+        if not self.api_key:
+            return await self.fallback.suggest_budget(monthly_spend, daily_avg, top_categories)
+
+        prompt = f"""
+You are BudgetBrain AI, a certified financial planning advisor.
+Recommend realistic monthly and daily budget limits based on the user's spending trends:
+- Current Monthly Spend: {monthly_spend}
+- Daily Spending Average: {daily_avg}
+- Top Categories: {json.dumps(top_categories)}
+
+Output strictly valid JSON:
+{{
+  "recommended_monthly_limit": 35000.0,
+  "recommended_daily_limit": 1100.0,
+  "estimated_savings_rate": 15.0,
+  "rationale": "2-sentence clear explanation with specific savings numbers."
+}}
+"""
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model_name}:generateContent?key={self.api_key}"
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {
+                "temperature": 0.2,
+                "response_mime_type": "application/json",
+            },
+        }
+
+        try:
+            async with httpx.AsyncClient(timeout=8.0) as client:
+                res = await client.post(url, json=payload)
+                if res.status_code == 200:
+                    data = res.json()
+                    candidates = data.get("candidates", [])
+                    if candidates:
+                        parts = candidates[0].get("content", {}).get("parts", [])
+                        if parts:
+                            raw = parts[0].get("text", "").strip()
+                            if raw.startswith("```"):
+                                lines = raw.splitlines()
+                                if lines[0].startswith("```"):
+                                    lines = lines[1:]
+                                if lines and lines[-1].strip() == "```":
+                                    lines = lines[:-1]
+                                raw = "\n".join(lines).strip()
+                            parsed = json.loads(raw)
+                            return SuggestBudgetResponse(
+                                recommended_monthly_limit=float(parsed["recommended_monthly_limit"]),
+                                recommended_daily_limit=float(parsed["recommended_daily_limit"]),
+                                estimated_savings_rate=float(parsed.get("estimated_savings_rate", 15.0)),
+                                rationale=parsed.get("rationale", "Calculated by Gemini AI based on your spending."),
+                            )
+        except Exception as e:
+            print(f"[GeminiProvider] suggest_budget warning: {e}, using fallback.")
+
         return await self.fallback.suggest_budget(monthly_spend, daily_avg, top_categories)
+
+    async def chat(
+        self,
+        messages: list[ChatMessage],
+        financial_context: dict,
+    ) -> ChatResponse:
+        if not self.api_key:
+            return await self.fallback.chat(messages, financial_context)
+
+        sym = financial_context.get("currency_symbol", "₹")
+        user_name = financial_context.get("user_name", "User")
+        total_spent = financial_context.get("total_spent", 0.0)
+        monthly_budget = financial_context.get("monthly_budget")
+        remaining_budget = financial_context.get("remaining_budget")
+        daily_average = financial_context.get("daily_average", 0.0)
+        top_cats = financial_context.get("top_categories", [])
+
+        system_instruction = f"""
+You are BudgetBrain AI, a sharp, supportive personal finance assistant built into BudgetBrain.
+You have real-time access to the user's financial telemetry:
+- User Name: {user_name}
+- Currency: {sym}
+- Total Spent This Month: {sym}{total_spent:,.2f}
+- Monthly Budget Limit: {f"{sym}{monthly_budget:,.2f}" if monthly_budget else "Not set"}
+- Remaining Balance: {f"{sym}{remaining_budget:,.2f}" if remaining_budget is not None else "N/A"}
+- Deficit Status: {"YES, IN DEFICIT of " + str(abs(remaining_budget)) if remaining_budget and remaining_budget < 0 else "NO DEFICIT"}
+- Daily Average Spend: {sym}{daily_average:,.2f}
+- Top Spending Categories: {json.dumps(top_cats)}
+
+Instructions:
+1. Answer questions directly using their exact numbers.
+2. If asked "Can I afford X", compute remaining budget minus X and state clearly whether it will cause a deficit.
+3. Keep responses concise, well-formatted with markdown bolding, and encouraging.
+4. Output JSON with fields:
+   - "reply": Markdown formatted answer string
+   - "suggested_actions": Array of 3 short follow-up prompts user might ask next (e.g. ["Can I afford ₹2,000?", "Where is my money going?"])
+"""
+
+        # Convert messages to Gemini format
+        contents = [{"parts": [{"text": system_instruction}]}]
+        for msg in messages:
+            role = "user" if msg.role == "user" else "model"
+            contents.append({"role": role, "parts": [{"text": msg.content}]})
+
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model_name}:generateContent?key={self.api_key}"
+        payload = {
+            "contents": contents,
+            "generationConfig": {
+                "temperature": 0.4,
+                "response_mime_type": "application/json",
+            },
+        }
+
+        try:
+            async with httpx.AsyncClient(timeout=12.0) as client:
+                res = await client.post(url, json=payload)
+                if res.status_code == 200:
+                    data = res.json()
+                    candidates = data.get("candidates", [])
+                    if candidates:
+                        parts = candidates[0].get("content", {}).get("parts", [])
+                        if parts:
+                            raw = parts[0].get("text", "").strip()
+                            if raw.startswith("```"):
+                                lines = raw.splitlines()
+                                if lines[0].startswith("```"):
+                                    lines = lines[1:]
+                                if lines and lines[-1].strip() == "```":
+                                    lines = lines[:-1]
+                                raw = "\n".join(lines).strip()
+                            parsed = json.loads(raw)
+                            reply = parsed.get("reply") or raw
+                            actions = parsed.get("suggested_actions") or []
+                            return ChatResponse(
+                                reply=reply,
+                                suggested_actions=actions[:3],
+                                provider=self.provider_name,
+                                model=self.model_name,
+                            )
+        except Exception as e:
+            print(f"[GeminiProvider] chat warning: {e}, using fallback.")
+
+        return await self.fallback.chat(messages, financial_context)
+

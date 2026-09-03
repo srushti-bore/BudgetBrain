@@ -524,6 +524,22 @@ export interface SuggestBudgetResponse {
   rationale: string;
 }
 
+export interface ChatMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+}
+
+export interface ChatRequest {
+  messages: ChatMessage[];
+}
+
+export interface ChatResponse {
+  reply: string;
+  suggested_actions?: string[];
+  provider: string;
+  model: string;
+}
+
 export const aiApi = {
   getInsights: async (currencySymbol: string = '₹'): Promise<InsightsResponse> => {
     const response = await apiClient.get<APIEnvelope<InsightsResponse>>('/ai/insights', {
@@ -542,5 +558,12 @@ export const aiApi = {
     const response = await apiClient.get<APIEnvelope<SuggestBudgetResponse>>('/ai/suggest-budget');
     return response.data.data;
   },
+  chat: async (messages: ChatMessage[], currencySymbol: string = '₹'): Promise<ChatResponse> => {
+    const response = await apiClient.post<APIEnvelope<ChatResponse>>('/ai/chat', { messages }, {
+      params: { currency_symbol: currencySymbol },
+    });
+    return response.data.data;
+  },
 };
+
 
