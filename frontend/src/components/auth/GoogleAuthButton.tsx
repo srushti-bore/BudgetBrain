@@ -80,12 +80,15 @@ export default function GoogleAuthButton({ text = 'continue_with', onError }: Go
         // Clear existing children before rendering
         if (googleBtnRef.current) {
           googleBtnRef.current.innerHTML = '';
+          const computedWidth = typeof window !== 'undefined'
+            ? Math.min(360, Math.max(240, Math.floor(window.innerWidth - 64)))
+            : 340;
           window.google.accounts.id.renderButton(googleBtnRef.current, {
             theme: 'outline',
             size: 'large',
             text: text,
             shape: 'pill',
-            width: 380,
+            width: computedWidth,
             logo_alignment: 'left',
           });
         }

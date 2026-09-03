@@ -81,7 +81,7 @@ class DashboardService:
             daily_limit = None
 
         total_spent = summary_data["total_spent"]
-        remaining_amt = max(Decimal("0.00"), limit_amt - total_spent)
+        remaining_amt = (limit_amt - total_spent) if limit_amt > 0 else Decimal("0.00")
 
         if limit_amt > 0:
             pct = (total_spent / limit_amt) * 100

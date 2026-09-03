@@ -22,6 +22,17 @@
   --card-bg: rgba(255, 255, 255, 0.95);
   --card-border: rgba(30, 40, 36, 0.08);
   --sidebar-bg: #FFFFFF;
+
+  /* Theme Aliases for Auth & Extended UI Components */
+  --color-bg: var(--background);
+  --color-surface: var(--card-bg);
+  --color-surface-hover: rgba(62, 114, 89, 0.05);
+  --color-border: var(--card-border);
+  --color-primary: var(--sage);
+  --color-primary-dark: var(--sage-dark);
+  --color-text-primary: var(--ink);
+  --color-text-secondary: var(--ink-muted);
+  --color-text-muted: var(--ink-muted);
 }
 
 .dark {
@@ -36,6 +47,17 @@
   --coral-light: rgba(200, 90, 72, 0.18);
   --honey-light: rgba(198, 138, 40, 0.18);
   --sky-light: rgba(74, 138, 183, 0.18);
+
+  /* Theme Aliases for Auth & Extended UI Components */
+  --color-bg: var(--background);
+  --color-surface: var(--card-bg);
+  --color-surface-hover: rgba(255, 255, 255, 0.05);
+  --color-border: var(--card-border);
+  --color-primary: var(--sage);
+  --color-primary-dark: var(--sage-dark);
+  --color-text-primary: var(--ink);
+  --color-text-secondary: var(--ink-muted);
+  --color-text-muted: var(--ink-muted);
 }
 
 @theme inline {

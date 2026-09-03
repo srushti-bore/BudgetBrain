@@ -493,15 +493,12 @@ export default function RegisterPage() {
                 </form>
 
                 {/* Divider */}
-                <div className="relative my-5">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-[var(--color-border)]" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-[var(--color-surface)] px-3 text-[var(--color-text-muted)] font-medium">
-                      Or sign up with
-                    </span>
-                  </div>
+                <div className="flex items-center gap-3 my-5">
+                  <div className="h-px flex-1 bg-[var(--color-border)] opacity-60" />
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)] select-none shrink-0">
+                    Or sign up with
+                  </span>
+                  <div className="h-px flex-1 bg-[var(--color-border)] opacity-60" />
                 </div>
 
                 {/* Google OAuth Button */}

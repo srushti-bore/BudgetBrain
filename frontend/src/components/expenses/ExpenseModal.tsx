@@ -91,7 +91,12 @@ export default function ExpenseModal({
   const initialBaseAmount = initialData ? initialData.amount : 0;
   const amountDelta = parsedBaseAmount - initialBaseAmount;
 
-  // Monthly Budget Check (Strict Enforcement)
+  // Check if expense date is in the current month
+  const now = new Date();
+  const currentMonthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const isCurrentMonth = date.startsWith(currentMonthPrefix);
+
+  // Monthly Budget Check (Strict Enforcement for current active month)
   const budgetLimit = summary?.budget_limit || 0;
   const alreadySpentWithoutThis = Math.max((summary?.total_spent || 0) - initialBaseAmount, 0);
   const projectedTotalSpent = alreadySpentWithoutThis + parsedBaseAmount;
@@ -99,8 +104,8 @@ export default function ExpenseModal({
   const projectedMonthlyPercent = budgetLimit > 0 ? Math.round((projectedTotalSpent / budgetLimit) * 100) : 0;
   
   // Strict over-budget flag
-  const isOverMonthly = budgetLimit > 0 && parsedBaseAmount > 0 && projectedTotalSpent > budgetLimit;
-  const isNearMonthly = budgetLimit > 0 && !isOverMonthly && projectedMonthlyPercent >= nearLimitThreshold;
+  const isOverMonthly = isCurrentMonth && budgetLimit > 0 && parsedBaseAmount > 0 && projectedTotalSpent > budgetLimit;
+  const isNearMonthly = isCurrentMonth && budgetLimit > 0 && !isOverMonthly && projectedMonthlyPercent >= nearLimitThreshold;
 
   // Daily Limit Check
   const isToday = date === getTodayDateString();
@@ -129,14 +134,6 @@ export default function ExpenseModal({
     }
     if (date > getTodayDateString()) {
       setErrorMsg('Expense date cannot be in the future');
-      return;
-    }
-
-    // Strict Budget Cap Enforcement: Block over-budget submission
-    if (isOverMonthly) {
-      setErrorMsg(
-        `🚫 Transaction Blocked: You cannot log this expense of ${formatCurrency(parsedViewAmount)}. Your remaining monthly budget is only ${formatCurrency(remainingBudget)} (Monthly Cap: ${formatCurrency(budgetLimit)}). Budget deficit / negative balance is not allowed.`
-      );
       return;
     }
 
@@ -171,7 +168,7 @@ export default function ExpenseModal({
       setNewCatName('');
       setIsAddingCategory(false);
     } catch (err: any) {
-      alert(err?.response?.data?.error?.message || 'Failed to create category');
+      setErrorMsg(err?.response?.data?.error?.message || 'Failed to create category');
     } finally {
       setCatCreating(false);
     }
@@ -266,15 +263,18 @@ export default function ExpenseModal({
                 exit={{ opacity: 0, height: 0 }}
                 className="space-y-2"
               >
-                {/* Monthly Threshold Alert / Block Banner */}
+                {/* Monthly Threshold Alert / Deficit Banner */}
                 {isOverMonthly ? (
                   <div className="p-3.5 rounded-xl border border-coral/50 bg-coral-light/90 dark:bg-coral/25 text-coral flex items-start gap-3 shadow-xs">
-                    <ShieldAlert className="w-5 h-5 mt-0.5 shrink-0 text-coral animate-bounce" />
+                    <Flame className="w-5 h-5 mt-0.5 shrink-0 text-coral" />
                     <div>
-                      <span className="font-bold text-sm block">🚫 Budget Limit Exceeded — Transaction Blocked!</span>
+                      <span className="font-bold text-sm block">⚠️ Monthly Budget Exceeded — Deficit Balance</span>
                       <p className="mt-1 leading-relaxed text-[11px]">
-                        This expense of <strong>{formatCurrency(parsedViewAmount)}</strong> exceeds your remaining monthly budget (<strong>{formatCurrency(remainingBudget)}</strong>).
-                        Total monthly spending cannot exceed your <strong>{formatCurrency(budgetLimit)}</strong> cap. Please reduce the expense amount.
+                        This transaction will bring total monthly spend to{' '}
+                        <strong>{formatCurrency(projectedTotalSpent)}</strong> (
+                        <strong>{projectedMonthlyPercent}%</strong> of your{' '}
+                        {formatCurrency(budgetLimit)} budget). Your monthly balance will go into a deficit of{' '}
+                        <strong className="underline">{formatCurrency(budgetLimit - projectedTotalSpent)}</strong>.
                       </p>
                     </div>
                   </div>
@@ -434,10 +434,10 @@ export default function ExpenseModal({
             </button>
             <button
               type="submit"
-              disabled={isSubmitting || isOverMonthly}
+              disabled={isSubmitting}
               className={`px-5 py-2.5 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                 isOverMonthly
-                  ? 'bg-coral shadow-coral/20'
+                  ? 'bg-coral hover:bg-coral-dark shadow-coral/20'
                   : 'bg-sage hover:bg-sage-dark shadow-sage/20'
               }`}
             >
@@ -445,13 +445,13 @@ export default function ExpenseModal({
                 <span>Saving...</span>
               ) : isOverMonthly ? (
                 <>
-                  <ShieldAlert className="w-3.5 h-3.5" />
-                  <span>Exceeds Budget (Blocked)</span>
+                  <Flame className="w-3.5 h-3.5" />
+                  <span>{initialData ? 'Update Expense (Over Budget)' : 'Log Expense (Over Budget)'}</span>
                 </>
               ) : isNearMonthly ? (
                 <>
                   <AlertTriangle className="w-3.5 h-3.5" />
-                  <span>Log Expense</span>
+                  <span>{initialData ? 'Update Expense' : 'Log Expense'}</span>
                 </>
               ) : (
                 <span>{initialData ? 'Update Expense' : 'Log Expense'}</span>

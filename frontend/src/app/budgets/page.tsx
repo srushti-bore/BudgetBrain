@@ -6,6 +6,7 @@ import { budgetApi, categoryApi } from '@/lib/api';
 import { Budget, Category } from '@/types';
 import { useFormatCurrency, useCurrency } from '@/providers/CurrencyProvider';
 import { Target, Plus, CheckCircle, AlertTriangle, Flame, Edit2, ShieldAlert } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function BudgetsPage() {
   const formatCurrency = useFormatCurrency();
@@ -18,6 +19,12 @@ export default function BudgetsPage() {
   const [dailyLimitAmount, setDailyLimitAmount] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'warning' | 'error' } | null>(null);
+
+  const showToast = (text: string, type: 'success' | 'warning' | 'error' = 'success') => {
+    setToastMessage({ text, type });
+    setTimeout(() => setToastMessage(null), 4000);
+  };
 
   const { data: budgets = [], isLoading: isBudgetsLoading } = useQuery({
     queryKey: ['budgets'],
@@ -84,6 +91,12 @@ export default function BudgetsPage() {
         period_type: 'monthly',
       });
       setIsModalOpen(false);
+      showToast(
+        selectedCatId === 'overall'
+          ? 'Master monthly & daily budget saved successfully!'
+          : 'Category budget limit updated successfully!',
+        'success'
+      );
     } catch (err: any) {
       setErrorMsg(err?.response?.data?.error?.message || 'Failed to save budget limit');
     } finally {
@@ -114,7 +127,26 @@ export default function BudgetsPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12">
+    <div className="space-y-6 max-w-7xl mx-auto pb-12 relative">
+      {/* Toast Notification (Center Top) */}
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            className={`fixed top-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2.5 text-xs sm:text-sm font-bold border backdrop-blur-md transition-all ${
+              toastMessage.type === 'success'
+                ? 'bg-sage-light text-sage border-sage/40 dark:bg-sage/20 dark:text-sage shadow-sage/10'
+                : 'bg-coral-light text-coral border-coral/40 dark:bg-coral/20 dark:text-coral shadow-coral/10'
+            }`}
+          >
+            <CheckCircle className="w-4 h-4" />
+            <span>{toastMessage.text}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -178,8 +210,14 @@ export default function BudgetsPage() {
               </div>
 
               <div className="bg-white/60 dark:bg-white/5 p-4 rounded-xl border border-ink/5 dark:border-white/10">
-                <span className="text-xs text-ink-muted font-medium block">Remaining Limit</span>
-                <span className="font-display font-extrabold text-2xl text-sage block mt-0.5">
+                <span className="text-xs text-ink-muted font-medium block">
+                  {(overallBudget.remaining_amount ?? 0) < 0 ? 'Monthly Deficit' : 'Remaining Limit'}
+                </span>
+                <span
+                  className={`font-display font-extrabold text-2xl block mt-0.5 ${
+                    (overallBudget.remaining_amount ?? 0) < 0 ? 'text-coral' : 'text-sage'
+                  }`}
+                >
                   {formatCurrency(overallBudget.remaining_amount || 0)}
                 </span>
               </div>
@@ -225,7 +263,8 @@ export default function BudgetsPage() {
             const existing = categoryBudgets.find((b) => b.category_id === cat.id);
             const spent = existing?.spent_amount || 0;
             const limit = existing?.limit_amount || 0;
-            const percentage = limit > 0 ? Math.min(Math.round((spent / limit) * 100), 999) : 0;
+            const percentage = limit > 0 ? Math.round((spent / limit) * 100) : 0;
+            const isOver = limit > 0 && spent > limit;
 
             return (
               <div key={cat.id} className="glass-card p-5 flex flex-col justify-between">
@@ -243,7 +282,11 @@ export default function BudgetsPage() {
                     <div className="space-y-2 mt-2">
                       <div className="flex items-center justify-between text-xs font-medium">
                         <span className="text-ink-muted">Spent: {formatCurrency(spent)}</span>
-                        <span className="text-ink font-semibold">Limit: {formatCurrency(limit)}</span>
+                        {isOver ? (
+                          <span className="text-coral font-bold">Deficit: {formatCurrency(limit - spent)}</span>
+                        ) : (
+                          <span className="text-ink font-semibold">Limit: {formatCurrency(limit)}</span>
+                        )}
                       </div>
                       <div className="h-2 w-full bg-ink/5 dark:bg-white/10 rounded-full overflow-hidden">
                         <div

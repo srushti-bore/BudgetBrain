@@ -356,6 +356,54 @@ export const budgetApi = {
     const response = await apiClient.patch<APIEnvelope<Budget>>(`/budgets/${id}`, data);
     return response.data.data;
   },
+  createOrUpdate: async (data: {
+    category_id?: string | null;
+    period_type?: string;
+    period_start?: string;
+    limit_amount: number;
+    daily_limit?: number | null;
+  }): Promise<Budget> => {
+    try {
+      const existingList = await budgetApi.list(data.period_start);
+      const targetCatId = data.category_id || null;
+      const match = existingList.find((b) => (b.category_id || null) === targetCatId);
+
+      if (match) {
+        return await budgetApi.update(match.id, {
+          limit_amount: data.limit_amount,
+          daily_limit: data.daily_limit !== undefined ? data.daily_limit : null,
+        });
+      }
+    } catch {
+      // Fallback to create if list fails
+    }
+
+    try {
+      const payload: any = {
+        category_id: data.category_id || null,
+        period_type: data.period_type || 'monthly',
+        limit_amount: data.limit_amount,
+        daily_limit: data.daily_limit !== undefined ? data.daily_limit : null,
+      };
+      if (data.period_start) {
+        payload.period_start = data.period_start;
+      }
+      return await budgetApi.create(payload);
+    } catch (err: any) {
+      if (err?.response?.status === 409) {
+        const existingList = await budgetApi.list(data.period_start);
+        const targetCatId = data.category_id || null;
+        const match = existingList.find((b) => (b.category_id || null) === targetCatId);
+        if (match) {
+          return await budgetApi.update(match.id, {
+            limit_amount: data.limit_amount,
+            daily_limit: data.daily_limit !== undefined ? data.daily_limit : null,
+          });
+        }
+      }
+      throw err;
+    }
+  },
 };
 
 // ── Dashboard API ──────────────────────────────────────────────────────────

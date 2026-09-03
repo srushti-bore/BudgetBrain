@@ -54,7 +54,7 @@ export default function BudgetRing({
     return '#3E7259';
   };
 
-  const remaining = Math.max(limitAmount - spentAmount, 0);
+  const remaining = limitAmount > 0 ? limitAmount - spentAmount : 0;
 
   return (
     <div className="glass-card glass-card-hover p-6 sm:p-7 flex flex-col justify-between h-full min-h-[380px] relative overflow-hidden border-sage/20">
@@ -141,9 +141,13 @@ export default function BudgetRing({
 
         <div className="p-3 rounded-xl bg-white/70 dark:bg-white/5 border border-ink/5 dark:border-white/10 text-center">
           <span className="text-[10px] sm:text-[11px] text-ink-muted font-semibold uppercase tracking-wider block">
-            Remaining
+            {remaining < 0 ? 'Deficit' : 'Remaining'}
           </span>
-          <span className="font-display font-bold text-sm sm:text-base text-sage block mt-0.5 truncate">
+          <span
+            className={`font-display font-bold text-sm sm:text-base block mt-0.5 truncate ${
+              remaining < 0 ? 'text-coral font-extrabold' : 'text-sage'
+            }`}
+          >
             {formatCurrency(remaining)}
           </span>
         </div>

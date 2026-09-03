@@ -18,8 +18,8 @@ def helper_create_category(client: TestClient, name: str = None) -> str:
 
 
 def random_period_start() -> str:
-    year = 2030 + (hash(uuid.uuid4().hex) % 50)
-    month = (hash(uuid.uuid4().hex) % 12) + 1
+    year = 2100 + (int(uuid.uuid4().hex[:6], 16) % 2000)
+    month = (int(uuid.uuid4().hex[6:8], 16) % 12) + 1
     return f"{year:04d}-{month:02d}-01"
 
 

@@ -134,7 +134,7 @@ export default function DashboardPage() {
   const dailyLimitPercent = dailyCap > 0
     ? Math.min(Math.round((dailySpent / dailyCap) * 100), 999)
     : 0;
-  const dailyRemaining = Math.max(dailyCap - dailySpent, 0);
+  const dailyRemaining = dailyCap > 0 ? dailyCap - dailySpent : 0;
   const dailyExceeded = dailyCap > 0 && dailySpent > dailyCap;
   const dailyNearLimit = dailyCap > 0 && !dailyExceeded && dailyLimitPercent >= nearLimitThreshold;
 
@@ -359,8 +359,10 @@ export default function DashboardPage() {
               </div>
               <div className="w-px h-8 bg-ink/8 dark:bg-white/10" />
               <div>
-                <span className="text-[10px] text-ink-muted font-semibold uppercase tracking-wider block">Remaining</span>
-                <span className={`font-display font-bold text-sm ${dailyRemaining === 0 ? 'text-coral' : 'text-sage'}`}>
+                <span className="text-[10px] text-ink-muted font-semibold uppercase tracking-wider block">
+                  {dailyRemaining < 0 ? 'Daily Deficit' : 'Remaining'}
+                </span>
+                <span className={`font-display font-bold text-sm ${dailyRemaining < 0 ? 'text-coral font-extrabold' : 'text-sage'}`}>
                   {formatCurrency(dailyRemaining)}
                 </span>
               </div>

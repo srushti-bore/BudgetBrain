@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { expenseApi, categoryApi, ExpenseQueryParams } from '@/lib/api';
 import { Expense, Category } from '@/types';
@@ -26,7 +27,8 @@ import {
   X,
 } from 'lucide-react';
 
-export default function ExpensesPage() {
+function ExpensesContent() {
+  const searchParams = useSearchParams();
   const formatCurrency = useFormatCurrency();
   const { currency, convertToBase } = useCurrency();
   const queryClient = useQueryClient();
@@ -51,6 +53,15 @@ export default function ExpensesPage() {
   const [deletingExpense, setDeletingExpense] = useState<Expense | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'warning' | 'error' } | null>(null);
+
+  // Auto-open modal if navigated with ?action=new or ?action=add
+  useEffect(() => {
+    const action = searchParams.get('action');
+    if (action === 'new' || action === 'add') {
+      setEditingExpense(null);
+      setIsModalOpen(true);
+    }
+  }, [searchParams]);
 
   const { nearLimitThreshold = 80 } = useSettings();
 
@@ -379,88 +390,161 @@ export default function ExpensesPage() {
             </button>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="bg-ink/5 dark:bg-white/5 text-ink-muted font-semibold border-b border-ink/5 dark:border-white/10">
-                  <th className="py-3 px-4">Title & Details</th>
-                  <th className="py-3 px-4">Category</th>
-                  <th className="py-3 px-4">Date</th>
-                  <th className="py-3 px-4">Payment</th>
-                  <th className="py-3 px-4 text-right">Amount</th>
-                  <th className="py-3 px-4 text-center">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-ink/5 dark:divide-white/5 relative">
-                <AnimatePresence mode="popLayout">
+          <div>
+            {/* Mobile View: Clean Touch-Friendly Cards */}
+            <div className="md:hidden divide-y divide-ink/5 dark:divide-white/5">
+              <AnimatePresence mode="popLayout">
                 {expenses.map((expense) => (
-                  <motion.tr
+                  <motion.div
                     key={expense.id}
                     layout
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, x: -15 }}
                     transition={{ duration: 0.2 }}
-                    className="hover:bg-white/50 dark:hover:bg-white/5 transition-colors"
+                    className="p-4 space-y-2.5 hover:bg-white/50 dark:hover:bg-white/5 transition-colors"
                   >
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-sm text-ink">{expense.title}</span>
-                        {expense.is_recurring && (
-                          <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-sage-light text-sage text-[10px] font-extrabold border border-sage/30">
-                            <Repeat className="w-3 h-3" /> Recurring
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-bold text-sm text-ink">{expense.title}</span>
+                          {expense.is_recurring && (
+                            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-sage-light text-sage text-[10px] font-extrabold border border-sage/30">
+                              <Repeat className="w-3 h-3" /> Recurring
+                            </span>
+                          )}
+                        </div>
+                        {expense.notes && (
+                          <p className="text-[11px] text-ink-muted mt-0.5 line-clamp-2">{expense.notes}</p>
+                        )}
+                      </div>
+                      <span className="font-display font-extrabold text-base text-coral shrink-0">
+                        -{formatCurrency(expense.amount)}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1 border-t border-ink/5 dark:border-white/5 text-xs text-ink-muted">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="px-2 py-0.5 rounded bg-sage-light text-ink border border-sage/30 text-[10px] font-semibold">
+                          {expense.category_name || 'Uncategorized'}
+                        </span>
+                        <span>{formatDate(expense.date)}</span>
+                        {expense.payment_mode && (
+                          <span className="uppercase text-[10px] font-bold px-1.5 py-0.5 rounded bg-ink/10 dark:bg-white/10 text-ink">
+                            {expense.payment_mode}
                           </span>
                         )}
                       </div>
-                      {expense.notes && (
-                        <span className="text-[11px] text-ink-muted line-clamp-1 mt-0.5">{expense.notes}</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className="px-2.5 py-1 rounded-lg bg-sage-light text-ink border border-sage/30 text-[11px] font-semibold">
-                        {expense.category_name || 'Uncategorized'}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-ink-muted font-medium">
-                      {formatDate(expense.date)}
-                    </td>
-                    <td className="py-3 px-4">
-                      {expense.payment_mode ? (
-                        <span className="uppercase text-[10px] font-bold px-2 py-0.5 rounded bg-ink/10 dark:bg-white/10 text-ink">
-                          {expense.payment_mode}
-                        </span>
-                      ) : (
-                        <span className="text-ink-muted/50">—</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      <span className="font-display font-extrabold text-sm text-coral">
-                        -{formatCurrency(expense.amount)}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      <div className="flex items-center justify-center gap-1">
+
+                      {/* Mobile Action Buttons */}
+                      <div className="flex items-center gap-2 shrink-0">
                         <button
+                          type="button"
                           onClick={() => handleOpenEdit(expense)}
-                          className="p-1.5 rounded-lg hover:bg-sage/20 text-sage font-bold transition-colors"
+                          className="p-1.5 rounded-lg bg-sage/10 text-sage hover:bg-sage/20 transition-colors"
                           title="Edit Expense"
                         >
-                          <Edit2 className="w-4 h-4" />
+                          <Edit2 className="w-3.5 h-3.5" />
                         </button>
                         <button
+                          type="button"
                           onClick={() => setDeletingExpense(expense)}
-                          className="p-1.5 rounded-lg hover:bg-coral/20 text-coral font-bold transition-colors cursor-pointer"
+                          className="p-1.5 rounded-lg bg-coral/10 text-coral hover:bg-coral/20 transition-colors cursor-pointer"
                           title="Delete Expense"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
-                    </td>
-                  </motion.tr>
+                    </div>
+                  </motion.div>
                 ))}
-                </AnimatePresence>
-              </tbody>
-            </table>
+              </AnimatePresence>
+            </div>
+
+            {/* Desktop View: Full Data Table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-ink/5 dark:bg-white/5 text-ink-muted font-semibold border-b border-ink/5 dark:border-white/10">
+                    <th className="py-3 px-4">Title & Details</th>
+                    <th className="py-3 px-4">Category</th>
+                    <th className="py-3 px-4">Date</th>
+                    <th className="py-3 px-4">Payment</th>
+                    <th className="py-3 px-4 text-right">Amount</th>
+                    <th className="py-3 px-4 text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-ink/5 dark:divide-white/5 relative">
+                  <AnimatePresence mode="popLayout">
+                  {expenses.map((expense) => (
+                    <motion.tr
+                      key={expense.id}
+                      layout
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, x: -15 }}
+                      transition={{ duration: 0.2 }}
+                      className="hover:bg-white/50 dark:hover:bg-white/5 transition-colors"
+                    >
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-sm text-ink">{expense.title}</span>
+                          {expense.is_recurring && (
+                            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-sage-light text-sage text-[10px] font-extrabold border border-sage/30">
+                              <Repeat className="w-3 h-3" /> Recurring
+                            </span>
+                          )}
+                        </div>
+                        {expense.notes && (
+                          <span className="text-[11px] text-ink-muted line-clamp-1 mt-0.5">{expense.notes}</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="px-2.5 py-1 rounded-lg bg-sage-light text-ink border border-sage/30 text-[11px] font-semibold">
+                          {expense.category_name || 'Uncategorized'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-ink-muted font-medium">
+                        {formatDate(expense.date)}
+                      </td>
+                      <td className="py-3 px-4">
+                        {expense.payment_mode ? (
+                          <span className="uppercase text-[10px] font-bold px-2 py-0.5 rounded bg-ink/10 dark:bg-white/10 text-ink">
+                            {expense.payment_mode}
+                          </span>
+                        ) : (
+                          <span className="text-ink-muted/50">—</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <span className="font-display font-extrabold text-sm text-coral">
+                          -{formatCurrency(expense.amount)}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            onClick={() => handleOpenEdit(expense)}
+                            className="p-1.5 rounded-lg hover:bg-sage/20 text-sage font-bold transition-colors"
+                            title="Edit Expense"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => setDeletingExpense(expense)}
+                            className="p-1.5 rounded-lg hover:bg-coral/20 text-coral font-bold transition-colors cursor-pointer"
+                            title="Delete Expense"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </motion.tr>
+                  ))}
+                  </AnimatePresence>
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
@@ -468,12 +552,12 @@ export default function ExpensesPage() {
         {(meta.total ?? 0) > 0 && (
           <div className="px-6 py-4 border-t border-ink/5 dark:border-white/10 flex items-center justify-between text-xs text-ink-muted">
             <span>
-              Showing {expenses.length} of {meta.total} expenses
+              Showing {expenses.length} of {meta.total} transactions
             </span>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setPage((p) => Math.max(p - 1, 1))}
-                disabled={page === 1}
+                disabled={page <= 1}
                 className="p-1.5 rounded-lg border border-ink/10 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 text-ink disabled:opacity-40 transition-colors"
               >
                 <ChevronLeft className="w-4 h-4" />
@@ -506,71 +590,88 @@ export default function ExpensesPage() {
       />
 
       {/* Delete Expense Confirmation Dialog Modal */}
-      {deletingExpense && (
-        <div className="fixed inset-0 z-50 bg-ink/40 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="glass-modal w-full max-w-md rounded-2xl p-6 shadow-2xl border-coral/40 space-y-4 relative"
-          >
-            <div className="flex items-center justify-between pb-2 border-b border-ink/10 dark:border-white/10">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-coral-light flex items-center justify-center text-coral shadow-xs">
-                  <Trash2 className="w-5 h-5" />
+      <AnimatePresence>
+        {deletingExpense && (
+          <div className="fixed inset-0 z-50 bg-ink/40 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="glass-modal w-full max-w-md rounded-2xl p-6 shadow-2xl border-coral/40 space-y-4 relative"
+            >
+              <div className="flex items-center justify-between pb-2 border-b border-ink/10 dark:border-white/10">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-coral-light flex items-center justify-center text-coral shadow-xs">
+                    <Trash2 className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-display font-bold text-lg text-ink">Delete Expense?</h3>
+                    <span className="text-[11px] text-ink-muted">This action cannot be undone</span>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-display font-bold text-lg text-ink">Delete Expense?</h3>
-                  <span className="text-[11px] text-ink-muted">This action cannot be undone</span>
+                <button
+                  onClick={() => setDeletingExpense(null)}
+                  className="p-1.5 rounded-lg hover:bg-ink/5 dark:hover:bg-white/10 text-ink-muted hover:text-ink transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Expense details preview card */}
+              <div className="p-4 rounded-xl bg-ink/5 dark:bg-white/5 border border-ink/10 dark:border-white/10 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-sm text-ink">{deletingExpense.title}</span>
+                  <span className="font-display font-extrabold text-base text-coral">
+                    -{formatCurrency(deletingExpense.amount)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-xs text-ink-muted pt-1 border-t border-ink/5 dark:border-white/5">
+                  <span>Category: <strong className="text-ink">{deletingExpense.category_name || 'Uncategorized'}</strong></span>
+                  <span>Date: <strong className="text-ink">{formatDate(deletingExpense.date)}</strong></span>
                 </div>
               </div>
-              <button
-                onClick={() => setDeletingExpense(null)}
-                className="p-1.5 rounded-lg hover:bg-ink/5 dark:hover:bg-white/10 text-ink-muted hover:text-ink transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
 
-            {/* Expense details preview card */}
-            <div className="p-4 rounded-xl bg-ink/5 dark:bg-white/5 border border-ink/10 dark:border-white/10 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-sm text-ink">{deletingExpense.title}</span>
-                <span className="font-display font-extrabold text-base text-coral">
-                  -{formatCurrency(deletingExpense.amount)}
-                </span>
+              <p className="text-xs text-ink-muted leading-relaxed">
+                Are you sure you want to permanently delete this transaction? The amount will be removed from your recorded spend and restored to your available monthly budget.
+              </p>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-ink/10 dark:border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setDeletingExpense(null)}
+                  className="px-4 py-2.5 rounded-xl border border-ink/15 dark:border-white/15 text-xs font-semibold text-ink hover:bg-white dark:hover:bg-white/10 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmDelete}
+                  disabled={isDeleting}
+                  className="px-5 py-2.5 bg-coral hover:bg-coral-dark text-white text-xs font-bold rounded-xl shadow-md shadow-coral/20 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>{isDeleting ? 'Deleting...' : 'Confirm Delete'}</span>
+                </button>
               </div>
-              <div className="flex items-center justify-between text-xs text-ink-muted pt-1 border-t border-ink/5 dark:border-white/5">
-                <span>Category: <strong className="text-ink">{deletingExpense.category_name || 'Uncategorized'}</strong></span>
-                <span>Date: <strong className="text-ink">{formatDate(deletingExpense.date)}</strong></span>
-              </div>
-            </div>
-
-            <p className="text-xs text-ink-muted leading-relaxed">
-              Are you sure you want to permanently delete this transaction? The amount will be removed from your recorded spend and restored to your available monthly budget.
-            </p>
-
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-ink/10 dark:border-white/10">
-              <button
-                type="button"
-                onClick={() => setDeletingExpense(null)}
-                className="px-4 py-2.5 rounded-xl border border-ink/15 dark:border-white/15 text-xs font-semibold text-ink hover:bg-white dark:hover:bg-white/10 transition-colors cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmDelete}
-                disabled={isDeleting}
-                className="px-5 py-2.5 bg-coral hover:bg-coral-dark text-white text-xs font-bold rounded-xl shadow-md shadow-coral/20 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span>{isDeleting ? 'Deleting...' : 'Confirm Delete'}</span>
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
+  );
+}
+
+export default function ExpensesPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3">
+          <div className="w-8 h-8 border-2 border-sage border-t-transparent rounded-full animate-spin" />
+          <span className="text-xs font-medium text-ink-muted">Loading transactions...</span>
+        </div>
+      }
+    >
+      <ExpensesContent />
+    </Suspense>
   );
 }

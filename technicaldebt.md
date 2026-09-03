@@ -218,7 +218,16 @@ The application is designed as a lightweight, single-user expense tracker using 
      - **Mode 2 (SMTP Fallback / Gmail)**: Connects via standard `smtplib` (`STARTTLS` or `SSL`) for Gmail SMTP, AWS SES, SendGrid.
   3. **Domain Typo Detection & 1-Click Auto-Fix**: Added `suggestEmailCorrection` in [`frontend/src/lib/utils.ts`](file:///d:/BudgetBrain/frontend/src/lib/utils.ts) with dictionary lookup and single-edit Levenshtein distance for popular domains (e.g. `@gnail.com` &rarr; `@gmail.com`).
   4. **Segmented UI & Instant Session Creation**: Built [`OTPInput.tsx`](file:///d:/BudgetBrain/frontend/src/components/auth/OTPInput.tsx) (auto-focus, paste extraction, digit jumping). On 6th digit, `verify_otp` endpoint marks account verified and issues both access token and HttpOnly refresh cookie for instant dashboard entry.
-- **Status**: **Resolved & Tested (44/44 backend tests passing, 0 TypeScript build errors)**.
+### TD-25: Missing `budgetApi.createOrUpdate` Method & Negative Deficit Allowance
+- **Context & Failure Mode**:
+  1. `frontend/src/app/budgets/page.tsx` called `budgetApi.createOrUpdate`, which was missing in `frontend/src/lib/api.ts`, crashing with `TypeError: mutationFn is not a function` when clicking "Save Budget Limit".
+  2. Strict server-side Anti-Deficit Guard (`BudgetExceededException`) and frontend blocking in `ExpenseModal.tsx` prevented users from logging or modifying expenses exceeding their monthly cap.
+  3. Auth card divider had transparent text background, causing the absolute border line to intersect the "OR CONTINUE WITH" text.
+- **Solution Implemented**:
+  1. Implemented `budgetApi.createOrUpdate` in `frontend/src/lib/api.ts` with automatic 409 conflict recovery.
+  2. Removed `BudgetExceededException` from `expense_service.py` to allow expenses to exceed monthly budgets. Updated `DashboardService`, `BudgetService`, and frontend components (`BudgetRing.tsx`, `page.tsx`, `budgets/page.tsx`) to calculate and display negative deficit balance (e.g. `-₹5,000.00`) with bold coral alerts.
+  3. Replaced fragile absolute-overlay auth divider with a modern flex divider in `login/page.tsx` and `register/page.tsx`.
+- **Status**: **Resolved & Tested (44/44 backend tests passing, Next.js build clean)**.
 
 ---
 

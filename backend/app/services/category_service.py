@@ -30,6 +30,18 @@ class CategoryService:
         raw_items, total = await self.repo.list_with_expense_counts(
             user_id, offset=offset, limit=page_size
         )
+
+        # Self-healing: if user has no categories, automatically seed default starter categories
+        if total == 0:
+            from app.models.category import Category
+            from app.services.auth_service import DEFAULT_STARTER_CATEGORIES
+            for cat_name, is_system in DEFAULT_STARTER_CATEGORIES:
+                self.session.add(Category(user_id=user_id, name=cat_name, is_system=is_system))
+            await self.session.commit()
+            raw_items, total = await self.repo.list_with_expense_counts(
+                user_id, offset=offset, limit=page_size
+            )
+
         items = [
             CategoryWithCountOut(
                 id=cat.id,

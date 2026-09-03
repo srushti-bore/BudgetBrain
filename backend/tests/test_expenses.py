@@ -101,10 +101,16 @@ class TestCreateExpense:
         })
         assert res.status_code == 404
 
-    def test_create_exceeding_budget_returns_400_blocked(self, client: TestClient):
-        """Verify strict budget cap blocking when expense exceeds budget."""
+    def test_create_exceeding_budget_allowed_with_negative_remaining(self, client: TestClient):
+        """Verify that expenses exceeding budget are allowed and recorded, reflecting negative deficit."""
         cat_id = helper_create_category(client)
-        test_period = "2024-11-01"
+        import uuid
+        year = 2021
+        month = (int(uuid.uuid4().hex[:4], 16) % 12) + 1
+        day = (int(uuid.uuid4().hex[4:6], 16) % 20) + 1
+        test_period = f"{year:04d}-{month:02d}-01"
+        expense_date = f"{year:04d}-{month:02d}-{day:02d}"
+
         # 1. Set budget of 500
         client.post("/api/v1/budgets", json={
             "category_id": None,
@@ -112,16 +118,25 @@ class TestCreateExpense:
             "period_start": test_period,
             "limit_amount": 500.00
         })
-        # 2. Attempt to add expense of 1000 -> must be blocked (400 BUDGET_EXCEEDED)
+        # 2. Add expense of 1000 -> allowed (201 Created)
         res = client.post(BASE_URL, json={
             "title": "Overbudget Expense",
             "amount": 1000.00,
             "category_id": cat_id,
-            "date": "2024-11-10"
+            "date": expense_date
         })
-        assert res.status_code == 400
-        err = res.json()["error"]
-        assert err["code"] == "BUDGET_EXCEEDED"
+        assert res.status_code == 201
+        data = res.json()["data"]
+        assert data["amount"] == "1000.00"
+
+        # 3. Check budget returns negative remaining amount (-500.00)
+        b_res = client.get(f"/api/v1/budgets?period_start={test_period}")
+        assert b_res.status_code == 200
+        budgets = b_res.json()["data"]
+        overall = next((b for b in budgets if b["category_id"] is None), None)
+        assert overall is not None
+        assert float(overall["remaining_amount"]) <= -500.00
+        assert overall["status"] == "over_budget"
 
 
 class TestGetExpense:

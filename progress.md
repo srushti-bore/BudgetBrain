@@ -295,7 +295,20 @@ All 13 REST API endpoints across 5 core backend modules are fully functional wit
 | `c84ca8f` | feat(i18n): add multilingual localization with Gujarati, Marwadi, German, Marathi, Hindi and simple 3D logo |
 | `d81f6b0` | feat(ui): add gentle floating 3D animation, light shimmer sweep, and synaptic pulse to BrainLogo3D |
 | `81c04d1` | test(postman): create complete Postman collection v2.1.0 and environment configs for local and prod API testing |
-| `2a1a5c0` | feat(auth): add strict email verification, 6-digit OTP suite, smart typo auto-fix, and Resend SMTP support |
-| `06c3398` | feat(email): add high-speed Resend REST API integration for port-proof cloud delivery |
-| `17322ca` | fix(email): ensure robust fallback for from_email and add explicit Resend delivery logging |
+## Phase 31: Budget Save Resolution, Negative Deficit Balance & Expense Management UX
+
+- **Budget Save Engine Fix**:
+  - Implemented `budgetApi.createOrUpdate` in `frontend/src/lib/api.ts` to seamlessly manage creating or updating monthly and daily budgets without 409 conflict crashes.
+  - Added instant top-center toast notification confirming budget limit save operations.
+- **Negative Deficit Balance Allowance**:
+  - Removed strict blocking on over-budget transactions. Expenses exceeding monthly or daily budgets are now permitted and recorded without error.
+  - Updated `DashboardService`, `BudgetService`, `BudgetRing`, and `page.tsx` to calculate and render negative remaining amounts (e.g. `-₹5,000.00`) labeled as **"Deficit"** / **"Monthly Deficit"** in bold coral styling.
+  - Updated `ExpenseModal` to display clear deficit warnings (`⚠️ Monthly Budget Exceeded — Deficit Balance`) with projected negative balance while keeping the submit button enabled (`Log Expense (Over Budget)`).
+- **Expense UX & Navigation Enhancements**:
+  - Added `useSearchParams` hook wrapped in Next.js `<Suspense>` on `/expenses` to automatically open the `ExpenseModal` when navigated via `?action=new` from the Dashboard.
+  - Added responsive touch-friendly mobile cards (`md:hidden`) with dedicated Edit and Delete buttons to prevent horizontal scrolling on small viewports.
+  - Added self-healing category auto-seeding in `category_service.py` so a user is never left with an empty category list.
+- **Automated Verification**:
+  - Frontend compiled cleanly with 0 errors across all 14 routes (`npm run build`).
+  - Backend pytest suite passing 44/44 tests (100%), including unit test verifying over-budget expense allowance and negative deficit calculation.
 

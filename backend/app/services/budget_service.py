@@ -53,7 +53,7 @@ class BudgetService:
             date_to=period_end,
             category_id=budget.category_id,
         )
-        remaining = max(Decimal("0.00"), budget.limit_amount - spent)
+        remaining = (budget.limit_amount - spent) if budget.limit_amount > 0 else Decimal("0.00")
         status = self._calculate_status(budget.limit_amount, spent)
 
         if category_name is None and budget.category_id:
