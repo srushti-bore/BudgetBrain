@@ -65,6 +65,15 @@ class Settings(BaseSettings):
     FRONTEND_URL: str = "http://localhost:3000"
 
 
+    # ── AI Engine Configuration (SRS §3.7) ────────────────────────────────────
+    AI_PROVIDER: str = "gemini"  # Options: 'gemini', 'openai', 'anthropic', 'rules'
+    AI_MODEL: str = ""  # Optional model override (e.g. gemini-1.5-flash, gpt-4o-mini, claude-3-5-haiku-20241022)
+    AI_TEMPERATURE: float = 0.3
+    GEMINI_API_KEY: str = ""
+    OPENAI_API_KEY: str = ""
+    OPENAI_BASE_URL: str = ""  # For Ollama, Groq, vLLM, DeepSeek
+    ANTHROPIC_API_KEY: str = ""
+
     # ── Pagination ───────────────────────────────────────────────────────────
     DEFAULT_PAGE_SIZE: int = 20
     MAX_PAGE_SIZE: int = 100

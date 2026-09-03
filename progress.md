@@ -312,3 +312,20 @@ All 13 REST API endpoints across 5 core backend modules are fully functional wit
   - Frontend compiled cleanly with 0 errors across all 14 routes (`npm run build`).
   - Backend pytest suite passing 44/44 tests (100%), including unit test verifying over-budget expense allowance and negative deficit calculation.
 
+## Phase 32: Provider-Agnostic AI Financial Intelligence Engine & Feature 1 (Smart Financial Insights)
+
+- **Provider-Agnostic Architecture (SRS §3.7 & FR-AI-1)**:
+  - Designed `BaseLLMProvider` interface and decoupled implementations for **Google Gemini** (`gemini-1.5-flash`), **OpenAI** (`gpt-4o-mini` and OpenAI-compatible endpoints like Ollama/Groq), and **Anthropic Claude** (`claude-3-5-haiku`).
+  - Built an intelligent, zero-cost mathematical rules fallback provider (`RulesProvider`) that evaluates deficit status, daily spending velocity, and category concentration without requiring any external network or API keys.
+  - Implemented dynamic environment-driven factory `get_ai_provider()` in `app.services.ai.factory` driven by `AI_PROVIDER`, `GEMINI_API_KEY`, `OPENAI_API_KEY`, and `ANTHROPIC_API_KEY`.
+- **Feature 1: Smart Financial Insights & Savings Advisor (FR-AI-2)**:
+  - Built backend endpoint `GET /api/v1/ai/insights` delivering 3 structured, personalized advice chips (💡 Savings Tip, ⚠️ Deficit Alert, 🎯 Spending Velocity).
+  - Built endpoints `POST /api/v1/ai/suggest-category` and `GET /api/v1/ai/suggest-budget` for upcoming phases.
+  - Created glassmorphic `AiInsightsWidget.tsx` mounted prominently on the Dashboard with active provider pill, severity color accents, and real-time refresh.
+- **Documentation Updates**:
+  - Updated `docs/BudgetBrain_PRD_Final.md` with Section 7.7 AI Financial Intelligence Roadmap.
+  - Updated `docs/BudgetBrain_SRS.md` with Section 3.7 (FR-AI-1 to FR-AI-5, NFR-AI-1) and Section 5.2 API endpoints table.
+- **Verification**:
+  - Backend test suite: 49 / 49 tests passing (100%), including new test suite `tests/test_ai.py`.
+  - Frontend production build: 14 / 14 pages compiled (0 errors) via `next build`.
+

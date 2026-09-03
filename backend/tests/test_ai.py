@@ -1,0 +1,84 @@
+"""
+BudgetBrain — Pytest AI Financial Intelligence Test Suite
+
+Tests:
+  - Provider Factory Resolution (Gemini, OpenAI, Claude, Rules Fallback)
+  - GET /api/v1/ai/insights (Returns structured advice cards)
+  - POST /api/v1/ai/suggest-category (Predicts category from title)
+  - GET /api/v1/ai/suggest-budget (Recommends limits)
+  - Multi-tenant data isolation on AI insights
+"""
+
+import pytest
+from fastapi.testclient import TestClient
+
+from app.config import Settings
+from app.services.ai.anthropic_provider import AnthropicProvider
+from app.services.ai.factory import get_ai_provider
+from app.services.ai.gemini_provider import GeminiProvider
+from app.services.ai.openai_provider import OpenAIProvider
+from app.services.ai.rules_provider import RulesProvider
+
+
+def test_ai_provider_factory_resolution():
+    # 1. Default without keys -> RulesProvider
+    s1 = Settings(DATABASE_URL="postgresql+asyncpg://mock/db", AI_PROVIDER="gemini", GEMINI_API_KEY="")
+    p1 = get_ai_provider(s1)
+    assert isinstance(p1, RulesProvider)
+    assert p1.provider_name == "rules"
+
+    # 2. Gemini with key -> GeminiProvider
+    s2 = Settings(DATABASE_URL="postgresql+asyncpg://mock/db", AI_PROVIDER="gemini", GEMINI_API_KEY="test-gemini-key")
+    p2 = get_ai_provider(s2)
+    assert isinstance(p2, GeminiProvider)
+    assert p2.provider_name == "gemini"
+
+    # 3. OpenAI with key -> OpenAIProvider
+    s3 = Settings(DATABASE_URL="postgresql+asyncpg://mock/db", AI_PROVIDER="openai", OPENAI_API_KEY="test-openai-key")
+    p3 = get_ai_provider(s3)
+    assert isinstance(p3, OpenAIProvider)
+    assert p3.provider_name == "openai"
+
+    # 4. Anthropic with key -> AnthropicProvider
+    s4 = Settings(DATABASE_URL="postgresql+asyncpg://mock/db", AI_PROVIDER="anthropic", ANTHROPIC_API_KEY="test-claude-key")
+    p4 = get_ai_provider(s4)
+    assert isinstance(p4, AnthropicProvider)
+    assert p4.provider_name == "anthropic"
+
+
+def test_get_financial_insights_endpoint(client: TestClient):
+    res = client.get("/api/v1/ai/insights?currency_symbol=₹")
+    assert res.status_code == 200, res.text
+    data = res.json()["data"]
+    assert "provider" in data
+    assert "insights" in data
+    assert isinstance(data["insights"], list)
+    assert len(data["insights"]) > 0
+
+    first = data["insights"][0]
+    assert "title" in first
+    assert "message" in first
+    assert "icon" in first
+    assert "severity" in first
+
+
+def test_suggest_category_endpoint(client: TestClient):
+    res = client.post(
+        "/api/v1/ai/suggest-category",
+        json={"title": "Swiggy Gourmet Dinner", "amount": 450.0},
+    )
+    assert res.status_code == 200, res.text
+    data = res.json()["data"]
+    assert "suggested_category" in data
+    assert data["confidence"] > 0
+    assert "reasoning" in data
+
+
+def test_suggest_budget_endpoint(client: TestClient):
+    res = client.get("/api/v1/ai/suggest-budget")
+    assert res.status_code == 200, res.text
+    data = res.json()["data"]
+    assert "recommended_monthly_limit" in data
+    assert "recommended_daily_limit" in data
+    assert data["recommended_monthly_limit"] > 0
+    assert data["recommended_daily_limit"] > 0

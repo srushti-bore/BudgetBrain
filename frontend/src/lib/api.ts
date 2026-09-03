@@ -488,3 +488,58 @@ export const dashboardApi = {
     }));
   },
 };
+
+
+// ── AI Financial Intelligence API ──────────────────────────────────────────
+export interface FinancialInsight {
+  id: string;
+  type: 'saving_tip' | 'deficit_alert' | 'spending_velocity' | 'category_focus';
+  title: string;
+  message: string;
+  icon: 'lightbulb' | 'alert-triangle' | 'trending-up' | 'pie-chart';
+  severity: 'info' | 'warning' | 'opportunity' | 'critical';
+  metric?: string;
+}
+
+export interface InsightsResponse {
+  provider: string;
+  model: string;
+  insights: FinancialInsight[];
+  summary: string;
+  generated_at: string;
+}
+
+export interface SuggestCategoryResponse {
+  suggested_category: string;
+  confidence: number;
+  suggested_payment_mode?: string;
+  reasoning?: string;
+}
+
+export interface SuggestBudgetResponse {
+  recommended_monthly_limit: number;
+  recommended_daily_limit: number;
+  estimated_savings_rate: number;
+  rationale: string;
+}
+
+export const aiApi = {
+  getInsights: async (currencySymbol: string = '₹'): Promise<InsightsResponse> => {
+    const response = await apiClient.get<APIEnvelope<InsightsResponse>>('/ai/insights', {
+      params: { currency_symbol: currencySymbol },
+    });
+    return response.data.data;
+  },
+  suggestCategory: async (title: string, amount?: number): Promise<SuggestCategoryResponse> => {
+    const response = await apiClient.post<APIEnvelope<SuggestCategoryResponse>>('/ai/suggest-category', {
+      title,
+      amount,
+    });
+    return response.data.data;
+  },
+  suggestBudget: async (): Promise<SuggestBudgetResponse> => {
+    const response = await apiClient.get<APIEnvelope<SuggestBudgetResponse>>('/ai/suggest-budget');
+    return response.data.data;
+  },
+};
+

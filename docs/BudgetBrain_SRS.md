@@ -157,7 +157,7 @@ BudgetBrain operates as a decoupled, multi-tier cloud application:
 ### 3.3 Expense Management (FR-2 to FR-5)
 - **Full CRUD:** Create, Read (Paginated/Filtered/Sorted), Update, Delete.
 - **Fields:** `id`, `user_id`, `title`, `amount`, `category_id`, `date`, `notes`, `payment_mode`, `is_recurring`, `created_at`, `updated_at`.
-- **Anti-Deficit Protection:** Expense creation and modification verify that total monthly expenditure does not exceed the active monthly budget limit. If exceeded, returns `HTTP 400 BUDGET_EXCEEDED`.
+- **Anti-Deficit Protection:** Over-budget expenses are permitted; the remaining balance dynamically shifts to negative deficit (-₹X,XXX) with coral visual indicators across Dashboard and Budgets pages.
 - **Safe Deletion:** Glassmorphic confirmation modal on UI; restores deleted amount back to active budget.
 
 ---
@@ -180,6 +180,16 @@ BudgetBrain operates as a decoupled, multi-tier cloud application:
 - **Summary Metrics:** Total spent, monthly budget remaining, daily spending average, recent 5 expenses.
 - **Charts:** Category Spend Breakdown Donut Chart (weekly/monthly toggle), Spend Trend over Time (day/week/month), Month-over-Month comparison, Top 5 spending categories.
 - **Predictive Monthly Report:** Spend velocity projection and financial health badge.
+
+---
+
+### 3.7 AI Financial Intelligence Suite (FR-AI-1 to FR-AI-5)
+- **FR-AI-1 (Provider-Agnostic LLM Engine):** Decoupled multi-provider abstraction (`LLMProvider`) supporting Google Gemini (`gemini-1.5-flash`, `gemini-2.0-flash`), OpenAI (`gpt-4o-mini`, compatible endpoints like Ollama/Groq), and Anthropic Claude (`claude-3-5-haiku`), resolved dynamically through `AI_PROVIDER` and environment variables with zero code changes.
+- **FR-AI-2 (Smart Financial Insights & Savings Advisor):** Analyzes tenant's monthly transactions, burn rate, category concentration, and deficit. Generates structured, actionable cards (💡 Savings Tip, ⚠️ Deficit Alert, 🎯 Spending Pacing).
+- **FR-AI-3 (Contextual Auto-Categorization):** Recommends category and payment mode dynamically based on expense title and historical spending patterns.
+- **FR-AI-4 (Adaptive Budget Recommendations):** Analyzes 30-day spending patterns to recommend optimal monthly limits and daily caps with 1-click apply.
+- **FR-AI-5 ("Ask BudgetBrain" Conversational Co-Pilot):** Natural language Q&A interface for financial queries (available in English and Marathi).
+- **NFR-AI-1 (Privacy & Zero-Cost Fallback):** Zero PII (names, emails, passwords) sent to external LLMs. Includes a deterministic mathematical rules fallback engine that operates seamlessly when no API key is provided or during network outages.
 
 ---
 
@@ -300,6 +310,10 @@ Error Standard: `{ "error": { "code": "ERROR_CODE", "message": "Description", "f
 | | `GET` | `/dashboard/trend` | Spend trend by day/week/month |
 | | `GET` | `/dashboard/comparison` | Month-over-month comparison |
 | | `GET` | `/dashboard/top-categories`| Top 5 spending categories |
+| **AI Insights** | `GET` | `/ai/insights` | Personalized financial savings & deficit recommendations |
+| | `POST` | `/ai/suggest-category` | Smart categorization and payment mode suggestion |
+| | `GET` | `/ai/suggest-budget` | Adaptive monthly & daily budget limit recommendations |
+| | `POST` | `/ai/chat` | Conversational financial co-pilot query response |
 
 ---
 

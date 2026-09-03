@@ -11,11 +11,12 @@ import MonthlyCategoryGraph from '@/components/dashboard/MonthlyCategoryGraph';
 import MonthComparisonCard from '@/components/dashboard/MonthComparisonCard';
 import TopCategoriesWidget from '@/components/dashboard/TopCategoriesWidget';
 import RecentExpensesSnapshot from '@/components/dashboard/RecentExpensesSnapshot';
-import { useFormatCurrency } from '@/providers/CurrencyProvider';
+import MonthlyStatsReport from '@/components/dashboard/MonthlyStatsReport';
+import AiInsightsWidget from '@/components/dashboard/AiInsightsWidget';
+import { useFormatCurrency, useCurrency } from '@/providers/CurrencyProvider';
 import { useSettings } from '@/providers/SettingsProvider';
 import { useTranslation } from '@/providers/LanguageProvider';
 import { useAuth } from '@/providers/AuthProvider';
-import MonthlyStatsReport from '@/components/dashboard/MonthlyStatsReport';
 import { Wallet, Calendar, PlusCircle, AlertCircle, Target, CheckCircle, AlertTriangle, Flame, MoreVertical, LogOut, Settings as SettingsIcon } from 'lucide-react';
 import Link from 'next/link';
 
@@ -58,6 +59,8 @@ export default function DashboardPage() {
   }, [showTopUserMenu]);
 
   const formatCurrency = useFormatCurrency();
+  const { currency } = useCurrency();
+  const currencySymbol = currency === 'USD' ? '$' : currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : '₹';
   const { showPredictiveInsights, nearLimitThreshold = 80 } = useSettings();
   const { t } = useTranslation();
 
@@ -377,6 +380,11 @@ export default function DashboardPage() {
           </div>
         </motion.div>
       ) : null}
+
+      {/* AI Financial Intelligence Widget */}
+      <motion.div variants={itemVariants}>
+        <AiInsightsWidget currencySymbol={currencySymbol} />
+      </motion.div>
 
       {/* Bento Grid Layer 1: Budget Ring & Weekly/Monthly Category Pie Chart */}
       <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-6">

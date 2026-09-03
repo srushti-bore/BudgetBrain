@@ -179,8 +179,18 @@ BudgetBrain is built on the following foundational principles:
 | **FR-20** | Spend Trend Chart | Bar/Line graph grouped by Day, Week, or Month. | P0 | As a user, I want to see spending trends over time to spot spending spikes. |
 | **FR-21** | Budget Status Ring | Dynamic multi-gradient ring displaying % spent, remaining balance, and status. | P0 | As a user, I want an animated budget ring showing my remaining balance. |
 | **FR-26** | Budget Goal Setting | Set monthly overall budget and per-category limits. | P0 | As a user, I want to set spending limits to stay disciplined. |
-| **FR-27** | Anti-Deficit Guard | Hard block (server 400 + UI modal disable) when an expense exceeds remaining budget. | P0 | As a user, I want the system to block over-budget expenses to prevent deficit. |
+| **FR-27** | Anti-Deficit Guard | Dynamic negative deficit balance tracking (-₹X,XXX) and warning cards when spending exceeds budget. | P0 | As a user, I want over-budget spending tracked in negative deficit. |
 | **FR-28** | Daily Spending Limit | Daily cap monitoring with alert cards (On Track, Near Limit, Over Limit). | P1 | As a user, I want daily spend limits to pace my spending across the month. |
+
+### 7.7 AI Financial Intelligence Suite (FR-AI-1 to FR-AI-5)
+
+| ID | Requirement | Description | Priority | User Story |
+|---|---|---|---|---|
+| **FR-AI-1** | Provider-Agnostic LLM Engine | Abstract multi-provider AI engine supporting Gemini, OpenAI, Claude, and local fallback via environment variables. | P0 | As a developer/admin, I want to change AI models or providers via env vars without code changes. |
+| **FR-AI-2** | Smart Financial Insights & Savings Advisor | Personalized savings recommendations, deficit risks, and category spending pacing displayed on Dashboard. | P1 | As a user, I want smart tips on where to cut expenses to stay within budget. |
+| **FR-AI-3** | Auto-Categorization & Smart Tagging | Automated category and payment mode suggestions as the user types expense titles. | P1 | As a user, I want AI to guess category so I can log expenses faster. |
+| **FR-AI-4** | Adaptive Budget Recommendations | AI-suggested monthly limits and daily caps based on 30-day historical spending patterns. | P2 | As a user, I want realistic budget goals recommended automatically. |
+| **FR-AI-5** | "Ask BudgetBrain" AI Financial Chat | Conversational AI financial co-pilot answering natural language queries about personal spending. | P2 | As a user, I want to ask questions about my money in English or Marathi. |
 
 ---
 

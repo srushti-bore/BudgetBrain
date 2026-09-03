@@ -12,7 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.exceptions import register_exception_handlers
-from app.routers import auth, health, categories, expenses, budgets, dashboard
+from app.routers import ai, auth, budgets, categories, dashboard, expenses, health
 
 settings = get_settings()
 
@@ -57,4 +57,6 @@ app.include_router(categories.router, prefix=API_V1)
 app.include_router(expenses.router, prefix=API_V1)
 app.include_router(budgets.router, prefix=API_V1)
 app.include_router(dashboard.router, prefix=API_V1)
+app.include_router(ai.router, prefix=API_V1)
+
 
