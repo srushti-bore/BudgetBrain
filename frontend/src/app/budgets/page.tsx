@@ -102,6 +102,7 @@ export default function BudgetsPage() {
         'success'
       );
     } catch (err: any) {
+      console.error('Budget save failure:', err);
       const msg =
         err?.response?.data?.error?.message ||
         err?.response?.data?.detail?.[0]?.msg ||
