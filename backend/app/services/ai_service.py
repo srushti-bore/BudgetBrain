@@ -40,9 +40,12 @@ class AIService:
         top_cats = await self.dashboard_service.get_top_categories(user.id, limit=5)
 
         total_spent = float(summary.get("total_spent", 0.0) or 0.0)
-        monthly_budget = float(summary.get("monthly_budget", 0.0)) if summary.get("monthly_budget") is not None else None
-        remaining_budget = float(summary.get("remaining_budget", 0.0)) if summary.get("remaining_budget") is not None else None
-        daily_average = float(summary.get("daily_spending_average", 0.0) or 0.0)
+        budget_info = summary.get("budget") or {}
+        limit_amt = float(budget_info.get("limit_amount") or 0.0)
+        rem_amt = float(budget_info.get("remaining_amount") or 0.0)
+        monthly_budget = limit_amt if limit_amt > 0 else None
+        remaining_budget = rem_amt if limit_amt > 0 else None
+        daily_average = float(summary.get("average_daily_spent", 0.0) or 0.0)
 
         # Sanitize recent expenses (remove IDs and tenant keys before sending to LLM)
         recent_raw = summary.get("recent_expenses", [])
@@ -114,7 +117,7 @@ class AIService:
         top_cats = await self.dashboard_service.get_top_categories(user.id, limit=5)
 
         total_spent = float(summary.get("total_spent", 0.0) or 0.0)
-        daily_average = float(summary.get("daily_spending_average", 0.0) or 0.0)
+        daily_average = float(summary.get("average_daily_spent", 0.0) or 0.0)
 
         top_categories = [
             {"name": cat.get("name"), "amount": float(cat.get("amount", 0.0))}
@@ -141,9 +144,12 @@ class AIService:
         top_cats = await self.dashboard_service.get_top_categories(user.id, limit=5)
 
         total_spent = float(summary.get("total_spent", 0.0) or 0.0)
-        monthly_budget = float(summary.get("monthly_budget", 0.0)) if summary.get("monthly_budget") is not None else None
-        remaining_budget = float(summary.get("remaining_budget", 0.0)) if summary.get("remaining_budget") is not None else None
-        daily_average = float(summary.get("daily_spending_average", 0.0) or 0.0)
+        budget_info = summary.get("budget") or {}
+        limit_amt = float(budget_info.get("limit_amount") or 0.0)
+        rem_amt = float(budget_info.get("remaining_amount") or 0.0)
+        monthly_budget = limit_amt if limit_amt > 0 else None
+        remaining_budget = rem_amt if limit_amt > 0 else None
+        daily_average = float(summary.get("average_daily_spent", 0.0) or 0.0)
 
         top_categories = [
             {"name": cat.get("name"), "amount": float(cat.get("amount", 0.0))}

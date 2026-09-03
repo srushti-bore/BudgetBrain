@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Sparkles,
@@ -11,6 +12,7 @@ import {
   RefreshCw,
   Zap,
   CheckCircle2,
+  ArrowUpRight,
 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { aiApi, FinancialInsight } from '@/lib/api';
@@ -100,6 +102,23 @@ export default function AiInsightsWidget({ currencySymbol = '₹' }: AiInsightsW
       default:
         return 'Brain Engine';
     }
+  };
+
+  const getActionTarget = (insight: FinancialInsight) => {
+    const text = (insight.title + ' ' + insight.message).toLowerCase();
+    if (insight.type === 'category_focus' || text.includes('category') || text.includes('expense')) {
+      return { href: '/expenses', label: 'View Expenses' };
+    }
+    if (
+      insight.type === 'deficit_alert' ||
+      insight.id.includes('budget') ||
+      text.includes('budget') ||
+      text.includes('limit') ||
+      text.includes('deficit')
+    ) {
+      return { href: '/budgets', label: 'Set Budget' };
+    }
+    return { href: '/budgets', label: 'Manage Budget' };
   };
 
   return (
@@ -212,9 +231,20 @@ export default function AiInsightsWidget({ currencySymbol = '₹' }: AiInsightsW
 
                 <div className="mt-3 pt-2 border-t border-[var(--color-border)]/40 flex items-center justify-between text-[10px] text-[var(--color-text-muted)]">
                   <span className="capitalize">{insight.type.replace('_', ' ')}</span>
-                  <span className="text-emerald-500 flex items-center gap-1 font-medium">
-                    <Zap className="w-2.5 h-2.5" /> Actionable
-                  </span>
+                  {(() => {
+                    const action = getActionTarget(insight);
+                    return (
+                      <Link
+                        href={action.href}
+                        className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 font-bold flex items-center gap-1 transition-colors cursor-pointer group"
+                        title={`Go to ${action.label}`}
+                      >
+                        <Zap className="w-2.5 h-2.5 text-emerald-500 group-hover:scale-110 transition-transform" />
+                        <span>{action.label}</span>
+                        <ArrowUpRight className="w-2.5 h-2.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                      </Link>
+                    );
+                  })()}
                 </div>
               </motion.div>
             ))}

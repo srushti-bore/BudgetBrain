@@ -369,9 +369,18 @@ All 13 REST API endpoints across 5 core backend modules are fully functional wit
   - `ExpenseModal.tsx`: Added interactive mood selector grid (😊 Happy, 😐 Normal, 😔 Sad, 😰 Stressed, 🤩 Excited) with 1-click toggle and clear.
   - `expenses/page.tsx`: Added mood badge on table rows and mobile cards; added "All Moods" filter dropdown.
   - `EmotionalSpendingWidget.tsx`: Created glassmorphic behavioral widget mounted on main dashboard analytics page with mood breakdown bars, impulse radar, and AI guidance cards.
+## Phase 36: Bug Fix — Feature 1 (AI Insights) Budget Detection & Interactive Links
+
+- **Root Cause**:
+  - `AIService` was querying `summary.get("monthly_budget")` and `summary.get("remaining_budget")` at the root level instead of extracting `limit_amount` and `remaining_amount` from `summary["budget"]`. As a result, the AI provider was always passed `monthly_budget=None` and prompted that no budget was set.
+  - `AIService` was reading `daily_spending_average` instead of `average_daily_spent`.
+- **Fix**:
+  - `backend/app/services/ai_service.py`: Extracted budget limit, remaining balance, and average daily spend properly from `summary["budget"]` in `get_financial_insights`, `suggest_budget`, and `chat`.
+  - `frontend/src/components/dashboard/AiInsightsWidget.tsx`: Converted static "Actionable" badges into interactive direct navigation links (`Set Budget →`, `Manage Budget →`, `View Expenses →`).
 - **Automated Verification**:
-  - Backend pytest: **52 / 52 tests passing (100%)** including `test_create_and_filter_expense_with_mood` and `test_emotional_spending_returns_200`.
-  - Frontend production build: **14 / 14 pages compiled cleanly with 0 errors** via `next build`.
+  - Backend pytest: **52 / 52 tests passing (100%)**.
+  - Frontend type check & build: `npx tsc --noEmit` and `next build` passing with **0 errors**.
+
 
 
 
