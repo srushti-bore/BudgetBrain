@@ -15,42 +15,24 @@ import {
   MessageResponse,
 } from '@/types';
 
-export const getApiBaseUrl = () => {
+const PRODUCTION_API_URL = 'https://budgetbrain-ojnr.onrender.com/api/v1';
+
+export const getApiBaseUrl = (): string => {
+  // Browser environment
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
-    const isLocal = hostname === 'localhost' || hostname === '127.0.0.1';
 
-    // If running in local development (localhost:3000)
-    if (isLocal) {
-      if (process.env.NEXT_PUBLIC_API_URL && !process.env.NEXT_PUBLIC_API_URL.includes('localhost')) {
-        let u = process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, '');
-        return u.endsWith('/api/v1') ? u : `${u}/api/v1`;
-      }
+    // Local development: localhost or 127.0.0.1
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
       return `http://${hostname}:8000/api/v1`;
     }
 
-    // On production (e.g. *.vercel.app)
-    let url = process.env.NEXT_PUBLIC_API_URL || '';
-    if (!url || url.includes('localhost') || url.includes('127.0.0.1')) {
-      return 'https://budgetbrain-ojnr.onrender.com/api/v1';
-    }
-    url = url.replace(/\/+$/, '');
-    if (!url.endsWith('/api/v1')) {
-      url = `${url}/api/v1`;
-    }
-    return url;
+    // ANY other domain (Vercel, custom domain, etc.) → always use production backend
+    return PRODUCTION_API_URL;
   }
 
-  // Server-side
-  let url = process.env.NEXT_PUBLIC_API_URL || '';
-  if (!url || url.includes('localhost') || url.includes('127.0.0.1')) {
-    return 'https://budgetbrain-ojnr.onrender.com/api/v1';
-  }
-  url = url.replace(/\/+$/, '');
-  if (!url.endsWith('/api/v1')) {
-    url = `${url}/api/v1`;
-  }
-  return url;
+  // Server-side rendering (SSR) — fallback to production
+  return PRODUCTION_API_URL;
 };
 
 
