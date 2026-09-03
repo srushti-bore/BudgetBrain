@@ -92,37 +92,9 @@ export default function ExpenseModal({
     setErrorMsg('');
   }, [initialData, isOpen, categories, currency]);
 
-  if (!isOpen) return null;
-
-  // Real-time Budget & Alert Threshold Computations
+  // Real-time Budget & Alert Threshold Computations (must be before hooks that use them)
   const parsedViewAmount = parseFloat(amount) || 0;
   const parsedBaseAmount = parsedViewAmount > 0 ? Number(convertToBase(parsedViewAmount).toFixed(2)) : 0;
-  const initialBaseAmount = initialData ? initialData.amount : 0;
-  const amountDelta = parsedBaseAmount - initialBaseAmount;
-
-  // Check if expense date is in the current month
-  const now = new Date();
-  const currentMonthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  const isCurrentMonth = date.startsWith(currentMonthPrefix);
-
-  // Monthly Budget Check (Strict Enforcement for current active month)
-  const budgetLimit = summary?.budget_limit || 0;
-  const alreadySpentWithoutThis = Math.max((summary?.total_spent || 0) - initialBaseAmount, 0);
-  const projectedTotalSpent = alreadySpentWithoutThis + parsedBaseAmount;
-  const remainingBudget = Math.max(budgetLimit - alreadySpentWithoutThis, 0);
-  const projectedMonthlyPercent = budgetLimit > 0 ? Math.round((projectedTotalSpent / budgetLimit) * 100) : 0;
-  
-  // Strict over-budget flag
-  const isOverMonthly = isCurrentMonth && budgetLimit > 0 && parsedBaseAmount > 0 && projectedTotalSpent > budgetLimit;
-  const isNearMonthly = isCurrentMonth && budgetLimit > 0 && !isOverMonthly && projectedMonthlyPercent >= nearLimitThreshold;
-
-  // Daily Limit Check
-  const isToday = date === getTodayDateString();
-  const dailyLimit = summary?.daily_limit || 0;
-  const projectedTodaySpent = Math.max((summary?.today_spent || 0) + (isToday ? amountDelta : 0), 0);
-  const projectedDailyPercent = dailyLimit > 0 ? Math.round((projectedTodaySpent / dailyLimit) * 100) : 0;
-  const isOverDaily = isToday && dailyLimit > 0 && projectedTodaySpent > dailyLimit;
-  const isNearDaily = isToday && dailyLimit > 0 && !isOverDaily && projectedDailyPercent >= nearLimitThreshold;
 
   // Real-time AI Auto-Categorization (FR-AI-3)
   useEffect(() => {
@@ -160,7 +132,7 @@ export default function ExpenseModal({
           }
         }
       } catch (err) {
-        // Silently preserve manual inputs
+        // Silently preserve manual inputs — do not crash
       } finally {
         setIsPredicting(false);
       }
@@ -187,6 +159,36 @@ export default function ExpenseModal({
       }
     }
   };
+
+  if (!isOpen) return null;
+
+  // Remaining computed values that only matter when modal is visible
+  const initialBaseAmount = initialData ? initialData.amount : 0;
+  const amountDelta = parsedBaseAmount - initialBaseAmount;
+
+  // Check if expense date is in the current month
+  const now = new Date();
+  const currentMonthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const isCurrentMonth = date.startsWith(currentMonthPrefix);
+
+  // Monthly Budget Check (Strict Enforcement for current active month)
+  const budgetLimit = summary?.budget_limit || 0;
+  const alreadySpentWithoutThis = Math.max((summary?.total_spent || 0) - initialBaseAmount, 0);
+  const projectedTotalSpent = alreadySpentWithoutThis + parsedBaseAmount;
+  const remainingBudget = Math.max(budgetLimit - alreadySpentWithoutThis, 0);
+  const projectedMonthlyPercent = budgetLimit > 0 ? Math.round((projectedTotalSpent / budgetLimit) * 100) : 0;
+  
+  // Strict over-budget flag
+  const isOverMonthly = isCurrentMonth && budgetLimit > 0 && parsedBaseAmount > 0 && projectedTotalSpent > budgetLimit;
+  const isNearMonthly = isCurrentMonth && budgetLimit > 0 && !isOverMonthly && projectedMonthlyPercent >= nearLimitThreshold;
+
+  // Daily Limit Check
+  const isToday = date === getTodayDateString();
+  const dailyLimit = summary?.daily_limit || 0;
+  const projectedTodaySpent = Math.max((summary?.today_spent || 0) + (isToday ? amountDelta : 0), 0);
+  const projectedDailyPercent = dailyLimit > 0 ? Math.round((projectedTodaySpent / dailyLimit) * 100) : 0;
+  const isOverDaily = isToday && dailyLimit > 0 && projectedTodaySpent > dailyLimit;
+  const isNearDaily = isToday && dailyLimit > 0 && !isOverDaily && projectedDailyPercent >= nearLimitThreshold;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
