@@ -44,9 +44,18 @@ class GeminiProvider(BaseLLMProvider):
             )
 
         sym = currency_symbol or "₹"
+        import random
+        angles = [
+            "Focus on practical expense reduction, daily burn rate, and deficit avoidance.",
+            "Focus on category spending concentration, 50/30/20 rule, and smart savings.",
+            "Focus on lifestyle spending habits, weekend pacing, and discretionary expense trims.",
+        ]
+        perspective = random.choice(angles)
+
         prompt = f"""
-You are BudgetBrain AI, an expert, encouraging personal financial advisor.
-Analyze the user's spending data and generate exactly 3 personalized, concise, actionable financial insights in valid JSON format.
+You are BudgetBrain AI, a sharp, encouraging personal financial advisor.
+Analyze the user's spending metrics and generate exactly 3 personalized, concise, actionable financial insights in valid JSON format.
+Perspective for this review: {perspective}
 
 User Data:
 - Name: {user_name}

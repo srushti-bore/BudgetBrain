@@ -24,12 +24,13 @@ export default function AiInsightsWidget({ currencySymbol = '₹' }: AiInsightsW
   const queryClient = useQueryClient();
   const { user, isAuthenticated } = useAuth();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastRefreshed, setLastRefreshed] = useState<string | null>(null);
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['ai-insights', currencySymbol, user?.id],
     queryFn: () => aiApi.getInsights(currencySymbol),
     enabled: Boolean(user && isAuthenticated),
-    staleTime: 5 * 60 * 1000, // 5 minutes cache
+    staleTime: 30 * 1000, // 30s cache so manual refreshes always fetch new insights
     refetchOnWindowFocus: false,
     retry: 2,
     retryDelay: 1000,
@@ -38,9 +39,12 @@ export default function AiInsightsWidget({ currencySymbol = '₹' }: AiInsightsW
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
+      await queryClient.invalidateQueries({ queryKey: ['ai-insights'] });
       await refetch();
+      const now = new Date();
+      setLastRefreshed(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
     } finally {
-      setTimeout(() => setIsRefreshing(false), 600);
+      setTimeout(() => setIsRefreshing(false), 700);
     }
   };
 
@@ -126,15 +130,23 @@ export default function AiInsightsWidget({ currencySymbol = '₹' }: AiInsightsW
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={handleRefresh}
-          disabled={isLoading || isRefreshing}
-          className="p-2 rounded-xl text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface)] border border-transparent hover:border-[var(--color-border)] transition-all cursor-pointer disabled:opacity-50"
-          title="Refresh AI Recommendations"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing || isLoading ? 'animate-spin text-emerald-500' : ''}`} />
-        </button>
+        <div className="flex items-center gap-2">
+          {lastRefreshed && (
+            <span className="text-[10px] text-[var(--color-text-muted)] hidden sm:inline-block font-mono">
+              Updated {lastRefreshed}
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={handleRefresh}
+            disabled={isLoading || isRefreshing}
+            className="px-2.5 py-1.5 rounded-xl text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface)] border border-transparent hover:border-[var(--color-border)] transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5 text-xs font-medium"
+            title="Refresh AI Recommendations"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing || isLoading ? 'animate-spin text-emerald-500' : ''}`} />
+            <span className="hidden sm:inline">Refresh</span>
+          </button>
+        </div>
       </div>
 
       {/* Content */}
@@ -170,7 +182,7 @@ export default function AiInsightsWidget({ currencySymbol = '₹' }: AiInsightsW
           <AnimatePresence mode="popLayout">
             {data?.insights.map((insight: FinancialInsight, index: number) => (
               <motion.div
-                key={insight.id || index}
+                key={`${insight.id}-${lastRefreshed || 'initial'}-${index}`}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95 }}
