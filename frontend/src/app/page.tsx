@@ -414,7 +414,7 @@ export default function DashboardPage() {
         className={`grid grid-cols-1 ${showPredictiveInsights ? 'md:grid-cols-2 lg:grid-cols-3' : 'md:grid-cols-2'} gap-6`}
       >
         <MonthComparisonCard comparison={comparison} />
-        {showPredictiveInsights && <MonthlyStatsReport summary={summary} topCategories={topCategories} />}
+        {showPredictiveInsights && <MonthlyStatsReport summary={summary ?? null} topCategories={topCategories} />}
         <TopCategoriesWidget categories={topCategories} />
       </motion.div>
 

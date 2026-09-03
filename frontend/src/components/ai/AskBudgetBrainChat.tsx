@@ -134,7 +134,7 @@ export default function AskBudgetBrainChat() {
     });
   };
 
-  const remaining = summary?.remaining_budget ?? null;
+  const remaining = summary?.budget_remaining ?? null;
   const isDeficit = remaining !== null && remaining < 0;
 
   return (
