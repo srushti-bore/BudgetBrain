@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { aiApi, FinancialInsight } from '@/lib/api';
+import { useAuth } from '@/providers/AuthProvider';
 
 interface AiInsightsWidgetProps {
   currencySymbol?: string;
@@ -21,13 +22,17 @@ interface AiInsightsWidgetProps {
 
 export default function AiInsightsWidget({ currencySymbol = '₹' }: AiInsightsWidgetProps) {
   const queryClient = useQueryClient();
+  const { user, isAuthenticated } = useAuth();
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ['ai-insights', currencySymbol],
+    queryKey: ['ai-insights', currencySymbol, user?.id],
     queryFn: () => aiApi.getInsights(currencySymbol),
+    enabled: Boolean(user && isAuthenticated),
     staleTime: 5 * 60 * 1000, // 5 minutes cache
     refetchOnWindowFocus: false,
+    retry: 2,
+    retryDelay: 1000,
   });
 
   const handleRefresh = async () => {

@@ -53,11 +53,16 @@ function LoginFormContent() {
       await login(email.trim(), password);
       router.push('/');
     } catch (err: any) {
+      console.error('Login error:', err);
       const errCode = err.response?.data?.error?.code;
-      const msg =
+      let msg =
         err.response?.data?.error?.message ||
         err.message ||
         'Invalid email or password. Please try again.';
+
+      if (msg === 'Network Error') {
+        msg = 'Network Error: Connecting to server failed. The server may be rebooting after updates—please wait 10 seconds and try again.';
+      }
 
       if (errCode === 'EMAIL_NOT_VERIFIED' || msg.toLowerCase().includes('not verified')) {
         setIsEmailUnverified(true);

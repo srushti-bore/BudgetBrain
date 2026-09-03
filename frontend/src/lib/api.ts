@@ -18,14 +18,33 @@ import {
 export const getApiBaseUrl = () => {
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    const isLocal = hostname === 'localhost' || hostname === '127.0.0.1';
+
+    // If running in local development (localhost:3000)
+    if (isLocal) {
+      if (process.env.NEXT_PUBLIC_API_URL && !process.env.NEXT_PUBLIC_API_URL.includes('localhost')) {
+        let u = process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, '');
+        return u.endsWith('/api/v1') ? u : `${u}/api/v1`;
+      }
       return `http://${hostname}:8000/api/v1`;
     }
+
+    // On production (e.g. *.vercel.app)
+    let url = process.env.NEXT_PUBLIC_API_URL || '';
+    if (!url || url.includes('localhost') || url.includes('127.0.0.1')) {
+      return 'https://budgetbrain-ojnr.onrender.com/api/v1';
+    }
+    url = url.replace(/\/+$/, '');
+    if (!url.endsWith('/api/v1')) {
+      url = `${url}/api/v1`;
+    }
+    return url;
   }
 
+  // Server-side
   let url = process.env.NEXT_PUBLIC_API_URL || '';
-  if (!url) {
-    url = 'https://budgetbrain-ojnr.onrender.com/api/v1';
+  if (!url || url.includes('localhost') || url.includes('127.0.0.1')) {
+    return 'https://budgetbrain-ojnr.onrender.com/api/v1';
   }
   url = url.replace(/\/+$/, '');
   if (!url.endsWith('/api/v1')) {
