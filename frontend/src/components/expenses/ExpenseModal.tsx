@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { Expense, Category, PaymentMode, ExpenseMood } from '@/types';
 import { getTodayDateString, capitalizeFirstLetter } from '@/lib/utils';
-import { X, Plus, AlertCircle, Repeat, Flame, AlertTriangle, ShieldCheck, ShieldAlert, Sparkles, Wand2 } from 'lucide-react';
-import { categoryApi, dashboardApi, aiApi, SuggestCategoryResponse } from '@/lib/api';
+import { X, Plus, AlertCircle, Repeat, Flame, AlertTriangle, ShieldCheck, ShieldAlert, Sparkles, Wand2, Camera, Upload, Loader2 } from 'lucide-react';
+import { categoryApi, dashboardApi, aiApi, SuggestCategoryResponse, ScanReceiptResponse } from '@/lib/api';
 import { useCurrency, useFormatCurrency } from '@/providers/CurrencyProvider';
 import { useSettings } from '@/providers/SettingsProvider';
 import { useQuery } from '@tanstack/react-query';
@@ -56,11 +56,13 @@ export default function ExpenseModal({
   const [newCatName, setNewCatName] = useState('');
   const [catCreating, setCatCreating] = useState(false);
 
-  // AI Auto-Categorization state (FR-AI-3)
+  // AI Auto-Categorization & Mood Detection state (FR-AI-3)
   const [aiSuggestion, setAiSuggestion] = useState<SuggestCategoryResponse | null>(null);
   const [isPredicting, setIsPredicting] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
   const [hasManuallySelectedCategory, setHasManuallySelectedCategory] = useState(false);
   const [hasManuallySelectedPaymentMode, setHasManuallySelectedPaymentMode] = useState(false);
+  const [hasManuallySelectedMood, setHasManuallySelectedMood] = useState(false);
 
   // Fetch current dashboard summary to calculate budget impact in real time
   const { data: summary } = useQuery({
@@ -92,6 +94,7 @@ export default function ExpenseModal({
       setAiSuggestion(null);
       setHasManuallySelectedCategory(false);
       setHasManuallySelectedPaymentMode(false);
+      setHasManuallySelectedMood(false);
     }
     setErrorMsg('');
   }, [initialData, isOpen, categories, currency]);
@@ -134,6 +137,11 @@ export default function ExpenseModal({
               setPaymentMode(m);
             }
           }
+
+          // Auto-select mood if suggested and user hasn't explicitly overridden it
+          if (res.suggested_mood && !hasManuallySelectedMood) {
+            setMood(res.suggested_mood);
+          }
         }
       } catch (err) {
         // Silently preserve manual inputs — do not crash
@@ -161,6 +169,53 @@ export default function ExpenseModal({
         setPaymentMode(m);
         setHasManuallySelectedPaymentMode(true);
       }
+    }
+    if (aiSuggestion.suggested_mood) {
+      setMood(aiSuggestion.suggested_mood);
+      setHasManuallySelectedMood(true);
+    }
+  };
+
+  const handleScanReceipt = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsScanning(true);
+    setErrorMsg('');
+    try {
+      const data = await aiApi.scanReceipt(file);
+      if (data.title) setTitle(capitalizeFirstLetter(data.title));
+      if (data.amount !== null && data.amount !== undefined) {
+        const viewAmount = convertToView(data.amount);
+        setAmount(Number(viewAmount.toFixed(2)).toString());
+      }
+      if (data.date) setDate(data.date);
+      if (data.notes) setNotes(data.notes);
+      if (data.category) {
+        const match = categories.find(
+          (c) => c.name.toLowerCase() === data.category!.toLowerCase()
+        );
+        if (match) {
+          setCategoryId(match.id);
+          setHasManuallySelectedCategory(true);
+        }
+      }
+      if (data.payment_mode) {
+        const validModes: PaymentMode[] = ['upi', 'card', 'cash', 'other'];
+        const m = data.payment_mode.toLowerCase() as PaymentMode;
+        if (validModes.includes(m)) {
+          setPaymentMode(m);
+          setHasManuallySelectedPaymentMode(true);
+        }
+      }
+      if (data.mood) {
+        setMood(data.mood);
+        setHasManuallySelectedMood(true);
+      }
+    } catch (err: any) {
+      setErrorMsg(err?.response?.data?.error?.message || 'Failed to scan receipt image.');
+    } finally {
+      setIsScanning(false);
+      e.target.value = '';
     }
   };
 
@@ -282,6 +337,41 @@ export default function ExpenseModal({
         )}
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+          {/* Quick AI Receipt Scanner Bar */}
+          <div className="p-3 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-indigo-500/10 border border-emerald-500/25 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30">
+                <Camera className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="text-xs font-bold text-ink block">AI Receipt Scanner</span>
+                <span className="text-[10px] text-ink-muted block">Snap or upload receipt to auto-fill</span>
+              </div>
+            </div>
+
+            <label className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer transition-all hover:scale-105 active:scale-95 shrink-0">
+              {isScanning ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Scanning...</span>
+                </>
+              ) : (
+                <>
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>Upload Bill</span>
+                </>
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                disabled={isScanning}
+                onChange={handleScanReceipt}
+                className="hidden"
+              />
+            </label>
+          </div>
+
           {/* Title Input */}
           <div>
             <label className="block text-xs font-semibold text-ink-muted mb-1">
@@ -526,22 +616,45 @@ export default function ExpenseModal({
             </div>
           </div>
 
-          {/* Emotion / Mood Selector (Optional) */}
+          {/* Emotion / Mood Selector (AI Auto-Predictive + Manual) */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-semibold text-ink-muted">
-                How did you feel? <span className="text-[11px] font-normal text-ink-muted/80">(Optional)</span>
-              </label>
+              <div className="flex items-center gap-1.5">
+                <label className="block text-xs font-semibold text-ink-muted">
+                  How did you feel? <span className="text-[11px] font-normal text-ink-muted/80">(AI Auto-detected)</span>
+                </label>
+                {aiSuggestion?.suggested_mood && !hasManuallySelectedMood && (
+                  <span className="px-1.5 py-0.2 rounded bg-emerald-500/15 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">
+                    ✨ AI Suggested
+                  </span>
+                )}
+              </div>
               {mood && (
                 <button
                   type="button"
-                  onClick={() => setMood('')}
+                  onClick={() => {
+                    setMood('');
+                    setHasManuallySelectedMood(true);
+                  }}
                   className="text-[11px] text-ink-muted hover:text-coral transition-colors cursor-pointer"
                 >
                   Clear
                 </button>
               )}
             </div>
+
+            {/* Over-budget Stressed Mood Alert Trigger */}
+            {(isOverMonthly || isOverDaily) && (
+              <div className="mb-2 px-2.5 py-1.5 rounded-xl bg-rose-500/10 border border-rose-500/25 flex items-center gap-2 text-[11px] text-rose-700 dark:text-rose-300 font-medium">
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-rose-500" />
+                <span>
+                  {isOverMonthly
+                    ? 'Monthly budget limit breached — AI automatically flagged Stressed mood'
+                    : 'Daily spending limit breached — AI automatically flagged Stressed mood'}
+                </span>
+              </div>
+            )}
+
             <div className="grid grid-cols-5 gap-2">
               {[
                 { id: 'happy', label: 'Happy', emoji: '😊' },
@@ -553,7 +666,10 @@ export default function ExpenseModal({
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => setMood(mood === item.id ? '' : (item.id as ExpenseMood))}
+                  onClick={() => {
+                    setMood(mood === item.id ? '' : (item.id as ExpenseMood));
+                    setHasManuallySelectedMood(true);
+                  }}
                   className={`py-2 px-1 rounded-xl text-center flex flex-col items-center gap-1 border transition-all cursor-pointer ${
                     mood === item.id
                       ? 'bg-sage/15 border-sage dark:bg-sage/25 shadow-xs font-bold'

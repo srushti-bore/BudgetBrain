@@ -130,3 +130,28 @@ def test_ai_chat_endpoint(client: TestClient):
     assert res_cat.status_code == 200
     assert len(res_cat.json()["data"]["reply"]) > 0
 
+
+def test_suggest_category_detects_mood(client: TestClient):
+    # 1. Urgent/hospital -> stressed
+    res1 = client.post("/api/v1/ai/suggest-category", json={"title": "Emergency Hospital Medicine", "amount": 1500.0})
+    assert res1.status_code == 200
+    assert res1.json()["data"]["suggested_mood"] == "stressed"
+
+    # 2. Party/concert -> excited
+    res2 = client.post("/api/v1/ai/suggest-category", json={"title": "Coldplay Concert Tickets", "amount": 6000.0})
+    assert res2.status_code == 200
+    assert res2.json()["data"]["suggested_mood"] == "excited"
+
+
+def test_scan_receipt_endpoint(client: TestClient):
+    import io
+    dummy_image = io.BytesIO(b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15c4")
+    files = {"file": ("receipt.png", dummy_image, "image/png")}
+    res = client.post("/api/v1/ai/scan-receipt", files=files)
+    assert res.status_code == 200, res.text
+    data = res.json()["data"]
+    assert "title" in data
+    assert "category" in data
+    assert "mood" in data
+
+

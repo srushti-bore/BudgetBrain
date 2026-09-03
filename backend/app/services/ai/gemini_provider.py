@@ -5,12 +5,14 @@ Integrates with Google Gemini models (gemini-1.5-flash, gemini-2.0-flash)
 via official REST API with zero external client dependencies.
 """
 
+import base64
 import json
 import httpx
 from app.schemas.ai import (
     ChatMessage,
     ChatResponse,
     FinancialInsight,
+    ScanReceiptResponse,
     SuggestBudgetResponse,
     SuggestCategoryResponse,
 )
@@ -159,25 +161,46 @@ Return ONLY the raw JSON array. Do not enclose in markdown ticks if possible.
         expense_title: str,
         amount: float | None,
         available_categories: list[str],
+        budget_context: dict | None = None,
     ) -> SuggestCategoryResponse:
+        budget_instruction = ""
+        if budget_context:
+            is_over_monthly = budget_context.get("is_over_monthly")
+            is_over_daily = budget_context.get("is_over_daily")
+            if is_over_monthly or is_over_daily:
+                budget_instruction = (
+                    "CRITICAL BUDGET WARNING: This expense exceeds the user's active budget limit or daily spending limit! "
+                    "Therefore, 'suggested_mood' MUST be 'stressed', and 'mood_reason' must indicate that the expense exceeded their budget limit."
+                )
+
         prompt = f"""
-You are BudgetBrain AI, an intelligent personal finance categorization engine.
-Categorize this transaction and suggest the most appropriate payment mode:
+You are BudgetBrain AI, an intelligent personal finance categorization and behavioral engine.
+Categorize this transaction, suggest payment mode, and detect the user's psychological spending mood:
 - Expense Title: "{expense_title}"
 - Amount: {f"{amount}" if amount else "Not specified"}
 - User's Available Categories: {json.dumps(available_categories)}
+{budget_instruction}
 
 Rules:
 1. "suggested_category" MUST preferably match one of the User's Available Categories if relevant.
 2. "suggested_payment_mode" MUST be one of: "upi", "card", "cash", "other".
-3. "confidence" MUST be a float between 0.0 and 1.0.
-4. "reasoning" should be 1 short concise sentence.
+3. "suggested_mood" MUST be one of: "happy", "normal", "sad", "stressed", "excited".
+   - If over budget/daily limit: always select "stressed".
+   - If celebration, gifts, electronics, party: select "excited".
+   - If emergency, fine, penalty, hospital, doctor: select "stressed".
+   - If comfort food, ice cream, retail therapy after tough day: select "sad".
+   - If dining out, personal treats, movies, outings: select "happy".
+   - If routine grocery, transport, utility: select "normal".
+4. "confidence" MUST be a float between 0.0 and 1.0.
+5. "reasoning" should be 1 short concise sentence.
 
 Return ONLY raw JSON with structure:
 {{
   "suggested_category": "Category Name",
   "confidence": 0.95,
   "suggested_payment_mode": "upi",
+  "suggested_mood": "normal",
+  "mood_reason": "Reason for detected mood",
   "reasoning": "Reason for suggestion"
 }}
 """
@@ -211,16 +234,119 @@ Return ONLY raw JSON with structure:
                             mode = str(parsed.get("suggested_payment_mode", "upi")).lower()
                             if mode not in ["cash", "card", "upi", "other"]:
                                 mode = "upi" if "upi" in mode else "card"
+                            m = str(parsed.get("suggested_mood", "normal")).lower()
+                            if m not in ["happy", "normal", "sad", "stressed", "excited"]:
+                                m = "normal"
                             return SuggestCategoryResponse(
                                 suggested_category=parsed.get("suggested_category") or (available_categories[0] if available_categories else "General"),
                                 confidence=float(parsed.get("confidence", 0.90)),
                                 suggested_payment_mode=mode,
+                                suggested_mood=m,
+                                mood_reason=parsed.get("mood_reason"),
                                 reasoning=parsed.get("reasoning", "Suggested by Gemini AI"),
                             )
         except Exception as e:
             print(f"[GeminiProvider] suggest_category warning: {e}, using fallback.")
 
-        return await self.fallback.suggest_category(expense_title, amount, available_categories)
+        return await self.fallback.suggest_category(expense_title, amount, available_categories, budget_context)
+
+    async def scan_receipt(
+        self,
+        image_bytes: bytes,
+        mime_type: str,
+        available_categories: list[str],
+    ) -> ScanReceiptResponse:
+        if not self.api_key:
+            return await self.fallback.scan_receipt(image_bytes, mime_type, available_categories)
+
+        b64_image = base64.b64encode(image_bytes).decode("utf-8")
+        prompt = f"""
+You are BudgetBrain AI, an expert receipt, bill, and invoice scanner.
+Extract expense data from this image:
+- title: Merchant or vendor name
+- amount: Total grand total paid as float
+- date: Transaction date YYYY-MM-DD or null
+- category: Best matching category from: {json.dumps(available_categories)}
+- payment_mode: "upi" | "card" | "cash" | "other"
+- mood: "happy" | "normal" | "sad" | "stressed" | "excited"
+- mood_reason: Reason for predicted mood
+- notes: 1-line item summary
+
+Return ONLY raw JSON:
+{{
+  "title": "Merchant Name",
+  "amount": 100.0,
+  "date": "2026-09-03",
+  "category": "Food & Dining",
+  "payment_mode": "upi",
+  "mood": "normal",
+  "mood_reason": "Everyday groceries",
+  "notes": "Items list"
+}}
+"""
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model_name}:generateContent?key={self.api_key}"
+        payload = {
+            "contents": [
+                {
+                    "parts": [
+                        {"text": prompt},
+                        {
+                            "inlineData": {
+                                "mimeType": mime_type or "image/jpeg",
+                                "data": b64_image,
+                            }
+                        },
+                    ]
+                }
+            ],
+            "generationConfig": {
+                "temperature": 0.1,
+                "response_mime_type": "application/json",
+            },
+        }
+
+        try:
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                res = await client.post(url, json=payload)
+                if res.status_code == 200:
+                    data = res.json()
+                    candidates = data.get("candidates", [])
+                    if candidates:
+                        parts = candidates[0].get("content", {}).get("parts", [])
+                        if parts:
+                            raw = parts[0].get("text", "").strip()
+                            if raw.startswith("```"):
+                                lines = raw.splitlines()
+                                if lines[0].startswith("```"):
+                                    lines = lines[1:]
+                                if lines and lines[-1].strip() == "```":
+                                    lines = lines[:-1]
+                                raw = "\n".join(lines).strip()
+                            parsed = json.loads(raw)
+                            amt = parsed.get("amount")
+                            amt_float = float(amt) if amt is not None else None
+                            mode = str(parsed.get("payment_mode", "card")).lower()
+                            if mode not in ["cash", "card", "upi", "other"]:
+                                mode = "upi" if "upi" in mode else "card"
+                            m = str(parsed.get("mood", "normal")).lower()
+                            if m not in ["happy", "normal", "sad", "stressed", "excited"]:
+                                m = "normal"
+                            cat = parsed.get("category") or (available_categories[0] if available_categories else "General")
+                            return ScanReceiptResponse(
+                                title=parsed.get("title") or "Scanned Receipt",
+                                amount=amt_float,
+                                date=parsed.get("date"),
+                                category=cat,
+                                payment_mode=mode,
+                                mood=m,
+                                mood_reason=parsed.get("mood_reason", "AI detected from receipt"),
+                                notes=parsed.get("notes"),
+                                confidence=0.95,
+                            )
+        except Exception as e:
+            print(f"[GeminiProvider] scan_receipt warning: {e}, using fallback.")
+
+        return await self.fallback.scan_receipt(image_bytes, mime_type, available_categories)
 
     async def suggest_budget(
         self,

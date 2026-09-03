@@ -8,7 +8,7 @@ SRS §3.7 & §5.2:
   - GET /api/v1/ai/suggest-budget
 """
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, File, Query, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_current_user
@@ -18,6 +18,7 @@ from app.schemas.ai import (
     ChatRequest,
     ChatResponse,
     InsightsResponse,
+    ScanReceiptResponse,
     SuggestBudgetResponse,
     SuggestCategoryRequest,
     SuggestCategoryResponse,
@@ -99,4 +100,37 @@ async def chat(
     service = AIService(db)
     result = await service.chat(current_user, request, currency_symbol=currency_symbol)
     return DataResponse(data=result)
+
+
+@router.post(
+    "/scan-receipt",
+    response_model=DataResponse[ScanReceiptResponse],
+    summary="Multimodal AI Vision receipt and bill scanning",
+)
+async def scan_receipt(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    AI Receipt Scanner: Extracts merchant title, total amount, date,
+    predicted category, payment mode, and mood from bill/receipt image.
+    """
+    if not file.content_type or not file.content_type.startswith("image/"):
+        from app.exceptions import ValidationException
+        raise ValidationException("Only image files (JPEG, PNG, WEBP, etc.) are supported for receipt scanning.", field="file")
+
+    image_bytes = await file.read()
+    if len(image_bytes) > 10 * 1024 * 1024:
+        from app.exceptions import ValidationException
+        raise ValidationException("Receipt image size must be under 10MB.", field="file")
+
+    service = AIService(db)
+    result = await service.scan_receipt(
+        user=current_user,
+        image_bytes=image_bytes,
+        mime_type=file.content_type,
+    )
+    return DataResponse(data=result)
+
 

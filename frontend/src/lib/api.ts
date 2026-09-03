@@ -526,7 +526,22 @@ export interface SuggestCategoryResponse {
   suggested_category: string;
   confidence: number;
   suggested_payment_mode?: string;
+  suggested_mood?: ExpenseMood;
+  mood_reason?: string;
   reasoning?: string;
+}
+
+export interface ScanReceiptResponse {
+  title: string;
+  amount?: number | null;
+  date?: string | null;
+  category?: string | null;
+  payment_mode?: string | null;
+  mood?: ExpenseMood | null;
+  mood_reason?: string | null;
+  notes?: string | null;
+  confidence?: number;
+  raw_text?: string | null;
 }
 
 export interface SuggestBudgetResponse {
@@ -573,6 +588,14 @@ export const aiApi = {
   chat: async (messages: ChatMessage[], currencySymbol: string = '₹'): Promise<ChatResponse> => {
     const response = await apiClient.post<APIEnvelope<ChatResponse>>('/ai/chat', { messages }, {
       params: { currency_symbol: currencySymbol },
+    });
+    return response.data.data;
+  },
+  scanReceipt: async (file: File): Promise<ScanReceiptResponse> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await apiClient.post<APIEnvelope<ScanReceiptResponse>>('/ai/scan-receipt', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
     });
     return response.data.data;
   },

@@ -10,6 +10,7 @@ from app.schemas.ai import (
     ChatMessage,
     ChatResponse,
     FinancialInsight,
+    ScanReceiptResponse,
     SuggestBudgetResponse,
     SuggestCategoryResponse,
 )
@@ -58,9 +59,22 @@ class BaseLLMProvider(ABC):
         expense_title: str,
         amount: float | None,
         available_categories: list[str],
+        budget_context: dict | None = None,
     ) -> SuggestCategoryResponse:
         """
-        Predict the most relevant category and payment mode from expense title.
+        Predict the most relevant category, payment mode, and mood from expense title, amount, and budget status.
+        """
+        pass
+
+    @abstractmethod
+    async def scan_receipt(
+        self,
+        image_bytes: bytes,
+        mime_type: str,
+        available_categories: list[str],
+    ) -> ScanReceiptResponse:
+        """
+        Extract expense details (merchant title, amount, date, category, mood) from receipt image.
         """
         pass
 

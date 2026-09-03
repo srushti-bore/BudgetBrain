@@ -377,9 +377,25 @@ All 13 REST API endpoints across 5 core backend modules are fully functional wit
 - **Fix**:
   - `backend/app/services/ai_service.py`: Extracted budget limit, remaining balance, and average daily spend properly from `summary["budget"]` in `get_financial_insights`, `suggest_budget`, and `chat`.
   - `frontend/src/components/dashboard/AiInsightsWidget.tsx`: Converted static "Actionable" badges into interactive direct navigation links (`Set Budget →`, `Manage Budget →`, `View Expenses →`).
+## Phase 37: AI Mood Auto-Detection & Multimodal AI Receipt Scanner
+
+- **Backend Architecture**:
+  - `SuggestCategoryResponse`: Added `suggested_mood` and `mood_reason` fields.
+  - Added `ScanReceiptResponse` schema.
+  - Base provider & active providers (`GeminiProvider`, `OpenAIProvider`, `AnthropicProvider`, `RulesProvider`):
+    - Added budget context to `suggest_category` to infer `stressed` mood when breaching monthly or daily budget caps.
+    - Implemented `scan_receipt` accepting base64 images to parse merchant name, total amount, date, category, payment mode, and detected mood.
+  - `AIService` & `routers/ai.py`: Added `POST /api/v1/ai/scan-receipt` accepting multipart file uploads up to 10MB.
+- **Frontend Architecture**:
+  - `ExpenseModal.tsx`:
+    - Added **"📸 AI Receipt Scanner"** bar for camera photo capture and file upload.
+    - Auto-fills Title, Amount, Date, Category, Payment Mode, and Mood from scanned receipt.
+    - Auto-detects and auto-selects **`😰 Stressed`** mood with a warning indicator whenever the expense breaches the user's daily spending limit or monthly remaining budget.
+    - Real-time **"✨ AI Suggested"** badge when AI infers mood from expense title.
 - **Automated Verification**:
-  - Backend pytest: **52 / 52 tests passing (100%)**.
+  - Backend pytest: **54 / 54 tests passing (100%)** including `test_suggest_category_detects_mood` and `test_scan_receipt_endpoint`.
   - Frontend type check & build: `npx tsc --noEmit` and `next build` passing with **0 errors**.
+
 
 
 

@@ -17,6 +17,7 @@ from app.schemas.ai import (
     ChatRequest,
     ChatResponse,
     InsightsResponse,
+    ScanReceiptResponse,
     SuggestBudgetResponse,
     SuggestCategoryRequest,
     SuggestCategoryResponse,
@@ -93,7 +94,49 @@ class AIService:
         self, user: User, request: SuggestCategoryRequest
     ) -> SuggestCategoryResponse:
         """
-        Suggests category and payment mode based on expense title and user categories.
+        Suggests category, payment mode, and mood based on expense title, amount, and budget status.
+        """
+        from sqlalchemy import select
+        from app.models.category import Category
+
+        stmt = select(Category.name).where(Category.user_id == user.id)
+        result = await self.session.execute(stmt)
+        category_names = list(result.scalars().all())
+
+        # Compute real-time budget context to detect over-budget/over-daily triggers
+        budget_context = None
+        try:
+            summary = await self.dashboard_service.get_summary(user.id)
+            budget_info = summary.get("budget") or {}
+            rem_monthly = float(budget_info.get("remaining_amount") or 0.0)
+            limit_monthly = float(budget_info.get("limit_amount") or 0.0)
+            daily_limit = float(budget_info.get("daily_limit") or 0.0) if budget_info.get("daily_limit") else None
+            today_spent = float(summary.get("today_spent") or 0.0)
+            req_amount = float(request.amount or 0.0)
+
+            is_over_monthly = limit_monthly > 0 and (req_amount > rem_monthly)
+            is_over_daily = daily_limit is not None and (today_spent + req_amount > daily_limit)
+            budget_context = {
+                "is_over_monthly": is_over_monthly,
+                "is_over_daily": is_over_daily,
+                "remaining_monthly": rem_monthly,
+            }
+        except Exception as e:
+            print(f"[AIService] budget_context error: {e}")
+
+        provider = get_ai_provider(self.settings)
+        return await provider.suggest_category(
+            expense_title=request.title,
+            amount=request.amount,
+            available_categories=category_names,
+            budget_context=budget_context,
+        )
+
+    async def scan_receipt(
+        self, user: User, image_bytes: bytes, mime_type: str
+    ) -> ScanReceiptResponse:
+        """
+        Multimodal AI Vision receipt and bill scanning.
         """
         from sqlalchemy import select
         from app.models.category import Category
@@ -103,9 +146,9 @@ class AIService:
         category_names = list(result.scalars().all())
 
         provider = get_ai_provider(self.settings)
-        return await provider.suggest_category(
-            expense_title=request.title,
-            amount=request.amount,
+        return await provider.scan_receipt(
+            image_bytes=image_bytes,
+            mime_type=mime_type,
             available_categories=category_names,
         )
 

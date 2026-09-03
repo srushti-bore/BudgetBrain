@@ -11,6 +11,7 @@ from app.schemas.ai import (
     ChatMessage,
     ChatResponse,
     FinancialInsight,
+    ScanReceiptResponse,
     SuggestBudgetResponse,
     SuggestCategoryResponse,
 )
@@ -128,6 +129,7 @@ Format:
         expense_title: str,
         amount: float | None,
         available_categories: list[str],
+        budget_context: dict | None = None,
     ) -> SuggestCategoryResponse:
         system_prompt = (
             "You are BudgetBrain AI, an intelligent finance categorization engine. "
@@ -162,15 +164,25 @@ Format:
                     if mode not in ["cash", "card", "upi", "other"]:
                         mode = "upi" if "upi" in mode else "card"
                     return SuggestCategoryResponse(
-                        suggested_category=parsed.get("suggested_category") or (available_categories[0] if available_categories else "General"),
-                        confidence=float(parsed.get("confidence", 0.92)),
-                        suggested_payment_mode=mode,
-                        reasoning=parsed.get("reasoning", "Suggested by OpenAI"),
-                    )
+                            suggested_category=parsed.get("suggested_category", "General"),
+                            confidence=float(parsed.get("confidence", 0.90)),
+                            suggested_payment_mode=mode,
+                            suggested_mood=parsed.get("suggested_mood", "normal"),
+                            mood_reason=parsed.get("mood_reason"),
+                            reasoning=parsed.get("reasoning", "Suggested by OpenAI"),
+                        )
         except Exception as e:
             print(f"[OpenAIProvider] suggest_category warning: {e}, using fallback.")
 
-        return await self.fallback.suggest_category(expense_title, amount, available_categories)
+        return await self.fallback.suggest_category(expense_title, amount, available_categories, budget_context)
+
+    async def scan_receipt(
+        self,
+        image_bytes: bytes,
+        mime_type: str,
+        available_categories: list[str],
+    ) -> ScanReceiptResponse:
+        return await self.fallback.scan_receipt(image_bytes, mime_type, available_categories)
 
     async def suggest_budget(
         self,

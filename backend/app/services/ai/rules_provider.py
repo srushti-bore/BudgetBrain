@@ -5,10 +5,12 @@ Zero-cost, offline-safe mathematical and financial analysis engine.
 Activated when no external LLM API key is provided or as a graceful fallback.
 """
 
+from datetime import date
 from app.schemas.ai import (
     ChatMessage,
     ChatResponse,
     FinancialInsight,
+    ScanReceiptResponse,
     SuggestBudgetResponse,
     SuggestCategoryResponse,
 )
@@ -160,6 +162,7 @@ class RulesProvider(BaseLLMProvider):
         expense_title: str,
         amount: float | None,
         available_categories: list[str],
+        budget_context: dict | None = None,
     ) -> SuggestCategoryResponse:
         title_lower = expense_title.lower().strip()
 
@@ -248,13 +251,66 @@ class RulesProvider(BaseLLMProvider):
         elif amount is not None and amount > 5000:
             suggested_mode = "card"
 
+        # Mood auto-detection heuristics
+        suggested_mood = "normal"
+        mood_reason = "Routine everyday transaction"
+
+        # Check budget limits first (user request: "jar outoff budget gel tar daily limit puthe get tar")
+        if budget_context:
+            if budget_context.get("is_over_monthly"):
+                suggested_mood = "stressed"
+                mood_reason = "Exceeds your active monthly budget cap"
+            elif budget_context.get("is_over_daily"):
+                suggested_mood = "stressed"
+                mood_reason = "Exceeds your daily spending limit"
+
+        if suggested_mood == "normal":
+            excited_triggers = ["party", "celebration", "concert", "iphone", "gift", "vacation", "trip", "club", "drinks", "pub", "festival", "bonus", "shopping spree"]
+            stressed_triggers = ["hospital", "doctor", "medicine", "late night", "fine", "penalty", "repair", "dentist", "emergency", "urgent", "emi", "interest"]
+            sad_triggers = ["breakup", "sad", "therapy", "comfort", "ice cream"]
+            happy_triggers = ["treat", "spa", "dinner with friends", "outing", "movie", "date"]
+
+            if any(w in title_lower for w in excited_triggers):
+                suggested_mood = "excited"
+                mood_reason = "Celebratory or high-energy event"
+            elif any(w in title_lower for w in stressed_triggers):
+                suggested_mood = "stressed"
+                mood_reason = "Urgent, corrective, or stressful expense"
+            elif any(w in title_lower for w in sad_triggers):
+                suggested_mood = "sad"
+                mood_reason = "Comfort or emotional expense"
+            elif any(w in title_lower for w in happy_triggers):
+                suggested_mood = "happy"
+                mood_reason = "Joyful personal reward"
+
         conf = 0.95 if direct_user_cat else (0.88 if matched_keyword else 0.65)
 
         return SuggestCategoryResponse(
             suggested_category=final_category,
             confidence=conf,
             suggested_payment_mode=suggested_mode,
+            suggested_mood=suggested_mood,
+            mood_reason=mood_reason,
             reasoning=reason,
+        )
+
+    async def scan_receipt(
+        self,
+        image_bytes: bytes,
+        mime_type: str,
+        available_categories: list[str],
+    ) -> ScanReceiptResponse:
+        cat = available_categories[0] if available_categories else "General"
+        return ScanReceiptResponse(
+            title="Scanned Receipt",
+            amount=None,
+            date=date.today().isoformat(),
+            category=cat,
+            payment_mode="card",
+            mood="normal",
+            mood_reason="Default baseline mood",
+            confidence=0.6,
+            notes="Parsed via fallback receipt parser.",
         )
 
     async def suggest_budget(

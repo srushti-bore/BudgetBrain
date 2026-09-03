@@ -38,6 +38,8 @@ class SuggestCategoryResponse(BaseModel):
     suggested_category: str
     confidence: float = Field(..., ge=0.0, le=1.0)
     suggested_payment_mode: str | None = None
+    suggested_mood: str | None = None
+    mood_reason: str | None = None
     reasoning: str | None = None
 
 
@@ -62,4 +64,18 @@ class ChatResponse(BaseModel):
     suggested_actions: list[str] = Field(default_factory=list)
     provider: str
     model: str
+
+
+class ScanReceiptResponse(BaseModel):
+    title: str
+    amount: float | None = None
+    date: str | None = None
+    category: str | None = None
+    payment_mode: str | None = None
+    mood: str | None = None
+    mood_reason: str | None = None
+    notes: str | None = None
+    confidence: float = 0.95
+    raw_text: str | None = None
+
 

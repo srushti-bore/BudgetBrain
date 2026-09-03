@@ -10,6 +10,7 @@ from app.schemas.ai import (
     ChatMessage,
     ChatResponse,
     FinancialInsight,
+    ScanReceiptResponse,
     SuggestBudgetResponse,
     SuggestCategoryResponse,
 )
@@ -102,6 +103,7 @@ No explanations, just the JSON array.
         expense_title: str,
         amount: float | None,
         available_categories: list[str],
+        budget_context: dict | None = None,
     ) -> SuggestCategoryResponse:
         system_prompt = (
             "You are BudgetBrain AI, an intelligent personal finance categorization assistant. "
@@ -150,7 +152,15 @@ No explanations, just the JSON array.
         except Exception as e:
             print(f"[AnthropicProvider] suggest_category warning: {e}, using fallback.")
 
-        return await self.fallback.suggest_category(expense_title, amount, available_categories)
+        return await self.fallback.suggest_category(expense_title, amount, available_categories, budget_context)
+
+    async def scan_receipt(
+        self,
+        image_bytes: bytes,
+        mime_type: str,
+        available_categories: list[str],
+    ) -> ScanReceiptResponse:
+        return await self.fallback.scan_receipt(image_bytes, mime_type, available_categories)
 
     async def suggest_budget(
         self,
