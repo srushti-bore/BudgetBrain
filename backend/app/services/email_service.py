@@ -176,6 +176,110 @@ class EmailService:
 
         return self._dispatch_email(to_email=to_email, subject=subject, html_content=html_content)
 
+    def send_password_reset_otp_email(
+        self, to_email: str, otp: str, full_name: str | None = None
+    ) -> bool:
+        """
+        Send a beautifully formatted HTML password reset email containing a 6-digit numeric OTP code.
+        """
+        greeting_name = full_name if full_name else "there"
+
+        # Print prominent OTP console banner in development mode for instant local testing
+        if getattr(self.settings, "APP_DEBUG", True) or getattr(self.settings, "APP_ENV", "development") != "production":
+            print(f"\n=======================================================")
+            print(f"[PASSWORD RESET OTP CODE] For: {to_email}")
+            print(f"OTP CODE:  >>  {otp}  <<  (Valid for 10 minutes)")
+            print(f"=======================================================\n")
+
+        subject = f"{otp} is your BudgetBrain password reset code"
+
+        # Build 6 individual digit cells for 100% email client compatibility
+        digit_cells = "".join([
+            f'<td align="center" valign="middle" style="padding: 0 4px;">'
+            f'<div style="width: 46px; height: 56px; line-height: 56px; background-color: #f0fdf4; border: 2px solid #10b981; border-radius: 12px; font-size: 28px; font-weight: 800; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; color: #065f46; text-align: center; box-shadow: 0 2px 4px rgba(16,185,129,0.1);">'
+            f'{digit}'
+            f'</div>'
+            f'</td>'
+            for digit in list(otp)
+        ])
+
+        html_content = f"""
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Password Reset Code</title>
+        </head>
+        <body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+          <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f8fafc; padding: 40px 16px;">
+            <tr>
+              <td align="center">
+                <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 520px; background-color: #ffffff; border-radius: 20px; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05); overflow: hidden;">
+                  
+                  <!-- Header Banner -->
+                  <tr>
+                    <td style="background: linear-gradient(135deg, #064e3b 0%, #065f46 50%, #047857 100%); padding: 32px 24px; text-align: center;">
+                      <div style="font-size: 24px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px;">
+                        🧠 BudgetBrain
+                      </div>
+                      <div style="font-size: 13px; color: #a7f3d0; margin-top: 6px; font-weight: 500;">
+                        Secure Account Recovery
+                      </div>
+                    </td>
+                  </tr>
+
+                  <!-- Main Content -->
+                  <tr>
+                    <td style="padding: 36px 32px; text-align: center;">
+                      <h1 style="font-size: 20px; font-weight: 700; color: #0f172a; margin: 0 0 12px 0;">
+                        Password Reset Code
+                      </h1>
+                      <p style="font-size: 14px; line-height: 1.6; color: #475569; margin: 0 0 28px 0;">
+                        Hi {greeting_name},<br>
+                        We received a request to reset your BudgetBrain password. Enter this 6-digit code on the reset screen:
+                      </p>
+
+                      <!-- 6-Box Segmented OTP Table -->
+                      <table role="presentation" border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 0 auto 24px auto;">
+                        <tr>
+                          {digit_cells}
+                        </tr>
+                      </table>
+
+                      <!-- Expiry & Security Badge -->
+                      <div style="margin-bottom: 28px;">
+                        <span style="display: inline-block; background-color: #fef3c7; border: 1px solid #fde68a; color: #92400e; font-size: 12px; font-weight: 600; padding: 6px 16px; border-radius: 9999px;">
+                          ⏱️ Code expires in 10 minutes
+                        </span>
+                      </div>
+
+                      <p style="font-size: 12px; color: #94a3b8; line-height: 1.5; margin: 28px 0 0 0;">
+                        If you did not request a password reset, please ignore this email. Your current password remains secure and unchanged.
+                      </p>
+                    </td>
+                  </tr>
+
+                  <!-- Footer -->
+                  <tr>
+                    <td style="background-color: #f8fafc; border-top: 1px solid #f1f5f9; padding: 20px 32px; text-align: center;">
+                      <p style="font-size: 11px; color: #94a3b8; margin: 0; line-height: 1.5;">
+                        &copy; BudgetBrain — AI-Powered Personal Finance & Budget Management.<br>
+                        This is an automated security email. Please do not reply directly.
+                      </p>
+                    </td>
+                  </tr>
+
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+        </html>
+        """
+
+        return self._dispatch_email(to_email=to_email, subject=subject, html_content=html_content)
+
     def send_verification_email(self, to_email: str, token: str, full_name: str | None = None) -> bool:
         """
         Send a beautifully formatted HTML account activation / email verification email.

@@ -483,42 +483,93 @@ class AuthService:
         )
         await self.db.commit()
 
-    async def forgot_password(self, email: str) -> str | None:
-        """Generate a secure password reset token (15 mins expiry)."""
+    async def forgot_password(self, email: str) -> tuple[User | None, str | None]:
+        """Generate a secure 6-digit numeric OTP for password reset (10 mins expiry)."""
         stmt = select(User).where(User.email == email.lower().strip())
         user = (await self.db.execute(stmt)).scalar_one_or_none()
-        if not user:
-            return None
-        from app.core.security import create_reset_token
-        return create_reset_token(user_id=user.id, email=user.email)
+        if not user or not user.is_active:
+            return user, None
+
+        otp = generate_numeric_otp(6)
+        user.otp_hash = hash_otp(otp)
+        user.otp_expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)
+        await self.db.commit()
+        await self.db.refresh(user)
+
+        return user, otp
 
     async def reset_password(self, data: ResetPasswordRequest) -> None:
-        """Verify password reset token and update user password."""
-        from app.core.security import decode_reset_token
-        try:
-            payload = decode_reset_token(data.token)
-        except Exception as exc:
-            raise ValidationException(
-                message="Password reset link is invalid or has expired. Please request a new link.",
-                field="token",
-            ) from exc
+        """Verify password reset OTP (or token) and update user password."""
+        user = None
 
-        if payload.get("type") != "password_reset":
+        # Primary workflow: 6-digit OTP verification
+        if data.email and data.otp:
+            clean_email = data.email.lower().strip()
+            clean_otp = data.otp.strip()
+            stmt = select(User).where(User.email == clean_email)
+            user = (await self.db.execute(stmt)).scalar_one_or_none()
+
+            if not user or not user.is_active:
+                raise ValidationException(
+                    message="User account not found or deactivated.",
+                    field="email",
+                )
+
+            if not user.otp_hash or not user.otp_expires_at:
+                raise ValidationException(
+                    message="No active password reset request found. Please request a new code.",
+                    field="otp",
+                )
+
+            now_utc = datetime.now(timezone.utc)
+            if now_utc > user.otp_expires_at:
+                raise ValidationException(
+                    message="Reset code has expired. Please request a fresh 6-digit code.",
+                    field="otp",
+                )
+
+            if user.otp_hash != hash_otp(clean_otp):
+                raise ValidationException(
+                    message="Invalid 6-digit verification code. Please check your email and try again.",
+                    field="otp",
+                )
+
+        # Secondary / legacy fallback: signed JWT token
+        elif data.token:
+            from app.core.security import decode_reset_token
+            try:
+                payload = decode_reset_token(data.token)
+            except Exception as exc:
+                raise ValidationException(
+                    message="Password reset link is invalid or has expired. Please request a new code.",
+                    field="token",
+                ) from exc
+
+            if payload.get("type") != "password_reset":
+                raise ValidationException(
+                    message="Invalid token type.",
+                    field="token",
+                )
+
+            user_id = payload.get("sub")
+            stmt = select(User).where(User.id == user_id)
+            user = (await self.db.execute(stmt)).scalar_one_or_none()
+            if not user:
+                raise ValidationException(
+                    message="User account not found.",
+                    field="token",
+                )
+        else:
             raise ValidationException(
-                message="Invalid token type.",
-                field="token",
+                message="Email and 6-digit reset code are required.",
+                field="otp",
             )
 
-        user_id = payload.get("sub")
-        stmt = select(User).where(User.id == user_id)
-        user = (await self.db.execute(stmt)).scalar_one_or_none()
-        if not user:
-            raise ValidationException(
-                message="User not found.",
-                field="token",
-            )
-
+        # Update password and clear OTP
         user.hashed_password = hash_password(data.new_password)
+        user.otp_hash = None
+        user.otp_expires_at = None
+
         # Revoke all active sessions
         await self.db.execute(
             update(RefreshToken)

@@ -408,7 +408,7 @@ async def change_password(
 @router.post(
     "/forgot-password",
     response_model=DataResponse[MessageResponse],
-    summary="Request a password reset link",
+    summary="Request a password reset code",
     dependencies=[Depends(forgot_rate_limiter)],
 )
 async def forgot_password(
@@ -417,19 +417,24 @@ async def forgot_password(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    FR-AUTH-7: Initiate password recovery.
-    Generates reset token and dispatches reset instructions in background.
+    FR-AUTH-7: Initiate password recovery with 6-digit numeric OTP.
+    Generates OTP and dispatches branded email in background.
     """
     service = AuthService(db)
-    reset_token = await service.forgot_password(body.email)
-    if reset_token:
+    user, otp = await service.forgot_password(body.email)
+    if user and otp:
         try:
             from app.services.email_service import EmailService
             email_svc = EmailService()
-            background_tasks.add_task(email_svc.send_password_reset_email, body.email, reset_token)
+            background_tasks.add_task(
+                email_svc.send_password_reset_otp_email,
+                user.email,
+                otp,
+                user.full_name,
+            )
         except Exception:
             pass  # Non-blocking email dispatch failure
-    msg = "If an account with this email exists, password reset instructions have been dispatched to your inbox."
+    msg = "If an account with this email exists, a 6-digit password reset code has been sent to your inbox."
     return DataResponse(data=MessageResponse(message=msg))
 
 

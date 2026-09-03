@@ -70,26 +70,27 @@ export default function ForgotPasswordPage() {
               </div>
               <div>
                 <h3 className="text-base font-semibold text-[var(--color-text-primary)]">
-                  Instructions Dispatched
+                  6-Digit Code Dispatched!
                 </h3>
                 <p className="text-xs sm:text-sm text-[var(--color-text-muted)] mt-1.5 leading-relaxed">
-                  {responseMessage || (
-                    <>
-                      If an account exists for <span className="text-[var(--color-text-primary)] font-medium">{email}</span>, you will receive password reset instructions shortly.
-                    </>
-                  )}
+                  If an account exists for <span className="text-[var(--color-text-primary)] font-semibold">{email}</span>, we have sent a 6-digit security code to your inbox.
                 </p>
               </div>
-              <div className="pt-3">
+              <div className="pt-2 space-y-2">
+                <Link
+                  href={`/reset-password?email=${encodeURIComponent(email.trim())}`}
+                  className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold text-sm inline-flex items-center justify-center gap-2 shadow-lg shadow-emerald-700/20 transition-all cursor-pointer"
+                >
+                  Enter 6-Digit Code & Reset Password &rarr;
+                </Link>
                 <Link
                   href="/login"
-                  className="w-full py-2.5 px-4 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] hover:bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] font-medium text-sm inline-flex items-center justify-center gap-2 transition-all cursor-pointer"
+                  className="w-full py-2.5 px-4 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] hover:bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] font-medium text-xs inline-flex items-center justify-center gap-2 transition-all cursor-pointer"
                 >
                   <ArrowLeft className="w-4 h-4" /> Return to Sign In
                 </Link>
               </div>
             </motion.div>
-
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               {error && (
@@ -99,7 +100,7 @@ export default function ForgotPasswordPage() {
               )}
 
               <p className="text-xs text-[var(--color-text-muted)] leading-relaxed">
-                Enter your registered email address and we&apos;ll send you a secure link to reset your account password.
+                Enter your registered email address and we&apos;ll send you a 6-digit security code to reset your account password.
               </p>
 
               <div>
@@ -134,7 +135,7 @@ export default function ForgotPasswordPage() {
                 ) : (
                   <>
                     <Send className="w-4 h-4" />
-                    <span>Send Reset Instructions</span>
+                    <span>Send Reset Code</span>
                   </>
                 )}
               </motion.button>

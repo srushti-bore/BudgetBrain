@@ -105,8 +105,15 @@ class ForgotPasswordRequest(BaseModel):
 
 
 class ResetPasswordRequest(BaseModel):
-    token: str = Field(..., min_length=1)
+    email: EmailStr | None = Field(default=None)
+    otp: str | None = Field(default=None, min_length=6, max_length=6)
+    token: str | None = Field(default=None)
     new_password: str = Field(..., min_length=8, max_length=128)
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalize_email(cls, v: str | None) -> str | None:
+        return v.strip().lower() if isinstance(v, str) else v
 
     @field_validator("new_password")
     @classmethod

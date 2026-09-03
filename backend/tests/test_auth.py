@@ -214,3 +214,77 @@ def test_otp_verification_and_instant_login_flow(unauthenticated_client: TestCli
         json={"email": email, "otp": "abc12"},
     )
     assert bad_format_res.status_code == 422
+
+
+def test_forgot_password_and_otp_reset_flow(unauthenticated_client: TestClient):
+    from app.core.security import hash_otp, create_verification_token
+    from app.database import get_engine_and_factory
+    from app.models.user import User
+    from sqlalchemy import select
+    import asyncio
+
+    email = f"reset_flow_{uuid.uuid4().hex[:8]}@gmail.com"
+    initial_password = "InitialPassword123"
+    new_password = "UpdatedPassword456"
+
+    # 1. Register user
+    reg_res = unauthenticated_client.post(
+        "/api/v1/auth/register",
+        json={"email": email, "password": initial_password, "full_name": "Reset Tester"},
+    )
+    assert reg_res.status_code == 201
+    user_id = reg_res.json()["data"]["user"]["id"]
+
+    # Verify email
+    verification_token = create_verification_token(user_id=user_id, email=email)
+    unauthenticated_client.get(f"/api/v1/auth/verify-email?token={verification_token}")
+
+    # 2. Call forgot-password
+    forgot_res = unauthenticated_client.post(
+        "/api/v1/auth/forgot-password",
+        json={"email": email},
+    )
+    assert forgot_res.status_code == 200
+    assert "6-digit" in forgot_res.json()["data"]["message"]
+
+    # 3. Inject a known OTP for deterministic test verification
+    async def set_test_otp():
+        _, session_factory = get_engine_and_factory()
+        async with session_factory() as session:
+            stmt = select(User).where(User.email == email)
+            u = (await session.execute(stmt)).scalar_one()
+            u.otp_hash = hash_otp("847291")
+            await session.commit()
+
+    asyncio.run(set_test_otp())
+
+    # 4. Attempt reset with wrong OTP -> 422
+    bad_reset_res = unauthenticated_client.post(
+        "/api/v1/auth/reset-password",
+        json={"email": email, "otp": "000000", "new_password": new_password},
+    )
+    assert bad_reset_res.status_code == 422
+    assert "Invalid 6-digit" in bad_reset_res.json()["error"]["message"]
+
+    # 5. Reset with correct OTP -> 200
+    good_reset_res = unauthenticated_client.post(
+        "/api/v1/auth/reset-password",
+        json={"email": email, "otp": "847291", "new_password": new_password},
+    )
+    assert good_reset_res.status_code == 200
+    assert "reset successfully" in good_reset_res.json()["data"]["message"].lower()
+
+    # 6. Old password fails
+    old_login = unauthenticated_client.post(
+        "/api/v1/auth/login",
+        json={"email": email, "password": initial_password},
+    )
+    assert old_login.status_code == 401
+
+    # 7. New password succeeds
+    new_login = unauthenticated_client.post(
+        "/api/v1/auth/login",
+        json={"email": email, "password": new_password},
+    )
+    assert new_login.status_code == 200
+    assert new_login.json()["data"]["access_token"]
