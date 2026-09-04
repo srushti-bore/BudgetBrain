@@ -163,7 +163,10 @@ class AIService:
         daily_average = float(summary.get("average_daily_spent", 0.0) or 0.0)
 
         top_categories = [
-            {"name": cat.get("name"), "amount": float(cat.get("amount", 0.0))}
+            {
+                "name": cat.get("category_name") or cat.get("name") or "General",
+                "amount": float(cat.get("total") or cat.get("amount", 0.0) or 0.0),
+            }
             for cat in top_cats
         ]
 
@@ -195,7 +198,10 @@ class AIService:
         daily_average = float(summary.get("average_daily_spent", 0.0) or 0.0)
 
         top_categories = [
-            {"name": cat.get("name"), "amount": float(cat.get("amount", 0.0))}
+            {
+                "name": cat.get("category_name") or cat.get("name") or "General",
+                "amount": float(cat.get("total") or cat.get("amount", 0.0) or 0.0),
+            }
             for cat in top_cats
         ]
 

@@ -418,10 +418,13 @@ Output strictly valid JSON:
                                     lines = lines[:-1]
                                 raw = "\n".join(lines).strip()
                             parsed = json.loads(raw)
+                            raw_monthly = str(parsed["recommended_monthly_limit"]).replace(",", "").replace("₹", "").replace("$", "").strip()
+                            raw_daily = str(parsed["recommended_daily_limit"]).replace(",", "").replace("₹", "").replace("$", "").strip()
+                            raw_savings = str(parsed.get("estimated_savings_rate", 15.0)).replace("%", "").strip()
                             return SuggestBudgetResponse(
-                                recommended_monthly_limit=float(parsed["recommended_monthly_limit"]),
-                                recommended_daily_limit=float(parsed["recommended_daily_limit"]),
-                                estimated_savings_rate=float(parsed.get("estimated_savings_rate", 15.0)),
+                                recommended_monthly_limit=float(raw_monthly),
+                                recommended_daily_limit=float(raw_daily),
+                                estimated_savings_rate=float(raw_savings),
                                 rationale=parsed.get("rationale", "Calculated by Gemini AI based on your spending."),
                             )
         except Exception as e:

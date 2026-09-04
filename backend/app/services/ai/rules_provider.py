@@ -325,17 +325,28 @@ class RulesProvider(BaseLLMProvider):
         top_categories: list[dict],
     ) -> SuggestBudgetResponse:
         base_target = monthly_spend if monthly_spend > 0 else (daily_avg * 30 if daily_avg > 0 else 30000.0)
-        recommended_monthly = round(base_target * 1.10, -2)  # 10% safety buffer rounded to 100
-        recommended_daily = round(recommended_monthly / 30, -1)
+        recommended_monthly = max(round(base_target * 1.10, -2), 100.0)
+        daily_calc = recommended_monthly / 30.0
+        recommended_daily = round(daily_calc, -1) if daily_calc >= 20.0 else round(daily_calc, 2)
+        recommended_daily = max(recommended_daily, 1.0)
+
+        if monthly_spend > 0:
+            rationale = (
+                f"Based on your current monthly spend of ₹{monthly_spend:,.0f}, "
+                f"a target of ₹{recommended_monthly:,.0f} with a ₹{recommended_daily:,.0f}/day cap "
+                f"provides spending flexibility while targeting an estimated 15% savings rate."
+            )
+        else:
+            rationale = (
+                f"Recommended baseline target of ₹{recommended_monthly:,.0f}/month with a ₹{recommended_daily:,.0f}/day cap "
+                f"to establish disciplined spending habits and build a consistent 15% savings buffer."
+            )
 
         return SuggestBudgetResponse(
             recommended_monthly_limit=recommended_monthly,
             recommended_daily_limit=recommended_daily,
             estimated_savings_rate=15.0,
-            rationale=(
-                f"Calculated from your current spending pace ({monthly_spend:,.0f}). "
-                f"A 10% buffer with a {recommended_daily:,.0f}/day cap gives you spending flexibility while preventing deficit."
-            ),
+            rationale=rationale,
         )
 
     async def chat(

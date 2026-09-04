@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { budgetApi, categoryApi, aiApi } from '@/lib/api';
 import { Budget, Category } from '@/types';
 import { useFormatCurrency, useCurrency } from '@/providers/CurrencyProvider';
-import { Target, Plus, CheckCircle, AlertTriangle, Flame, Edit2, ShieldAlert, Sparkles, Wand2, RefreshCw } from 'lucide-react';
+import { Target, Plus, CheckCircle, AlertTriangle, Flame, Edit2, ShieldAlert, Sparkles, Wand2, RefreshCw, Loader2, SlidersHorizontal } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function BudgetsPage() {
@@ -18,6 +18,8 @@ export default function BudgetsPage() {
   const [limitAmount, setLimitAmount] = useState('');
   const [dailyLimitAmount, setDailyLimitAmount] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAdopting, setIsAdopting] = useState(false);
+  const [autoFilled, setAutoFilled] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'warning' | 'error' } | null>(null);
 
@@ -41,6 +43,7 @@ export default function BudgetsPage() {
     data: aiBudget,
     isLoading: isAiBudgetLoading,
     isFetching: isAiBudgetFetching,
+    isError: isAiBudgetError,
     refetch: refetchAiBudget,
   } = useQuery({
     queryKey: ['aiBudgetSuggestion'],
@@ -86,8 +89,35 @@ export default function BudgetsPage() {
       const viewD = convertToView(d);
       setDailyLimitAmount(Number(viewD.toFixed(2)).toString());
     }
+    setAutoFilled(true);
+    setTimeout(() => setAutoFilled(false), 2500);
     setSelectedCatId('overall');
     setIsModalOpen(true);
+  };
+
+  // 1-Click Instant Adoption of AI Recommended Budget Limits
+  const handleOneClickAdopt = async () => {
+    if (!aiBudget) return;
+    setIsAdopting(true);
+    try {
+      await budgetMutation.mutateAsync({
+        category_id: null,
+        limit_amount: aiBudget.recommended_monthly_limit,
+        daily_limit: aiBudget.recommended_daily_limit > 0 ? aiBudget.recommended_daily_limit : null,
+      });
+      showToast(
+        `✨ Adopted AI Recommendation! Overall monthly budget set to ${formatCurrency(aiBudget.recommended_monthly_limit)}${
+          aiBudget.recommended_daily_limit > 0 ? ` with ${formatCurrency(aiBudget.recommended_daily_limit)}/day cap` : ''
+        }!`,
+        'success'
+      );
+    } catch (err: any) {
+      console.error('Adopt recommendation failure:', err);
+      const msg = err?.response?.data?.error?.message || 'Failed to adopt AI budget recommendation';
+      showToast(msg, 'error');
+    } finally {
+      setIsAdopting(false);
+    }
   };
 
   const handleSaveBudget = async (e: React.FormEvent) => {
@@ -206,7 +236,48 @@ export default function BudgetsPage() {
       </div>
 
       {/* AI Adaptive Budget Limit Recommendation Card (FR-AI-4) */}
-      {aiBudget && (
+      {isAiBudgetLoading && !aiBudget ? (
+        <div className="glass-card p-5 sm:p-6 border-emerald-500/25 bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-transparent flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-pulse">
+          <div className="flex items-start gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shrink-0 text-emerald-600 dark:text-emerald-400">
+              <Sparkles className="w-5 h-5 animate-spin" />
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                  AI Adaptive Recommendation
+                </span>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-[10px] font-bold text-emerald-700 dark:text-emerald-300 flex items-center gap-1">
+                  <Loader2 className="w-3 h-3 animate-spin" /> Calculating Targets...
+                </span>
+              </div>
+              <div className="h-5 w-56 sm:w-72 bg-emerald-500/20 rounded-md" />
+              <div className="h-3.5 w-72 sm:w-96 max-w-full bg-ink/10 dark:bg-white/10 rounded" />
+            </div>
+          </div>
+          <div className="h-9 w-36 bg-emerald-600/30 rounded-xl hidden sm:block shrink-0" />
+        </div>
+      ) : isAiBudgetError && !aiBudget ? (
+        <div className="glass-card p-4 sm:p-5 border-amber-500/35 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center shrink-0 text-amber-600">
+              <AlertTriangle className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="text-xs font-bold text-ink block">AI Recommendation Offline</span>
+              <span className="text-[11px] text-ink-muted block">Could not compute velocity targets. Click retry to recalculate.</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => refetchAiBudget()}
+            className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>Retry</span>
+          </button>
+        </div>
+      ) : aiBudget ? (
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -240,7 +311,7 @@ export default function BudgetsPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
+            <div className="flex items-center gap-2 shrink-0 self-end md:self-center flex-wrap">
               <button
                 type="button"
                 onClick={() => refetchAiBudget()}
@@ -250,18 +321,40 @@ export default function BudgetsPage() {
               >
                 <RefreshCw className={`w-4 h-4 ${isAiBudgetFetching ? 'animate-spin' : ''}`} />
               </button>
+
               <button
                 type="button"
                 onClick={() => handleApplyAiRecommendation()}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-600/20 transition-all flex items-center gap-1.5 cursor-pointer"
+                className="px-3.5 py-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                title="Customize targets in modal before saving"
               >
-                <Wand2 className="w-3.5 h-3.5" />
-                <span>Adopt Recommendation</span>
+                <SlidersHorizontal className="w-3.5 h-3.5" />
+                <span>Customize</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleOneClickAdopt}
+                disabled={isAdopting}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-600/20 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                title="1-Click Adopt: Immediately save recommended limits"
+              >
+                {isAdopting ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Adopting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Wand2 className="w-3.5 h-3.5" />
+                    <span>1-Click Adopt</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
         </motion.div>
-      )}
+      ) : null}
 
       {/* Main Overall Monthly Budget Card */}
       <div className="glass-card p-6 border-sage/30 bg-gradient-to-br from-white/80 via-white/50 to-sage-light/20 dark:from-white/5 dark:to-sage/10">
@@ -446,9 +539,19 @@ export default function BudgetsPage() {
                   <button
                     type="button"
                     onClick={() => handleApplyAiRecommendation()}
-                    className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold transition-all shrink-0 cursor-pointer"
+                    className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold transition-all shrink-0 cursor-pointer flex items-center gap-1"
                   >
-                    Auto-fill
+                    {autoFilled ? (
+                      <>
+                        <CheckCircle className="w-3 h-3 text-emerald-200" />
+                        <span>Filled! ✨</span>
+                      </>
+                    ) : (
+                      <>
+                        <Wand2 className="w-3 h-3" />
+                        <span>Auto-fill</span>
+                      </>
+                    )}
                   </button>
                 </div>
               )}
