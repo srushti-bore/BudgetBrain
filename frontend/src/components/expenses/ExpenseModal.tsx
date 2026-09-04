@@ -183,6 +183,10 @@ export default function ExpenseModal({
     setErrorMsg('');
     try {
       const data = await aiApi.scanReceipt(file);
+      if (data.title === 'Receipt Scan Unavailable' || (data.confidence !== undefined && data.confidence === 0)) {
+        setErrorMsg(data.notes || 'Vision-based receipt scanning requires an AI API Key (Gemini, OpenAI, or Anthropic) configured on the backend.');
+        return;
+      }
       if (data.title) setTitle(capitalizeFirstLetter(data.title));
       if (data.amount !== null && data.amount !== undefined) {
         const viewAmount = convertToView(data.amount);
