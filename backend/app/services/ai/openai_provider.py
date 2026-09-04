@@ -5,6 +5,7 @@ Supports OpenAI models (gpt-4o-mini, gpt-4o) and self-hosted / alternative
 compatible endpoints (Ollama, Groq, vLLM, DeepSeek) via OPENAI_BASE_URL.
 """
 
+import base64
 import json
 import httpx
 from app.schemas.ai import (
@@ -182,6 +183,99 @@ Format:
         mime_type: str,
         available_categories: list[str],
     ) -> ScanReceiptResponse:
+        if not self.api_key:
+            return await self.fallback.scan_receipt(image_bytes, mime_type, available_categories)
+
+        b64_image = base64.b64encode(image_bytes).decode("utf-8")
+        data_url = f"data:{mime_type or 'image/jpeg'};base64,{b64_image}"
+
+        prompt = f"""You are BudgetBrain AI, an expert receipt, bill, and invoice scanner.
+Extract expense data from this image:
+- title: Merchant or vendor name
+- amount: Total grand total paid as float
+- date: Transaction date YYYY-MM-DD or null
+- category: Best matching category from: {json.dumps(available_categories)}
+- payment_mode: "upi" | "card" | "cash" | "other"
+- mood: "happy" | "normal" | "sad" | "stressed" | "excited"
+- mood_reason: Reason for predicted mood
+- notes: 1-line item summary
+
+Return ONLY raw JSON:
+{{
+  "title": "Merchant Name",
+  "amount": 100.0,
+  "date": "2026-09-03",
+  "category": "Food & Dining",
+  "payment_mode": "upi",
+  "mood": "normal",
+  "mood_reason": "Everyday groceries",
+  "notes": "Items list"
+}}"""
+
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "model": self.model_name,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": data_url, "detail": "low"},
+                        },
+                    ],
+                }
+            ],
+            "temperature": 0.1,
+            "max_tokens": 500,
+        }
+
+        try:
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                res = await client.post(
+                    f"{self.base_url}/chat/completions", headers=headers, json=payload
+                )
+                if res.status_code == 200:
+                    data = res.json()
+                    raw = data["choices"][0]["message"]["content"].strip()
+                    # Strip markdown code fences if present
+                    if raw.startswith("```"):
+                        lines = raw.splitlines()
+                        if lines[0].startswith("```"):
+                            lines = lines[1:]
+                        if lines and lines[-1].strip() == "```":
+                            lines = lines[:-1]
+                        raw = "\n".join(lines).strip()
+                    parsed = json.loads(raw)
+                    amt = parsed.get("amount")
+                    amt_float = float(amt) if amt is not None else None
+                    mode = str(parsed.get("payment_mode", "card")).lower()
+                    if mode not in ["cash", "card", "upi", "other"]:
+                        mode = "upi" if "upi" in mode else "card"
+                    m = str(parsed.get("mood", "normal")).lower()
+                    if m not in ["happy", "normal", "sad", "stressed", "excited"]:
+                        m = "normal"
+                    cat = parsed.get("category") or (
+                        available_categories[0] if available_categories else "General"
+                    )
+                    return ScanReceiptResponse(
+                        title=parsed.get("title") or "Scanned Receipt",
+                        amount=amt_float,
+                        date=parsed.get("date"),
+                        category=cat,
+                        payment_mode=mode,
+                        mood=m,
+                        mood_reason=parsed.get("mood_reason", "AI detected from receipt"),
+                        notes=parsed.get("notes"),
+                        confidence=0.95,
+                    )
+        except Exception as e:
+            print(f"[OpenAIProvider] scan_receipt warning: {e}, using fallback.")
+
         return await self.fallback.scan_receipt(image_bytes, mime_type, available_categories)
 
     async def suggest_budget(

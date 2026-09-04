@@ -300,17 +300,22 @@ class RulesProvider(BaseLLMProvider):
         mime_type: str,
         available_categories: list[str],
     ) -> ScanReceiptResponse:
+        """
+        The Rules Provider has no vision capability.
+        Returns a descriptive placeholder informing the user that a vision-capable
+        AI provider (Gemini, OpenAI, or Anthropic) is required for real receipt parsing.
+        """
         cat = available_categories[0] if available_categories else "General"
         return ScanReceiptResponse(
-            title="Scanned Receipt",
+            title="Receipt Scan Unavailable",
             amount=None,
             date=date.today().isoformat(),
             category=cat,
-            payment_mode="card",
-            mood="normal",
-            mood_reason="Default baseline mood",
-            confidence=0.6,
-            notes="Parsed via fallback receipt parser.",
+            payment_mode=None,
+            mood=None,
+            mood_reason=None,
+            confidence=0.0,
+            notes="Vision-based receipt scanning requires an AI provider with image understanding (Gemini, OpenAI, or Anthropic). Configure AI_PROVIDER and the corresponding API key in your environment to enable this feature.",
         )
 
     async def suggest_budget(

@@ -231,6 +231,48 @@ The application is designed as a lightweight, single-user expense tracker using 
 
 ---
 
+### TD-26: Environment-Driven Provider-Independent LLM Engine Architecture
+- **Context & Requirement**: The application required multi-model AI capabilities (Gemini, OpenAI, Claude, Rules fallback) driven strictly by the environment variable `AI_PROVIDER` without hardcoding vendor SDKs or vendor lock-in.
+- **Solution Implemented**:
+  - Defined abstract `BaseLLMProvider` interface with contract methods for insights, categorization, budget advice, multi-turn chat, emotional spending, and vision receipt scanning.
+  - Built `get_ai_provider(settings)` factory resolving `gemini`, `openai`, `anthropic`, or falling back to offline mathematical `RulesProvider`.
+  - Used lightweight `httpx.AsyncClient` REST calls avoiding bloated vendor SDKs.
+- **Status**: **Resolved & Tested (54/54 backend tests passing)**.
+
+---
+
+### TD-27: Next.js Client Component Hydration & Navigation Suspense Boundary
+- **Context & Failure Mode**: Client navigation from Dashboard to Expenses caused full page reloads or runtime errors (`ReferenceError: Suspense is not defined`) when client-side query parameters (`useSearchParams`) were evaluated during page transitions.
+- **Solution Implemented**: Added explicit React `<Suspense>` boundary in `frontend/src/app/expenses/page.tsx` wrapping `ExpensesContent` to ensure seamless client-side SPA routing across all 14 routes.
+- **Status**: **Resolved & Verified (Next.js build clean with 0 errors)**.
+
+---
+
+### TD-28: Telemetry Key Alignment in AIService (`monthly_budget` vs nested `budget.limit_amount`)
+- **Context & Failure Mode**: `AIService` accessed `summary.get("monthly_budget")` and `summary.get("remaining_budget")` at the root dictionary level, which evaluated to `None` because `DashboardService.get_summary` nested budget limits under `summary["budget"]["limit_amount"]`. This caused the AI to repeatedly warn that no budget had been set even when an active budget was configured.
+- **Solution Implemented**: Extracted `limit_amount` and `remaining_amount` from `summary.get("budget", {})` and `average_daily_spent` properly in `ai_service.py`. Converted static "Actionable" badges into interactive direct navigation links (`Set Budget →`, `Manage Budget →`, `View Expenses →`) in `AiInsightsWidget.tsx`.
+- **Status**: **Resolved & Verified**.
+
+---
+
+### TD-29: Emotion-Aware Spending Telemetry & Behavioral Analytics Architecture
+- **Context & Requirement**: Users required psychological spend tracking across 5 emotional states (😊 Happy, 😐 Normal, 😔 Sad, 😰 Stressed, 🤩 Excited) with dominant category mapping and impulse-spending pattern detection.
+- **Solution Implemented**:
+  - Added database migration `20260903_2000_add_mood_to_expenses.py` with `mood VARCHAR(20)` and composite index `ix_expenses_user_mood`.
+  - Added `GET /api/v1/dashboard/emotional-spending` calculating mood breakdown, dominant category correlation, and impulse radar.
+  - Implemented `generate_emotional_insights` across all AI providers.
+  - Integrated glassmorphic `EmotionalSpendingWidget.tsx` mounted on main analytics dashboard.
+- **Status**: **Resolved & Tested**.
+
+---
+
+### TD-30: Multimodal Vision Ingestion & Dynamic Over-Budget Stressed Mood Trigger
+- **Context & Requirement**: Users needed automated mood detection instead of manual selection, automatic `stressed` flag if an expense breaches daily limit or pushes monthly budget into deficit, and an AI receipt scanner.
+- **Solution Implemented**:
+  - Injected real-time budget telemetry into `AIService.suggest_category` so the AI automatically predicts and selects **`😰 Stressed`** whenever an expense exceeds daily spending limits or monthly balance.
+  - Implemented `POST /api/v1/ai/scan-receipt` leveraging multimodal vision models (`Gemini 1.5 Flash`, `GPT-4o-mini`, `Claude 3.5 Haiku`) with client-side camera/file upload in `ExpenseModal.tsx`.
+- **Status**: **Resolved & Verified (54/54 tests passing, Next.js build clean)**.
+
 ---
 
 ## 3. Maintenance & Code Quality Standards
