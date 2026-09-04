@@ -9,6 +9,7 @@ import { useCurrency, useFormatCurrency } from '@/providers/CurrencyProvider';
 import { useSettings } from '@/providers/SettingsProvider';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
+import { MilestoneFeedback, evaluateSpendMilestone } from '@/lib/spendMilestoneAi';
 
 interface ExpenseModalProps {
   isOpen: boolean;
@@ -22,7 +23,7 @@ interface ExpenseModalProps {
     payment_mode?: PaymentMode | null;
     mood?: ExpenseMood | null;
     is_recurring?: boolean;
-  }) => Promise<void>;
+  }, milestone?: MilestoneFeedback) => Promise<void>;
   initialData?: Expense | null;
   categories: Category[];
   onCategoryCreated?: (newCategory: Category) => void;
@@ -275,18 +276,31 @@ export default function ExpenseModal({
       return;
     }
 
+    const milestone = evaluateSpendMilestone({
+      expenseTitle: formattedTitle,
+      expenseAmount: parsedBaseAmount,
+      projectedTotalSpent,
+      budgetLimit,
+      projectedTodaySpent,
+      dailyLimit,
+      formatCurrency,
+    });
+
     setIsSubmitting(true);
     try {
-      await onSubmit({
-        title: formattedTitle,
-        amount: parsedBaseAmount,
-        category_id: categoryId,
-        date,
-        payment_mode: (paymentMode as PaymentMode) || null,
-        mood: (mood as ExpenseMood) || null,
-        notes: notes.trim() || null,
-        is_recurring: isRecurring,
-      });
+      await onSubmit(
+        {
+          title: formattedTitle,
+          amount: parsedBaseAmount,
+          category_id: categoryId,
+          date,
+          payment_mode: (paymentMode as PaymentMode) || null,
+          mood: (mood as ExpenseMood) || null,
+          notes: notes.trim() || null,
+          is_recurring: isRecurring,
+        },
+        milestone
+      );
       onClose();
     } catch (err: any) {
       const msg = err?.response?.data?.error?.message || 'Failed to save expense';

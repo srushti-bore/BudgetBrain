@@ -10,6 +10,7 @@ import { useFormatCurrency, useCurrency } from '@/providers/CurrencyProvider';
 import { useSettings } from '@/providers/SettingsProvider';
 import { motion, AnimatePresence } from 'framer-motion';
 import ExpenseModal from '@/components/expenses/ExpenseModal';
+import { MilestoneFeedback } from '@/lib/spendMilestoneAi';
 import {
   Search,
   Plus,
@@ -26,6 +27,13 @@ import {
   Check,
   X,
 } from 'lucide-react';
+
+interface ToastState {
+  emoji?: string;
+  title?: string;
+  message: string;
+  type: 'success' | 'warning' | 'error';
+}
 
 function ExpensesContent() {
   const searchParams = useSearchParams();
@@ -53,7 +61,7 @@ function ExpensesContent() {
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [deletingExpense, setDeletingExpense] = useState<Expense | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'warning' | 'error' } | null>(null);
+  const [toastMessage, setToastMessage] = useState<ToastState | null>(null);
 
   // Auto-open modal if navigated with ?action=new or ?action=add
   useEffect(() => {
@@ -66,9 +74,24 @@ function ExpensesContent() {
 
   const { nearLimitThreshold = 80 } = useSettings();
 
-  const showToast = (text: string, type: 'success' | 'warning' | 'error' = 'success') => {
-    setToastMessage({ text, type });
-    setTimeout(() => setToastMessage(null), 4000);
+  const showToast = (
+    message: string,
+    type: 'success' | 'warning' | 'error' = 'success',
+    emoji?: string,
+    title?: string
+  ) => {
+    setToastMessage({ message, type, emoji, title });
+    setTimeout(() => setToastMessage(null), 5000);
+  };
+
+  const showAiMilestoneToast = (milestone: MilestoneFeedback) => {
+    setToastMessage({
+      emoji: milestone.emoji,
+      title: milestone.title,
+      message: milestone.message,
+      type: milestone.type,
+    });
+    setTimeout(() => setToastMessage(null), 6000);
   };
 
   // Fetch categories for dropdown
@@ -145,13 +168,21 @@ function ExpensesContent() {
     setIsModalOpen(true);
   };
 
-  const handleSaveExpense = async (formData: any) => {
+  const handleSaveExpense = async (formData: any, milestone?: MilestoneFeedback) => {
     if (editingExpense) {
       await updateMutation.mutateAsync({ id: editingExpense.id, data: formData });
-      showToast('Expense updated successfully!');
+      if (milestone) {
+        showAiMilestoneToast(milestone);
+      } else {
+        showToast('Expense updated successfully!', 'success', '✏️', 'Expense Updated');
+      }
     } else {
       await createMutation.mutateAsync(formData);
-      showToast('Expense logged successfully!');
+      if (milestone) {
+        showAiMilestoneToast(milestone);
+      } else {
+        showToast('Expense logged successfully!', 'success', '✨', 'Expense Logged');
+      }
     }
   };
 
@@ -186,29 +217,54 @@ function ExpensesContent() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12 relative">
-      {/* Toast Notification (Center Top) */}
+      {/* Dynamic AI Milestone Toast Notification (Center Top) */}
       <AnimatePresence>
         {toastMessage && (
           <motion.div
-            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            initial={{ opacity: 0, y: -25, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            className={`fixed top-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2.5 text-xs sm:text-sm font-bold border backdrop-blur-md transition-all ${
+            transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+            className={`fixed top-6 left-1/2 -translate-x-1/2 z-50 max-w-md w-[92vw] sm:w-auto px-4 py-3 rounded-2xl shadow-2xl flex items-start gap-3 border backdrop-blur-xl transition-all ${
               toastMessage.type === 'success'
-                ? 'bg-sage-light text-sage border-sage/40 dark:bg-sage/20 dark:text-sage shadow-sage/10'
+                ? 'bg-emerald-950/90 text-white border-emerald-500/40 shadow-emerald-950/40'
                 : toastMessage.type === 'warning'
-                ? 'bg-honey-light text-honey border-honey/40 dark:bg-honey/20 dark:text-honey shadow-honey/10'
-                : 'bg-coral-light text-coral border-coral/40 dark:bg-coral/20 dark:text-coral shadow-coral/10'
+                ? 'bg-amber-950/90 text-white border-amber-500/40 shadow-amber-950/40'
+                : 'bg-rose-950/90 text-white border-rose-500/50 shadow-rose-950/50'
             }`}
           >
-            {toastMessage.type === 'success' ? (
-              <Check className="w-4 h-4" />
-            ) : toastMessage.type === 'warning' ? (
-              <AlertTriangle className="w-4 h-4" />
-            ) : (
-              <Flame className="w-4 h-4" />
-            )}
-            <span>{toastMessage.text}</span>
+            <span className="text-2xl shrink-0 select-none">
+              {toastMessage.emoji || (toastMessage.type === 'success' ? '✨' : toastMessage.type === 'warning' ? '⚠️' : '😰')}
+            </span>
+            <div className="flex-1 min-w-0 pr-1">
+              {toastMessage.title && (
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <span className="font-bold text-xs sm:text-sm tracking-wide block">
+                    {toastMessage.title}
+                  </span>
+                  <span
+                    className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded ${
+                      toastMessage.type === 'success'
+                        ? 'bg-emerald-500/20 text-emerald-300'
+                        : toastMessage.type === 'warning'
+                        ? 'bg-amber-500/20 text-amber-300'
+                        : 'bg-rose-500/25 text-rose-300'
+                    }`}
+                  >
+                    AI Toast
+                  </span>
+                </div>
+              )}
+              <p className="text-[11px] sm:text-xs text-neutral-200 leading-relaxed">
+                {toastMessage.message}
+              </p>
+            </div>
+            <button
+              onClick={() => setToastMessage(null)}
+              className="text-neutral-400 hover:text-white p-0.5 rounded transition-colors cursor-pointer shrink-0"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </motion.div>
         )}
       </AnimatePresence>
