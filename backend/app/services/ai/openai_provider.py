@@ -327,8 +327,10 @@ Return ONLY raw JSON:
         system_prompt = (
             "You are BudgetBrain AI, a smart personal finance advisor. "
             f"User telemetry: {json.dumps(financial_context)}. "
-            "Answer questions using their exact numbers. "
-            "Output JSON with 'reply' (markdown string) and 'suggested_actions' (list of 3 short question strings)."
+            "MULTILINGUAL MANDATE: Detect user query language (Marathi, Hindi, Hinglish, English, etc.) and ALWAYS reply in that exact same language and script. "
+            "Ensure 'suggested_actions' are also in the detected language. "
+            "Answer questions using their exact financial telemetry numbers. "
+            "Output JSON with 'reply' (markdown string) and 'suggested_actions' (list of 3 short question strings in user's language)."
         )
 
         chat_history = [{"role": "system", "content": system_prompt}]

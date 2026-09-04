@@ -363,131 +363,353 @@ class RulesProvider(BaseLLMProvider):
         total_spent = float(financial_context.get("total_spent", 0.0) or 0.0)
         monthly_budget = financial_context.get("monthly_budget")
         remaining_budget = financial_context.get("remaining_budget")
+        daily_average = float(financial_context.get("daily_average", 0.0) or 0.0)
         top_cats = financial_context.get("top_categories", [])
         user_name = financial_context.get("user_name", "Friend")
 
-        # 1. Check for affordability query ("can I afford X")
-        if any(w in q_lower for w in ["afford", "can i buy", "can i spend", "should i buy"]):
-            # Extract number from query if present
-            numbers = re.findall(r"\d+(?:,\d+)*(?:\.\d+)?", user_query.replace(sym, ""))
-            amount = float(numbers[0].replace(",", "")) if numbers else None
+        # Multilingual language detection
+        def detect_lang(text: str) -> str:
+            t = text.lower()
+            mr_words = [
+                "karu shakto", "karu shakte", "gheu shakto", "gheu shakte", "parvadel",
+                "kuthe", "kashat", "kashavar", "paise", "kharch", "tota", "toota", "bachat",
+                "shillak", "mazya", "majhe", "mala", "aani", "shakto", "shakte", "aahe", "nahi",
+                "करू", "शकतो", "शकते", "कुठे", "पैसे", "खर्च", "तोटा", "बचत", "शिल्लक", "परवडेल"
+            ]
+            if any(w in t for w in mr_words):
+                return "mr"
+
+            hi_words = [
+                "kar sakta", "kar sakti", "kar sakte", "le sakta", "le sakti", "khareed",
+                "kahan", "kaha gaye", "kidhar", "ghata", "nuksan", "bachaye", "mera", "meri",
+                "सकता", "सकती", "खरीद", "कहाँ", "घाटा", "नुकसान", "बचत", "कितना"
+            ]
+            if any(w in t for w in hi_words):
+                return "hi"
+
+            if re.search(r"[\u0900-\u097F]", text):
+                if any(c in text for c in ["ळ", "ऱ", "आहे", "नाही", "माझे"]):
+                    return "mr"
+                return "hi"
+
+            return "en"
+
+        lang = detect_lang(user_query)
+
+        # 1. Affordability Check ("Can I afford X" / "मी X खर्च करू शकतो का?")
+        afford_triggers_en = ["afford", "can i buy", "can i spend", "should i buy", "can i purchase"]
+        afford_triggers_mr = [
+            "karu shakto", "karu shakte", "gheu shakto", "gheu shakte", "parvadel",
+            "kharch karu", "dinner karu", "kharidi karu", "shakto ka", "shakte ka",
+            "करू शकतो", "करू शकते", "घेऊ शकतो", "परवडेल", "खर्च करू"
+        ]
+        afford_triggers_hi = [
+            "kar sakta", "kar sakti", "kar sakte", "le sakta", "le sakti", "khareed sakta",
+            "कर सकता", "कर सकती", "ले सकता", "खरीद सकता"
+        ]
+
+        is_afford = (
+            any(w in q_lower for w in afford_triggers_en)
+            or any(w in q_lower for w in afford_triggers_mr)
+            or any(w in q_lower for w in afford_triggers_hi)
+        )
+
+        if is_afford:
+            numbers = re.findall(r"\d+(?:,\d+)*(?:\.\d+)?", user_query.replace(sym, "").replace(",", ""))
+            amount = float(numbers[0]) if numbers else None
 
             if amount is not None:
                 if remaining_budget is not None and remaining_budget < 0:
                     deficit = abs(remaining_budget)
-                    reply = (
-                        f"⚠️ You are currently in a monthly deficit of **{sym}{deficit:,.2f}**. "
-                        f"Spending another **{sym}{amount:,.2f}** would increase your deficit to **{sym}{(deficit + amount):,.2f}**. "
-                        f"I recommend postponing this purchase until next month's budget resets."
-                    )
+                    new_def = deficit + amount
+                    if lang == "mr":
+                        reply = (
+                            f"⚠️ **तोटा इशारा**: तुम्ही आधीच **{sym}{deficit:,.2f}** च्या तोट्यात आहात. "
+                            f"आणखी **{sym}{amount:,.2f}** खर्च केल्यास तुमचा तोटा वाढून **{sym}{new_def:,.2f}** होईल. "
+                            f"पुढील महिन्यापर्यंत हा खर्च पुढे ढकलण्याचा सल्ला मी देईन."
+                        )
+                    elif lang == "hi":
+                        reply = (
+                            f"⚠️ **घाटा अलर्ट**: आप पहले से ही **{sym}{deficit:,.2f}** के घाटे (deficit) में हैं। "
+                            f"और **{sym}{amount:,.2f}** खर्च करने पर आपका कुल घाटा **{sym}{new_def:,.2f}** हो जाएगा। "
+                            f"यह खरीदारी अगले महीने तक टालने की सलाह दी जाती है।"
+                        )
+                    else:
+                        reply = (
+                            f"⚠️ You are currently in a monthly deficit of **{sym}{deficit:,.2f}**. "
+                            f"Spending another **{sym}{amount:,.2f}** would increase your deficit to **{sym}{new_def:,.2f}**. "
+                            f"I recommend postponing this purchase until next month's budget resets."
+                        )
                 elif remaining_budget is not None:
                     if amount <= remaining_budget:
                         new_rem = remaining_budget - amount
-                        reply = (
-                            f"✅ Yes, you can afford **{sym}{amount:,.2f}**! "
-                            f"You currently have **{sym}{remaining_budget:,.2f}** remaining in your monthly budget. "
-                            f"After this purchase, your remaining balance will be **{sym}{new_rem:,.2f}**."
-                        )
+                        if lang == "mr":
+                            reply = (
+                                f"✅ **होय, तुम्हाला परवडेल!** तुम्ही **{sym}{amount:,.2f}** खर्च करू शकता. "
+                                f"तुमच्या चालू महिन्याच्या बजेटमध्ये सध्या **{sym}{remaining_budget:,.2f}** शिल्लक आहेत. "
+                                f"या खर्चानंतर तुमच्याकडे **{sym}{new_rem:,.2f}** शिल्लक राहतील."
+                            )
+                        elif lang == "hi":
+                            reply = (
+                                f"✅ **हाँ, आप यह खर्च कर सकते हैं!** आपके पास इस महीने के बजट में **{sym}{remaining_budget:,.2f}** बचे हैं। "
+                                f"**{sym}{amount:,.2f}** खर्च करने के बाद आपके पास **{sym}{new_rem:,.2f}** शेष बचेंगे।"
+                            )
+                        else:
+                            reply = (
+                                f"✅ Yes, you can afford **{sym}{amount:,.2f}**! "
+                                f"You currently have **{sym}{remaining_budget:,.2f}** remaining in your monthly budget. "
+                                f"After this purchase, your remaining balance will be **{sym}{new_rem:,.2f}**."
+                            )
                     else:
                         shortfall = amount - remaining_budget
-                        reply = (
-                            f"⚠️ Caution: You only have **{sym}{remaining_budget:,.2f}** remaining this month. "
-                            f"Spending **{sym}{amount:,.2f}** would push you into a deficit of **{sym}{shortfall:,.2f}**. "
-                            f"Consider finding a lower-cost option or deferring this purchase."
-                        )
+                        if lang == "mr":
+                            reply = (
+                                f"⚠️ **सावधान**: तुमच्याकडे या महिन्यात फक्त **{sym}{remaining_budget:,.2f}** शिल्लक आहेत. "
+                                f"**{sym}{amount:,.2f}** खर्च केल्यास तुम्ही **{sym}{shortfall:,.2f}** च्या तोट्यात (deficit) जाल. "
+                                f"हा खर्च कमी करण्याचा किंवा पुढे ढकलण्याचा विचार करा."
+                            )
+                        elif lang == "hi":
+                            reply = (
+                                f"⚠️ **सावधानी**: आपके पास इस महीने सिर्फ **{sym}{remaining_budget:,.2f}** बचे हैं। "
+                                f"**{sym}{amount:,.2f}** खर्च करने से आप **{sym}{shortfall:,.2f}** के घाटे में चले जाएंगे।"
+                            )
+                        else:
+                            reply = (
+                                f"⚠️ Caution: You only have **{sym}{remaining_budget:,.2f}** remaining this month. "
+                                f"Spending **{sym}{amount:,.2f}** would push you into a deficit of **{sym}{shortfall:,.2f}**. "
+                                f"Consider finding a lower-cost option or deferring this purchase."
+                            )
                 else:
-                    reply = (
-                        f"You haven't set a monthly budget limit yet! Your total spending so far is **{sym}{total_spent:,.2f}**. "
-                        f"Setting a monthly budget will allow me to track affordability precisely."
-                    )
+                    if lang == "mr":
+                        reply = (
+                            f"तुम्ही अजून मासिक बजेट सेट केलेले नाही! तुमचा या महिन्याचा एकूण खर्च **{sym}{total_spent:,.2f}** आहे. "
+                            f"परवडण्याची अचूक तपासणी करण्यासाठी कृपया बजेट पृष्ठावर जाऊन मासिक मर्यादा सेट करा."
+                        )
+                    elif lang == "hi":
+                        reply = (
+                            f"आपने अभी तक मासिक बजट सेट नहीं किया है! आपका इस महीने का खर्च **{sym}{total_spent:,.2f}** है। "
+                            f"सटीक सलाह के लिए कृपया मासिक बजट सेट करें।"
+                        )
+                    else:
+                        reply = (
+                            f"You haven't set a monthly budget limit yet! Your total spending so far is **{sym}{total_spent:,.2f}**. "
+                            f"Setting a monthly budget will allow me to track affordability precisely."
+                        )
             else:
-                rem_str = f"{sym}{remaining_budget:,.2f}" if remaining_budget is not None else "unset"
-                reply = (
-                    f"To check affordability, let me know the amount! Your remaining monthly budget is currently **{rem_str}**."
-                )
+                rem_str = f"{sym}{remaining_budget:,.2f}" if remaining_budget is not None else "N/A"
+                if lang == "mr":
+                    reply = f"परवडण्याची तपासणी करण्यासाठी रक्कम सांगा (उदा. 'मी ₹3,000 चा डिनर करू शकतो का?'). शिल्लक बजेट: **{rem_str}**."
+                elif lang == "hi":
+                    reply = f"परवडने की जांच के लिए कृपया राशि बताएं (उदा. 'क्या मैं ₹3,000 खर्च कर सकता हूँ?'). बचा हुआ बजट: **{rem_str}**."
+                else:
+                    reply = f"To check affordability, let me know the amount! Your remaining monthly budget is currently **{rem_str}**."
 
+            actions = (
+                ["माझे पैसे कुठे जात आहेत?", "शिल्लक बजेट किती आहे?", "बचत कशी करावी?"]
+                if lang == "mr"
+                else ["कहाँ ज्यादा खर्च हो रहा है?", "मेरा बचा हुआ बजट कितना है?", "बचत के उपाय"]
+                if lang == "hi"
+                else ["What is my remaining budget?", "Where is most of my money going?", "How to avoid deficit?"]
+            )
             return ChatResponse(
                 reply=reply,
-                suggested_actions=["What is my remaining budget?", "How much did I spend this month?", "Show top spending category"],
+                suggested_actions=actions,
                 provider=self.provider_name,
                 model=self.default_model,
             )
 
-        # 2. Check for food / category queries
-        for cat in top_cats:
-            cat_name = cat.get("name", "")
-            if cat_name.lower() in q_lower or (cat_name.lower().split()[0] in q_lower):
-                amt = float(cat.get("amount", 0.0))
-                pct = (amt / total_spent * 100) if total_spent > 0 else 0
-                reply = (
-                    f"You have spent **{sym}{amt:,.2f}** on **{cat_name}** this month, "
-                    f"which accounts for **{pct:.1f}%** of your total expenses ({sym}{total_spent:,.2f})."
-                )
-                return ChatResponse(
-                    reply=reply,
-                    suggested_actions=["How can I save more?", "What is my daily average?", "Can I afford ₹2,000?"],
-                    provider=self.provider_name,
-                    model=self.default_model,
-                )
+        # 2. Spending Breakdown / Category queries ("Where is my money going?" / "माझे पैसे कुठे खर्च झाले?")
+        breakdown_triggers = [
+            "where", "going", "category", "breakdown",
+            "kuthe", "kashavar", "kashat", "sarvat jast", "कुठे", "पैसे कुठे",
+            "kahan", "kaha", "kidhar", "sabse jyada", "कहाँ", "कहाँ खर्च"
+        ]
+        has_cat_match = any(
+            cat.get("name", "").lower() in q_lower for cat in top_cats if cat.get("name")
+        )
+        if any(w in q_lower for w in breakdown_triggers) or has_cat_match:
+            top_cat_name = top_cats[0].get("name", "General") if top_cats else "None"
+            top_cat_amt = float(top_cats[0].get("amount", 0.0)) if top_cats else 0.0
+            top_pct = (top_cat_amt / total_spent * 100) if total_spent > 0 else 0
 
-        # 3. Check for deficit / over budget queries
-        if any(w in q_lower for w in ["deficit", "over budget", "debt", "exceeded"]):
+            if lang == "mr":
+                reply = (
+                    f"📊 **तुमच्या खर्चाचा थेट तपशील:**\n\n"
+                    f"- **एकूण चालू महिना खर्च**: **{sym}{total_spent:,.2f}**\n"
+                    f"- **सर्वाधिक खर्च श्रेणी**: **{top_cat_name}** (**{sym}{top_cat_amt:,.2f}**, {top_pct:.1f}%)\n"
+                    f"- **दैनिक सरासरी खर्च**: **{sym}{daily_average:,.2f}/दिवस**\n\n"
+                    f"तुमच्या बजेटवर सर्वात जास्त भार **{top_cat_name}** मुळे पडत आहे."
+                )
+                actions = ["मी ₹3,000 खर्च करू शकतो का?", "बचत कशी करावी?", "तोटा कसा टाळायचा?"]
+            elif lang == "hi":
+                reply = (
+                    f"📊 **आपके खर्च का लाइव विवरण:**\n\n"
+                    f"- **इस महीने का कुल खर्च**: **{sym}{total_spent:,.2f}**\n"
+                    f"- **सबसे ज्यादा खर्च**: **{top_cat_name}** (**{sym}{top_cat_amt:,.2f}**, {top_pct:.1f}%)\n"
+                    f"- **दैनिक औसत खर्च**: **{sym}{daily_average:,.2f}/दिन**\n\n"
+                    f"आपके खर्च का बड़ा हिस्सा **{top_cat_name}** में जा रहा है।"
+                )
+                actions = ["क्या मैं ₹3,000 खर्च कर सकता हूँ?", "बचत के उपाय", "घाटा कैसे रोकें?"]
+            else:
+                reply = (
+                    f"📊 **Live Spending Breakdown:**\n\n"
+                    f"- **Total Spent This Month**: **{sym}{total_spent:,.2f}**\n"
+                    f"- **Highest Category**: **{top_cat_name}** (**{sym}{top_cat_amt:,.2f}**, {top_pct:.1f}%)\n"
+                    f"- **Daily Burn Rate**: **{sym}{daily_average:,.2f}/day**\n\n"
+                    f"Most of your spending is concentrated in **{top_cat_name}**."
+                )
+                actions = ["Can I afford a ₹3,000 purchase?", "How can I save more?", "How to avoid deficit?"]
+
+            return ChatResponse(
+                reply=reply,
+                suggested_actions=actions,
+                provider=self.provider_name,
+                model=self.default_model,
+            )
+
+        # 3. Deficit / Over Budget recovery queries
+        deficit_triggers = [
+            "deficit", "over budget", "debt", "recover",
+            "tota", "toota", "sampla", "bharun", "cross", "तोटा", "भरून",
+            "ghata", "nuksan", "khatam", "घाटा", "नुकसान"
+        ]
+        if any(w in q_lower for w in deficit_triggers):
             if remaining_budget is not None and remaining_budget < 0:
                 deficit = abs(remaining_budget)
-                reply = (
-                    f"⚠️ **Monthly Deficit Alert**: You have exceeded your budget by **{sym}{deficit:,.2f}**.\n\n"
-                    f"**3-Step Recovery Plan:**\n"
-                    f"1. **Pause Discretionary Spending**: Avoid dining out and retail for the remainder of the month.\n"
-                    f"2. **Log Every Penny**: Catch hidden leakages via UPI and small snacks.\n"
-                    f"3. **Adjust Next Month**: Use the AI Budget Advisor on the Budgets page to set a realistic limit."
-                )
+                if lang == "mr":
+                    reply = (
+                        f"⚠️ **मासिक तोटा इशारा**: तुम्ही बजेट **{sym}{deficit:,.2f}** ने ओलांडले आहे.\n\n"
+                        f"**तोटा भरून काढण्याची 3-सूत्री योजना:**\n"
+                        f"1. **अनावश्यक खर्च थांबवा**: बाहेर खाणे आणि शॉपिंग तात्पुरती स्थगित करा.\n"
+                        f"2. **प्रत्येक खर्च नोंदवा**: UPI व लहान स्नॅक्स खर्चान कडे विशेष लक्ष द्या.\n"
+                        f"3. **AI बजेट स्वीकारा**: Budgets पृष्ठावर जाऊन वास्तववादी AI बजेट मर्यादा लागू करा."
+                    )
+                    actions = ["माझे पैसे कुठे जात आहेत?", "मी ₹1,000 खर्च करू शकतो का?", "बचत कशी करावी?"]
+                elif lang == "hi":
+                    reply = (
+                        f"⚠️ **मासिक घाटा अलर्ट**: आप अपने बजट से **{sym}{deficit:,.2f}** आगे निकल चुके हैं।\n\n"
+                        f"**घाटा नियंत्रण के 3 कदम:**\n"
+                        f"1. **गैर-जरूरी खर्च रोकें**: रेस्टोरेंट और शॉपिंग पर कुछ दिन रोक लगाएं।\n"
+                        f"2. **हर भुगतान ट्रैक करें**: छोटे UPI भुगतानों को तुरंत नोट करें।\n"
+                        f"3. **नया बजट बनाएं**: Budgets पेज पर AI सुझाए बजट को अपनाएं।"
+                    )
+                    actions = ["कहाँ ज्यादा खर्च हो रहा है?", "क्या मैं ₹1,000 खर्च कर सकता हूँ?", "बचत के उपाय"]
+                else:
+                    reply = (
+                        f"⚠️ **Monthly Deficit Alert**: You have exceeded your budget by **{sym}{deficit:,.2f}**.\n\n"
+                        f"**3-Step Recovery Plan:**\n"
+                        f"1. **Pause Discretionary Spending**: Avoid dining out and retail for the remainder of the month.\n"
+                        f"2. **Log Every Penny**: Catch hidden leakages via UPI and small snacks.\n"
+                        f"3. **Adjust Next Month**: Use the AI Budget Advisor on the Budgets page to set a realistic limit."
+                    )
+                    actions = ["What is my remaining budget?", "Where am I spending the most?", "Adopt AI Budget"]
             else:
                 rem = f"{sym}{remaining_budget:,.2f}" if remaining_budget is not None else "N/A"
-                reply = f"🎉 Great news! You are **not in a deficit**. You have **{rem}** remaining in your budget."
+                if lang == "mr":
+                    reply = f"🎉 आनंदाची बातमी! तुम्ही **तोट्यात नाही आहात**. तुमच्या बजेटमध्ये अजून **{rem}** शिल्लक आहेत."
+                    actions = ["मी ₹3,000 खर्च करू शकतो का?", "माझे पैसे कुठे जात आहेत?", "बचत कशी करावी?"]
+                elif lang == "hi":
+                    reply = f"🎉 अच्छी खबर! आप **घाटे में नहीं हैं**। आपके बजट में अभी **{rem}** शेष हैं।"
+                    actions = ["क्या मैं ₹3,000 खर्च कर सकता हूँ?", "कहाँ ज्यादा खर्च हो रहा है?", "बचत के उपाय"]
+                else:
+                    reply = f"🎉 Great news! You are **not in a deficit**. You have **{rem}** remaining in your budget."
+                    actions = ["What is my remaining budget?", "Where am I spending the most?", "Tips to save more"]
 
             return ChatResponse(
                 reply=reply,
-                suggested_actions=["What is my remaining budget?", "Where am I spending the most?", "Adopt AI Budget"],
+                suggested_actions=actions,
                 provider=self.provider_name,
                 model=self.default_model,
             )
 
-        # 4. Check for savings advice queries
-        if any(w in q_lower for w in ["save", "saving", "tip", "reduce", "plan", "advice"]):
+        # 4. Savings advice queries
+        saving_triggers = [
+            "save", "saving", "tip", "reduce", "plan", "advice",
+            "bachat", "salla", "madat", "बचत", "सल्ला",
+            "bachaye", "सलाह"
+        ]
+        if any(w in q_lower for w in saving_triggers):
             top_cat_name = top_cats[0].get("name", "Expenses") if top_cats else "Discretionary items"
-            reply = (
-                f"💡 **Personalized Savings Strategy for {user_name}:**\n\n"
-                f"- **Trim {top_cat_name}**: This is your highest expenditure this month. Reducing it by just 10-15% will yield immediate savings.\n"
-                f"- **Follow the 50/30/20 Rule**: 50% for Needs, 30% for Wants, and 20% directly into Savings.\n"
-                f"- **Current Spending Velocity**: You are spending an average of **{sym}{financial_context.get('daily_average', 0):,.2f}/day**."
-            )
+            if lang == "mr":
+                reply = (
+                    f"💡 **{user_name} साठी वैयक्तिक बचत सल्ला:**\n\n"
+                    f"- **{top_cat_name} वर नियंत्रण**: हा तुमचा सर्वाधिक खर्च आहे. यात 10-15% कपात केल्यास लगेच बचत होईल.\n"
+                    f"- **50/30/20 नियमाचा वापर करा**: 50% गरजा, 30% इच्छा आणि 20% थेट बचतीमध्ये ठेवा.\n"
+                    f"- **दैनिक खर्च गती**: तुम्ही सरासरी **{sym}{daily_average:,.2f}/दिवस** खर्च करत आहात."
+                )
+                actions = ["मी ₹1,500 खर्च करू शकतो का?", "माझे पैसे कुठे जात आहेत?", "शिल्लक बजेट किती आहे?"]
+            elif lang == "hi":
+                reply = (
+                    f"💡 **{user_name} के लिए स्मार्ट बचत रणनीति:**\n\n"
+                    f"- **{top_cat_name} में कटौती**: यह आपका सबसे बड़ा खर्च है। इसमें 10-15% कटौती से सीधी बचत होगी।\n"
+                    f"- **50/30/20 नियम अपनाएं**: 50% जरूरतें, 30% शौक, और 20% सीधी बचत।\n"
+                    f"- **दैनिक खर्च दर**: आप प्रतिदिन औसतन **{sym}{daily_average:,.2f}** खर्च कर रहे हैं।"
+                )
+                actions = ["क्या मैं ₹1,500 खर्च कर सकता हूँ?", "कहाँ ज्यादा खर्च हो रहा है?", "बचा हुआ बजट कितना है?"]
+            else:
+                reply = (
+                    f"💡 **Personalized Savings Strategy for {user_name}:**\n\n"
+                    f"- **Trim {top_cat_name}**: This is your highest expenditure this month. Reducing it by just 10-15% will yield immediate savings.\n"
+                    f"- **Follow the 50/30/20 Rule**: 50% for Needs, 30% for Wants, and 20% directly into Savings.\n"
+                    f"- **Current Spending Velocity**: You are spending an average of **{sym}{daily_average:,.2f}/day**."
+                )
+                actions = ["Can I afford ₹1,500?", "What is my top category?", "How much did I spend this month?"]
+
             return ChatResponse(
                 reply=reply,
-                suggested_actions=["Can I afford ₹1,500?", "What is my top category?", "How much did I spend this month?"],
+                suggested_actions=actions,
                 provider=self.provider_name,
                 model=self.default_model,
             )
 
-        # 5. Default / Summary response
-        budget_str = f"{sym}{monthly_budget:,.2f}" if monthly_budget else "Not set"
+        # 5. Default / Snapshot Greeting in detected language
+        budget_str = f"{sym}{monthly_budget:,.2f}" if monthly_budget else ("सेट नाही" if lang == "mr" else "सेट नहीं" if lang == "hi" else "Not set")
         rem_str = f"{sym}{remaining_budget:,.2f}" if remaining_budget is not None else "N/A"
         top_cat_str = top_cats[0].get("name", "None") if top_cats else "None"
 
-        reply = (
-            f"Hello {user_name}! Here is your real-time financial snapshot:\n\n"
-            f"- **Total Spent**: {sym}{total_spent:,.2f}\n"
-            f"- **Monthly Budget**: {budget_str}\n"
-            f"- **Remaining Balance**: {rem_str}\n"
-            f"- **Top Category**: {top_cat_str}\n\n"
-            f"How can I help you manage your money today? You can ask me things like:\n"
-            f"- *'Can I afford a {sym}3,000 dinner tonight?'*\n"
-            f"- *'Where am I spending the most money?'*\n"
-            f"- *'How can I save more this month?'*"
-        )
+        if lang == "mr":
+            reply = (
+                f"नमस्कार {user_name}! हा तुमचा थेट आर्थिक गोषवारा आहे:\n\n"
+                f"- **एकूण खर्च**: {sym}{total_spent:,.2f}\n"
+                f"- **मासिक बजेट**: {budget_str}\n"
+                f"- **शिल्लक रक्कम**: {rem_str}\n"
+                f"- **मुख्य श्रेणी**: {top_cat_str}\n\n"
+                f"मी तुम्हाला आर्थिक नियोजनात कशी मदत करू शकतो? तुम्ही मला विचारू शकता:\n"
+                f"- *'मी आज रात्री ₹3,000 चा डिनर करू शकतो का?'*\n"
+                f"- *'माझे पैसे कुठे खर्च होत आहेत?'*\n"
+                f"- *'मी या महिन्यात बचत कशी करावी?'*"
+            )
+            actions = ["मी ₹3,000 खर्च करू शकतो का?", "माझे पैसे कुठे जात आहेत?", "बचत कशी करावी?"]
+        elif lang == "hi":
+            reply = (
+                f"नमस्ते {user_name}! यह आपका लाइव वित्तीय सारांश है:\n\n"
+                f"- **कुल खर्च**: {sym}{total_spent:,.2f}\n"
+                f"- **मासिक बजट**: {budget_str}\n"
+                f"- **बची हुई राशि**: {rem_str}\n"
+                f"- **प्रमुख श्रेणी**: {top_cat_str}\n\n"
+                f"मैं आपके बजट प्रबंधन में कैसे मदद कर सकता हूँ? आप पूछ सकते हैं:\n"
+                f"- *'क्या मैं आज ₹3,000 खर्च कर सकता हूँ?'*\n"
+                f"- *'मेरा पैसा कहाँ खर्च हो रहा है?'*\n"
+                f"- *'मैं ज्यादा बचत कैसे करूँ?'*"
+            )
+            actions = ["क्या मैं ₹3,000 खर्च कर सकता हूँ?", "कहाँ ज्यादा खर्च हो रहा है?", "बचत कैसे करें?"]
+        else:
+            reply = (
+                f"Hello {user_name}! Here is your real-time financial snapshot:\n\n"
+                f"- **Total Spent**: {sym}{total_spent:,.2f}\n"
+                f"- **Monthly Budget**: {budget_str}\n"
+                f"- **Remaining Balance**: {rem_str}\n"
+                f"- **Top Category**: {top_cat_str}\n\n"
+                f"How can I help you manage your money today? You can ask me things like:\n"
+                f"- *'Can I afford a {sym}3,000 dinner tonight?'*\n"
+                f"- *'Where am I spending the most money?'*\n"
+                f"- *'How can I save more this month?'*"
+            )
+            actions = [f"Can I afford {sym}3,000?", "Where is my money going?", "Tips to save more"]
 
         return ChatResponse(
             reply=reply,
-            suggested_actions=[f"Can I afford {sym}2,000?", "Where is my money going?", "Tips to save more"],
+            suggested_actions=actions,
             provider=self.provider_name,
             model=self.default_model,
         )

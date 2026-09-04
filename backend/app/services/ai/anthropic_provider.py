@@ -280,8 +280,10 @@ Return ONLY raw JSON:
         system_prompt = (
             "You are BudgetBrain AI, an intelligent personal finance assistant. "
             f"User telemetry: {json.dumps(financial_context)}. "
-            "Answer questions using their exact numbers in friendly markdown. "
-            "Output valid JSON with 'reply' (markdown string) and 'suggested_actions' (list of 3 short questions)."
+            "MULTILINGUAL MANDATE: Detect user query language (Marathi, Hindi, Hinglish, English, etc.) and ALWAYS reply in that exact same language and script. "
+            "Ensure 'suggested_actions' are also in the detected language. "
+            "Answer questions using their exact financial telemetry numbers in friendly markdown. "
+            "Output valid JSON with 'reply' (markdown string) and 'suggested_actions' (list of 3 short questions in user's language)."
         )
 
         claude_msgs = []

@@ -31,8 +31,9 @@ class GeminiProvider(BaseLLMProvider):
             "gemini-2.5-flash",
             "gemini-2.5-flash-lite",
             "gemini-flash-latest",
+            "gemini-3-flash-preview",
         ]:
-            chosen_model = "gemini-3-flash-preview"
+            chosen_model = "gemini-3.1-flash-lite"
 
         super().__init__(model_name=chosen_model, temperature=temperature)
         self.api_key = api_key
@@ -44,11 +45,11 @@ class GeminiProvider(BaseLLMProvider):
 
     @property
     def default_model(self) -> str:
-        return "gemini-3-flash-preview"
+        return "gemini-3.1-flash-lite"
 
     async def _post_content(self, client: httpx.AsyncClient, payload: dict) -> dict | None:
         models_to_try = [self.model_name]
-        for candidate in ["gemini-3-flash-preview", "gemini-3.1-flash-lite"]:
+        for candidate in ["gemini-3.1-flash-lite", "gemini-3-flash-preview"]:
             if candidate not in models_to_try:
                 models_to_try.append(candidate)
 
@@ -449,7 +450,7 @@ Output strictly valid JSON:
         top_cats = financial_context.get("top_categories", [])
 
         system_instruction = f"""
-You are BudgetBrain AI, a sharp, supportive personal finance assistant built into BudgetBrain.
+You are BudgetBrain AI, a sharp, empathetic personal finance assistant built into BudgetBrain.
 You have real-time access to the user's financial telemetry:
 - User Name: {user_name}
 - Currency: {sym}
@@ -460,13 +461,33 @@ You have real-time access to the user's financial telemetry:
 - Daily Average Spend: {sym}{daily_average:,.2f}
 - Top Spending Categories: {json.dumps(top_cats)}
 
-Instructions:
-1. Answer questions directly using their exact numbers.
-2. If asked "Can I afford X", compute remaining budget minus X and state clearly whether it will cause a deficit.
-3. Keep responses concise, well-formatted with markdown bolding, and encouraging.
-4. Output JSON with fields:
-   - "reply": Markdown formatted answer string
-   - "suggested_actions": Array of 3 short follow-up prompts user might ask next (e.g. ["Can I afford ₹2,000?", "Where is my money going?"])
+CRITICAL MULTILINGUAL INSTRUCTIONS:
+1. YOU MUST UNDERSTAND AND RESPOND IN ANY LANGUAGE:
+   - Carefully detect the language and script used in the user's latest query (e.g. Marathi / मराठी, Romanized Marathi / Marathinglish like "me 3000 cha dinner karu shakto ka", Hindi / हिंदी, Hinglish like "kya mai 3000 ka dinner kar sakta hu", English, etc.).
+   - ALWAYS respond in the EXACT SAME LANGUAGE and script / phrasing style as the user!
+   - If the user writes in Marathi (Devanagari or Romanized Marathi), reply in natural, fluent Marathi (in Devanagari script: उदा. "होय, तुम्ही ₹3,000 चा डिनर करू शकता...").
+   - If the user writes in Hindi (Devanagari or Romanized Hindi), reply in natural Hindi (in Devanagari script).
+   - If the user writes in English, reply in English.
+2. suggested_actions array MUST ALSO BE in that same detected language:
+   - Marathi example: ["माझे पैसे कुठे जात आहेत?", "मी ₹2,000 खर्च करू शकतो का?", "बजेट कसे सुधारायचे?"]
+   - Hindi example: ["कहाँ ज्यादा खर्च हो रहा है?", "क्या मैं ₹2,000 खर्च कर सकता हूँ?", "बचत के उपाय"]
+   - English example: ["Where is most of my money going?", "Can I afford ₹2,000?", "How do I save more?"]
+
+TELEMETRY & REASONING RULES:
+1. If user asks "Can I afford X" / "मी X खर्च करू शकतो का?":
+   - If no budget set: State they haven't set a monthly budget yet, show their total spend, and advise adopting an AI budget.
+   - If already in deficit: Calculate new increased deficit = (current_deficit + X) and warn them against spending.
+   - If within budget: Compare X to remaining balance. If X <= remaining, confirm it fits and show the new remaining balance (remaining - X). If X > remaining, warn that it will trigger a deficit of (X - remaining).
+2. If user asks "Where is my money going?" / "माझे पैसे कुठे खर्च झाले?":
+   - Break down their top spending categories with amounts and percentages of total spent.
+3. If user asks "How do I recover from deficit?" / "तोटा कसा भरून काढू?":
+   - Provide clear, actionable steps: pause non-essential spending, adhere to daily limit, track daily expenses.
+4. Always keep responses concise, well-structured with markdown bolding and bullet points, and encouraging.
+5. Strict Output JSON format:
+{{
+  "reply": "Markdown formatted advice in the user's language",
+  "suggested_actions": ["Prompt 1 in user language", "Prompt 2 in user language", "Prompt 3 in user language"]
+}}
 """
 
         # Convert messages to Gemini format
@@ -478,7 +499,7 @@ Instructions:
         payload = {
             "contents": contents,
             "generationConfig": {
-                "temperature": 0.4,
+                "temperature": 0.3,
                 "response_mime_type": "application/json",
             },
         }
@@ -499,15 +520,35 @@ Instructions:
                                 if lines and lines[-1].strip() == "```":
                                     lines = lines[:-1]
                                 raw = "\n".join(lines).strip()
-                            parsed = json.loads(raw)
-                            reply = parsed.get("reply") or raw
-                            actions = parsed.get("suggested_actions") or []
-                            return ChatResponse(
-                                reply=reply,
-                                suggested_actions=actions[:3],
-                                provider=self.provider_name,
-                                model=self.model_name,
-                            )
+
+                            parsed = None
+                            try:
+                                parsed = json.loads(raw)
+                            except Exception:
+                                # Try extracting JSON object if enclosed
+                                start = raw.find("{")
+                                end = raw.rfind("}")
+                                if start != -1 and end != -1 and end > start:
+                                    try:
+                                        parsed = json.loads(raw[start : end + 1])
+                                    except Exception:
+                                        parsed = None
+
+                            if isinstance(parsed, dict) and "reply" in parsed:
+                                actions = parsed.get("suggested_actions") or []
+                                return ChatResponse(
+                                    reply=parsed["reply"],
+                                    suggested_actions=actions[:3],
+                                    provider=self.provider_name,
+                                    model=self.model_name,
+                                )
+                            elif raw:
+                                return ChatResponse(
+                                    reply=raw,
+                                    suggested_actions=[],
+                                    provider=self.provider_name,
+                                    model=self.model_name,
+                                )
         except Exception as e:
             print(f"[GeminiProvider] chat warning: {e}, using fallback.")
 

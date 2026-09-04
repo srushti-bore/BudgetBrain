@@ -26,16 +26,16 @@ export default function AskBudgetBrainChat() {
     {
       role: 'assistant',
       content:
-        "Hello! I am your **BudgetBrain AI Advisor**. Ask me anything about your spending, affordability, deficit recovery, or savings goals!",
+        "Hello! I am your **BudgetBrain AI Advisor**. You can chat with me in **any language** (मराठी, हिंदी, English, etc.)! Ask me anything about your spending, affordability, deficit recovery, or savings goals.",
     },
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [suggestedActions, setSuggestedActions] = useState<string[]>([
-    'How much did I spend this month?',
     'Can I afford a ₹3,000 purchase?',
+    'मी ₹3,000 खर्च करू शकतो का?',
     'Where is most of my money going?',
-    'How to avoid month-end deficit?',
+    'माझे पैसे कुठे जात आहेत?',
   ]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -104,13 +104,14 @@ export default function AskBudgetBrainChat() {
       {
         role: 'assistant',
         content:
-          "Chat reset! Ask me anything about your finances, budget caps, or upcoming purchases.",
+          "Chat reset! Ask me anything in any language (मराठी, हिंदी, English) about your finances, budget caps, or upcoming purchases.",
       },
     ]);
     setSuggestedActions([
-      'How much did I spend this month?',
       'Can I afford a ₹3,000 purchase?',
+      'मी ₹3,000 खर्च करू शकतो का?',
       'Where is most of my money going?',
+      'माझे पैसे कुठे जात आहेत?',
     ]);
   };
 
@@ -182,7 +183,7 @@ export default function AskBudgetBrainChat() {
                       AI
                     </span>
                   </h3>
-                  <p className="text-[10px] text-ink-muted">Personalized financial advisor</p>
+                  <p className="text-[10px] text-ink-muted">Multilingual financial advisor (मराठी, हिंदी, English)</p>
                 </div>
               </div>
 
@@ -291,7 +292,7 @@ export default function AskBudgetBrainChat() {
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask about budget, affordability, expenses..."
+                placeholder="Ask in any language (मराठी, हिंदी, English)..."
                 disabled={isLoading}
                 className="flex-1 px-3.5 py-2 rounded-xl bg-ink/5 dark:bg-white/10 border border-ink/10 dark:border-white/15 text-xs text-ink dark:text-white focus:outline-none focus:border-emerald-500 transition-all disabled:opacity-50"
               />

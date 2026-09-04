@@ -130,6 +130,37 @@ def test_ai_chat_endpoint(client: TestClient):
     assert res_cat.status_code == 200
     assert len(res_cat.json()["data"]["reply"]) > 0
 
+    # 4. Multilingual Marathi Affordability Query
+    res_mr = client.post(
+        "/api/v1/ai/chat",
+        json={"messages": [{"role": "user", "content": "मी ₹3,000 चा डिनर करू शकतो का?"}]},
+    )
+    assert res_mr.status_code == 200, res_mr.text
+    mr_data = res_mr.json()["data"]
+    assert "reply" in mr_data
+    assert len(mr_data["reply"]) > 0
+    # Must contain Marathi response terms (pervadnar / parvadeli / shillak / kharch)
+    assert any(w in mr_data["reply"] for w in ["परवडेल", "शिल्लक", "खर्च", "बजेट", "तोटा", "afford"])
+    assert len(mr_data["suggested_actions"]) > 0
+
+    # 5. Multilingual Marathi Breakdown Query
+    res_mr_breakdown = client.post(
+        "/api/v1/ai/chat",
+        json={"messages": [{"role": "user", "content": "माझे पैसे कुठे खर्च झाले?"}]},
+    )
+    assert res_mr_breakdown.status_code == 200
+    assert len(res_mr_breakdown.json()["data"]["reply"]) > 0
+
+    # 6. Multilingual Hindi Query
+    res_hi = client.post(
+        "/api/v1/ai/chat",
+        json={"messages": [{"role": "user", "content": "क्या मैं ₹2,000 खर्च कर सकता हूँ?"}]},
+    )
+    assert res_hi.status_code == 200
+    hi_data = res_hi.json()["data"]
+    assert "reply" in hi_data
+    assert len(hi_data["reply"]) > 0
+
 
 def test_suggest_category_detects_mood(client: TestClient):
     # 1. Urgent/hospital -> stressed
