@@ -82,6 +82,17 @@ class TestCreateExpense:
         })
         assert res.status_code == 422
 
+    def test_create_with_next_day_timezone_buffer_returns_201(self, client: TestClient):
+        cat_id = helper_create_category(client)
+        tomorrow_date = str(datetime.date.today() + datetime.timedelta(days=1))
+        res = client.post(BASE_URL, json={
+            "title": "Timezone Expense",
+            "amount": 100.00,
+            "category_id": cat_id,
+            "date": tomorrow_date
+        })
+        assert res.status_code == 201
+
     def test_create_with_zero_amount_returns_422(self, client: TestClient):
         cat_id = helper_create_category(client)
         res = client.post(BASE_URL, json={

@@ -4,7 +4,7 @@ BudgetBrain — Expense Pydantic Schemas
 Request/response shapes for /api/v1/expenses endpoints.
 """
 
-from datetime import date as dt_date, datetime
+from datetime import date as dt_date, datetime, timedelta
 from decimal import Decimal
 
 from pydantic import BaseModel, Field, field_validator
@@ -26,7 +26,8 @@ class ExpenseCreate(BaseModel):
     @field_validator("date")
     @classmethod
     def date_not_in_future(cls, v: dt_date) -> dt_date:
-        if v > dt_date.today():
+        max_allowed = dt_date.today() + timedelta(days=1)
+        if v > max_allowed:
             raise ValueError("Expense date cannot be in the future.")
         return v
 
@@ -63,8 +64,10 @@ class ExpenseUpdate(BaseModel):
     @field_validator("date")
     @classmethod
     def date_not_in_future(cls, v: dt_date | None) -> dt_date | None:
-        if v is not None and v > dt_date.today():
-            raise ValueError("Expense date cannot be in the future.")
+        if v is not None:
+            max_allowed = dt_date.today() + timedelta(days=1)
+            if v > max_allowed:
+                raise ValueError("Expense date cannot be in the future.")
         return v
 
 
