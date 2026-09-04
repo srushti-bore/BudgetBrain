@@ -396,6 +396,72 @@ All 13 REST API endpoints across 5 core backend modules are fully functional wit
   - Backend pytest: **54 / 54 tests passing (100%)** including `test_suggest_category_detects_mood` and `test_scan_receipt_endpoint`.
   - Frontend type check & build: `npx tsc --noEmit` and `next build` passing with **0 errors**.
 
+## Phase 38: Unblocked Deficit Logging & Timezone Buffer
+
+- **Problem & Scope**:
+  - Rigid budget cap enforcement previously blocked users from recording expenses when their monthly budget was exhausted, disrupting financial tracking during critical deficit periods.
+  - Users logging expenses in UTC+5:30 (Indian Standard Time) or other ahead timezones on the current calendar day encountered false validation rejections ("Date cannot be in the future") when backend servers ran on UTC clocks.
+- **Backend Architecture**:
+  - `backend/app/schemas/expense.py`: Updated `validate_date` in `ExpenseBase` with a 1-day future grace buffer (`datetime.now(timezone.utc).date() + timedelta(days=1)`) to seamlessly accommodate global timezones without false positive validation errors. Added dedicated test case in `backend/tests/test_expenses.py`.
+  - `backend/app/services/expense_service.py` & `backend/app/routers/expenses.py`: Permitted expense logging and updates when exceeding monthly budget caps, accurately calculating negative remaining amounts (`remaining_amount < 0`) and deficit telemetry.
+- **Frontend Architecture**:
+  - `frontend/src/app/expenses/page.tsx` & `ExpenseModal.tsx`: Updated budget warning displays to clearly indicate deficit status (`-₹...`) in bold coral alerts while never blocking expense persistence.
+  - Raised toast container z-index to `z-[99999]` for unhindered visibility above all modals.
+- **Automated Verification**:
+  - Pytest: 55/55 tests passing (100%).
+
+## Phase 39: 4-Tier Real-Time AI Milestone Feedback Engine
+
+- **Problem & Scope**:
+  - Users lacked real-time psychological feedback on their financial health at the moment of recording transactions.
+  - Required dynamic, context-aware AI reactions with expressive emojis (celebrating for disciplined spending, cautionary for mid-month burn, and alarmed for over-budget deficit).
+- **Core Implementation**:
+  - Created `frontend/src/lib/spendMilestoneAi.ts`:
+    - Evaluates total monthly spending ratio (`totalSpent / limitAmount`), daily pacing burn, and logged emotional state (`mood`).
+    - Emits 4 distinct milestone tiers:
+      - **Tier 1 (Optimal Spend, ≤50%)**: Green/Emerald theme with celebration emojis (`🎉`, `🚀`, `🌟`, `🧘`) reinforcing financial discipline.
+      - **Tier 2 (Moderate Burn, 50% - 90%)**: Amber/Yellow theme with mindful emojis (`📊`, `⚖️`, `💡`, `🛡️`) reminding users to stay on track.
+      - **Tier 3 (Near-Limit Warning, 90% - 100%)**: Orange theme with critical alert emojis (`⚡`, `🔔`, `⚠️`, `🛑`) warning against non-essential expenses.
+      - **Tier 4 (Budget Deficit, >100%)**: Rose/Crimson theme with alarmed emojis (`🚨`, `⚠️`, `💔`, `📉`) providing empathetic guidance and deficit recovery suggestions.
+  - `frontend/src/app/expenses/page.tsx`: Integrated `spendMilestoneToast` triggered immediately upon successful expense creation.
+
+## Phase 40: Adaptive Budget Recommendations Fix & 1-Click Adoption (`/budgets`)
+
+- **Problem & Scope**:
+  - `RulesProvider` returned `0.0` for `suggested_daily_limit` on accounts with sparse or single-day transactions.
+  - Category summaries passed from `AIService` used mismatched property keys (`category_name` vs `category`, `total` vs `amount`).
+  - The UI recommendation banner only launched the budget modal without pre-populating or persisting the suggested limits.
+- **Backend & Rule Engine Fixes**:
+  - `backend/app/services/ai/rules_provider.py`: Updated fallback algorithm to compute sustainable minimum daily pacing (`math.ceil(monthly_limit / days_in_month)`), target savings rate, and category distribution.
+  - `backend/app/services/ai/gemini_provider.py`: Standardized prompt constraints and robust JSON extraction.
+  - `backend/app/services/ai_service.py`: Standardized category summary payload extraction.
+- **Frontend UX Overhaul**:
+  - `frontend/src/app/budgets/page.tsx`: Added true 1-click **"Adopt Recommendation"** button directly persisting suggested monthly and daily limits via `budgetApi.createOrUpdate` with instant feedback toast; added **"Customize in Modal"** action pre-filling modal fields.
+
+## Phase 41: Multilingual 'Ask BudgetBrain' Conversational Advisor & Interactive Chat History
+
+- **Problem & Scope**:
+  - Primary LLM (`gemini-3-flash-preview`) was encountering HTTP 429 quota exhaustion on free tier with high latency.
+  - Conversational AI required universal language support (Marathi, Hindi, Hinglish, Marathinglish, English).
+  - Floating action button in bottom-right was unclickable due to pointer-events collision with `PWAInstallPrompt`.
+  - Users lacked session history to review past conversations or start new financial advisory threads.
+- **LLM Engine & Multilingual Capabilities**:
+  - `backend/app/services/ai/gemini_provider.py`: Migrated default primary model to `gemini-3.1-flash-lite`, delivering sub-second response times, 10x quota headroom, and fluent Marathi/Hindi/English generation.
+  - Added language-mirroring prompt instructions directing the AI to reply in the exact language/dialect used by the user.
+  - `backend/app/services/ai/rules_provider.py`: Built regex-based multilingual financial intent parsing for Marathi (शिल्लक, खर्च, परवडेल, कसे भरून काढू, शिल्लक किती), Hindi (बजट, खर्चा, बचा, घाटा), and English, injecting live telemetry into localized responses.
+- **UI Architecture & History Drawer**:
+  - `frontend/src/components/layout/PWAInstallPrompt.tsx`: Moved PWA prompt to bottom-left (`fixed bottom-4 left-4 sm:bottom-6 sm:left-6 lg:left-72 z-40`), completely unblocking the bottom-right AI trigger.
+  - `frontend/src/components/layout/Sidebar.tsx`: Added dedicated **"Ask BudgetBrain AI"** quick access button dispatching `open-budgetbrain-chat` custom event.
+  - `frontend/src/components/ai/AskBudgetBrainChat.tsx`:
+    - Converted floating trigger to an explicit HTML button (`id="ask-budgetbrain-btn"`, `z-50`, `pointer-events-none` on inner animated spans) and raised modal z-index to `z-[70]`.
+    - Added **Chat History Drawer**: `History` button in header slides open past conversation drawer with session topic titles, message count, timestamp, and 1-click session restoration.
+    - Added **New Chat (`MessageSquarePlus`)** button to start fresh conversational threads while auto-archiving previous sessions.
+    - Persisted sessions in `localStorage` under tenant-isolated key `budgetbrain_chat_sessions_${userId}`.
+- **Automated Verification**:
+  - Backend pytest: 55/55 tests passing (100%).
+  - Next.js production build: 14/14 routes compiled with 0 errors.
+
+
 
 
 

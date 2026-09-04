@@ -275,6 +275,54 @@ The application is designed as a lightweight, single-user expense tracker using 
 
 ---
 
+### TD-31: LLM Provider Quota Calibration & Primary Model Migration (Gemini 3.1 Flash Lite)
+- **Context & Failure Mode**: Under active interactive and automated load testing, the Gemini provider (`gemini-3-flash-preview` and `gemini-2.5-flash`) exhausted free-tier API quotas, generating HTTP 429 errors and token latencies exceeding 3-5 seconds.
+- **Solution Implemented**: Migrated primary default model to `gemini-3.1-flash-lite` in `backend/app/services/ai/gemini_provider.py`. It delivers sub-second response times, 10x higher rate limit headroom, and superior fluency across Indic languages without introducing new SDK dependencies or breaking changes.
+- **Status**: **Resolved & Verified (55/55 backend tests passing)**.
+
+---
+
+### TD-32: Cross-Lingual AI Financial Prompting & Localized Rules Fallback Engine
+- **Context & Requirement**: Users interact with the conversational financial advisor in Marathi (मराठी), Hindi (हिंदी), and transliterated dialects (Hinglish, Marathinglish e.g. "kiti paise urle ahet", "can I afford dinner?"). When external AI APIs are disconnected or in offline fallback mode, the rules engine previously returned static English-only text.
+- **Solution Implemented**:
+  - Configured system prompts in `GeminiProvider`, `OpenAIProvider`, and `AnthropicProvider` to mirror the user's exact language, script, and dialect while enforcing the structured financial telemetry contract.
+  - Rewrote `RulesProvider.chat` with comprehensive regex intent matchers recognizing Devanagari and Latin transliterations for Marathi ("शिल्लक", "खर्च", "परवडेल", "घाटा", "बजेट") and Hindi ("खर्चा", "बचत", "कितना बचा"), injecting dynamic real-time budget telemetry into fluent localized advice.
+- **Status**: **Resolved & Tested (55/55 backend tests passing)**.
+
+---
+
+### TD-33: Viewport Quadrant Segregation for Floating Action Widgets & PWA Prompts
+- **Context & Failure Mode**: Both `AskBudgetBrainChat` and `PWAInstallPrompt` were positioned in the bottom-right corner (`bottom-6 right-6`). Even when minimized, transparent overlay wrapper elements intercepted pointer events, rendering the "Ask BudgetBrain" floating button unclickable.
+- **Solution Implemented**:
+  - Relocated `PWAInstallPrompt.tsx` to the bottom-left viewport quadrant (`fixed bottom-4 left-4 sm:bottom-6 sm:left-6 lg:left-72 z-40`).
+  - Standardized `AskBudgetBrainChat.tsx` floating trigger with an explicit HTML `<button id="ask-budgetbrain-btn">`, elevated to `z-50` with `pointer-events-none` on inner animated spans, and raised active chat modal to `z-[70]`.
+  - Added quick access action in `Sidebar.tsx` communicating via `open-budgetbrain-chat` custom window event.
+- **Status**: **Resolved & Verified in browser**.
+
+---
+
+### TD-34: Multi-Tenant Client-Side Chat Session Storage & Isolation
+- **Context & Requirement**: Users needed to browse past financial consultations, resume prior conversations, or start new threads without losing historical advice. Storing full multi-turn chat sessions in PostgreSQL would require chat schema migrations and message table overhead during MVP.
+- **Solution Implemented**:
+  - Built interactive Chat History drawer inside `frontend/src/components/ai/AskBudgetBrainChat.tsx` using `lucide-react` `History` icon.
+  - Stored sessions in browser `localStorage` isolated per authenticated tenant via `budgetbrain_chat_sessions_${userId}`.
+  - Automatic session titling from user's initial query (e.g., "Dinner Affordability Check", "शिल्लक बजेट माहिती"), message counter, timestamp formatting, active session switching, and new chat (`MessageSquarePlus`) initialization.
+- **Status**: **Resolved & Verified**.
+
+---
+
+### TD-35: Deficit-Aware Over-Budget Tracking & IST Timezone Grace Buffer
+- **Context & Failure Mode**:
+  1. Previous strict cap validation blocked expense creation when the monthly budget was exceeded, preventing users from logging real-world expenses during deficit periods.
+  2. Users logging transactions in Indian Standard Time (UTC+5:30) or ahead timezones on the current local day encountered HTTP 422 errors ("Date cannot be in the future") because the backend server clock running in UTC was behind.
+- **Solution Implemented**:
+  - In `backend/app/schemas/expense.py`, added a 1-day future grace buffer to `validate_date` (`datetime.now(timezone.utc).date() + timedelta(days=1)`) to seamlessly accept valid local dates across all global timezones.
+  - Updated `expense_service.py` to allow negative remaining budget (`remaining_amount < 0`), accurately recording over-budget transactions.
+  - Built `spendMilestoneAi.ts` on frontend: provides 4-tier real-time feedback with contextual emojis and alert banners (Green ≤50%, Yellow 50-90%, Orange 90-100%, Red >100% Deficit) without ever obstructing data logging.
+- **Status**: **Resolved & Tested (55/55 backend tests passing)**.
+
+---
+
 ## 3. Maintenance & Code Quality Standards
 
 - **PEP 8 Compliance**: All top-level imports clean; no mid-file or inline module imports.

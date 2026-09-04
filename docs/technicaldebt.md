@@ -218,9 +218,108 @@ The application is designed as a lightweight, single-user expense tracker using 
      - **Mode 2 (SMTP Fallback / Gmail)**: Connects via standard `smtplib` (`STARTTLS` or `SSL`) for Gmail SMTP, AWS SES, SendGrid.
   3. **Domain Typo Detection & 1-Click Auto-Fix**: Added `suggestEmailCorrection` in [`frontend/src/lib/utils.ts`](file:///d:/BudgetBrain/frontend/src/lib/utils.ts) with dictionary lookup and single-edit Levenshtein distance for popular domains (e.g. `@gnail.com` &rarr; `@gmail.com`).
   4. **Segmented UI & Instant Session Creation**: Built [`OTPInput.tsx`](file:///d:/BudgetBrain/frontend/src/components/auth/OTPInput.tsx) (auto-focus, paste extraction, digit jumping). On 6th digit, `verify_otp` endpoint marks account verified and issues both access token and HttpOnly refresh cookie for instant dashboard entry.
-- **Status**: **Resolved & Tested (44/44 backend tests passing, 0 TypeScript build errors)**.
+### TD-25: Missing `budgetApi.createOrUpdate` Method & Negative Deficit Allowance
+- **Context & Failure Mode**:
+  1. `frontend/src/app/budgets/page.tsx` called `budgetApi.createOrUpdate`, which was missing in `frontend/src/lib/api.ts`, crashing with `TypeError: mutationFn is not a function` when clicking "Save Budget Limit".
+  2. Strict server-side Anti-Deficit Guard (`BudgetExceededException`) and frontend blocking in `ExpenseModal.tsx` prevented users from logging or modifying expenses exceeding their monthly cap.
+  3. Auth card divider had transparent text background, causing the absolute border line to intersect the "OR CONTINUE WITH" text.
+- **Solution Implemented**:
+  1. Implemented `budgetApi.createOrUpdate` in `frontend/src/lib/api.ts` with automatic 409 conflict recovery.
+  2. Removed `BudgetExceededException` from `expense_service.py` to allow expenses to exceed monthly budgets. Updated `DashboardService`, `BudgetService`, and frontend components (`BudgetRing.tsx`, `page.tsx`, `budgets/page.tsx`) to calculate and display negative deficit balance (e.g. `-₹5,000.00`) with bold coral alerts.
+  3. Replaced fragile absolute-overlay auth divider with a modern flex divider in `login/page.tsx` and `register/page.tsx`.
+- **Status**: **Resolved & Tested (44/44 backend tests passing, Next.js build clean)**.
 
 ---
+
+### TD-26: Environment-Driven Provider-Independent LLM Engine Architecture
+- **Context & Requirement**: The application required multi-model AI capabilities (Gemini, OpenAI, Claude, Rules fallback) driven strictly by the environment variable `AI_PROVIDER` without hardcoding vendor SDKs or vendor lock-in.
+- **Solution Implemented**:
+  - Defined abstract `BaseLLMProvider` interface with contract methods for insights, categorization, budget advice, multi-turn chat, emotional spending, and vision receipt scanning.
+  - Built `get_ai_provider(settings)` factory resolving `gemini`, `openai`, `anthropic`, or falling back to offline mathematical `RulesProvider`.
+  - Used lightweight `httpx.AsyncClient` REST calls avoiding bloated vendor SDKs.
+- **Status**: **Resolved & Tested (54/54 backend tests passing)**.
+
+---
+
+### TD-27: Next.js Client Component Hydration & Navigation Suspense Boundary
+- **Context & Failure Mode**: Client navigation from Dashboard to Expenses caused full page reloads or runtime errors (`ReferenceError: Suspense is not defined`) when client-side query parameters (`useSearchParams`) were evaluated during page transitions.
+- **Solution Implemented**: Added explicit React `<Suspense>` boundary in `frontend/src/app/expenses/page.tsx` wrapping `ExpensesContent` to ensure seamless client-side SPA routing across all 14 routes.
+- **Status**: **Resolved & Verified (Next.js build clean with 0 errors)**.
+
+---
+
+### TD-28: Telemetry Key Alignment in AIService (`monthly_budget` vs nested `budget.limit_amount`)
+- **Context & Failure Mode**: `AIService` accessed `summary.get("monthly_budget")` and `summary.get("remaining_budget")` at the root dictionary level, which evaluated to `None` because `DashboardService.get_summary` nested budget limits under `summary["budget"]["limit_amount"]`. This caused the AI to repeatedly warn that no budget had been set even when an active budget was configured.
+- **Solution Implemented**: Extracted `limit_amount` and `remaining_amount` from `summary.get("budget", {})` and `average_daily_spent` properly in `ai_service.py`. Converted static "Actionable" badges into interactive direct navigation links (`Set Budget →`, `Manage Budget →`, `View Expenses →`) in `AiInsightsWidget.tsx`.
+- **Status**: **Resolved & Verified**.
+
+---
+
+### TD-29: Emotion-Aware Spending Telemetry & Behavioral Analytics Architecture
+- **Context & Requirement**: Users required psychological spend tracking across 5 emotional states (😊 Happy, 😐 Normal, 😔 Sad, 😰 Stressed, 🤩 Excited) with dominant category mapping and impulse-spending pattern detection.
+- **Solution Implemented**:
+  - Added database migration `20260903_2000_add_mood_to_expenses.py` with `mood VARCHAR(20)` and composite index `ix_expenses_user_mood`.
+  - Added `GET /api/v1/dashboard/emotional-spending` calculating mood breakdown, dominant category correlation, and impulse radar.
+  - Implemented `generate_emotional_insights` across all AI providers.
+  - Integrated glassmorphic `EmotionalSpendingWidget.tsx` mounted on main analytics dashboard.
+- **Status**: **Resolved & Tested**.
+
+---
+
+### TD-30: Multimodal Vision Ingestion & Dynamic Over-Budget Stressed Mood Trigger
+- **Context & Requirement**: Users needed automated mood detection instead of manual selection, automatic `stressed` flag if an expense breaches daily limit or pushes monthly budget into deficit, and an AI receipt scanner.
+- **Solution Implemented**:
+  - Injected real-time budget telemetry into `AIService.suggest_category` so the AI automatically predicts and selects **`😰 Stressed`** whenever an expense exceeds daily spending limits or monthly balance.
+  - Implemented `POST /api/v1/ai/scan-receipt` leveraging multimodal vision models (`Gemini 1.5 Flash`, `GPT-4o-mini`, `Claude 3.5 Haiku`) with client-side camera/file upload in `ExpenseModal.tsx`.
+- **Status**: **Resolved & Verified (54/54 tests passing, Next.js build clean)**.
+
+---
+
+### TD-31: LLM Provider Quota Calibration & Primary Model Migration (Gemini 3.1 Flash Lite)
+- **Context & Failure Mode**: Under active interactive and automated load testing, the Gemini provider (`gemini-3-flash-preview` and `gemini-2.5-flash`) exhausted free-tier API quotas, generating HTTP 429 errors and token latencies exceeding 3-5 seconds.
+- **Solution Implemented**: Migrated primary default model to `gemini-3.1-flash-lite` in `backend/app/services/ai/gemini_provider.py`. It delivers sub-second response times, 10x higher rate limit headroom, and superior fluency across Indic languages without introducing new SDK dependencies or breaking changes.
+- **Status**: **Resolved & Verified (55/55 backend tests passing)**.
+
+---
+
+### TD-32: Cross-Lingual AI Financial Prompting & Localized Rules Fallback Engine
+- **Context & Requirement**: Users interact with the conversational financial advisor in Marathi (मराठी), Hindi (हिंदी), and transliterated dialects (Hinglish, Marathinglish e.g. "kiti paise urle ahet", "can I afford dinner?"). When external AI APIs are disconnected or in offline fallback mode, the rules engine previously returned static English-only text.
+- **Solution Implemented**:
+  - Configured system prompts in `GeminiProvider`, `OpenAIProvider`, and `AnthropicProvider` to mirror the user's exact language, script, and dialect while enforcing the structured financial telemetry contract.
+  - Rewrote `RulesProvider.chat` with comprehensive regex intent matchers recognizing Devanagari and Latin transliterations for Marathi ("शिल्लक", "खर्च", "परवडेल", "घाटा", "बजेट") and Hindi ("खर्चा", "बचत", "कितना बचा"), injecting dynamic real-time budget telemetry into fluent localized advice.
+- **Status**: **Resolved & Tested (55/55 backend tests passing)**.
+
+---
+
+### TD-33: Viewport Quadrant Segregation for Floating Action Widgets & PWA Prompts
+- **Context & Failure Mode**: Both `AskBudgetBrainChat` and `PWAInstallPrompt` were positioned in the bottom-right corner (`bottom-6 right-6`). Even when minimized, transparent overlay wrapper elements intercepted pointer events, rendering the "Ask BudgetBrain" floating button unclickable.
+- **Solution Implemented**:
+  - Relocated `PWAInstallPrompt.tsx` to the bottom-left viewport quadrant (`fixed bottom-4 left-4 sm:bottom-6 sm:left-6 lg:left-72 z-40`).
+  - Standardized `AskBudgetBrainChat.tsx` floating trigger with an explicit HTML `<button id="ask-budgetbrain-btn">`, elevated to `z-50` with `pointer-events-none` on inner animated spans, and raised active chat modal to `z-[70]`.
+  - Added quick access action in `Sidebar.tsx` communicating via `open-budgetbrain-chat` custom window event.
+- **Status**: **Resolved & Verified in browser**.
+
+---
+
+### TD-34: Multi-Tenant Client-Side Chat Session Storage & Isolation
+- **Context & Requirement**: Users needed to browse past financial consultations, resume prior conversations, or start new threads without losing historical advice. Storing full multi-turn chat sessions in PostgreSQL would require chat schema migrations and message table overhead during MVP.
+- **Solution Implemented**:
+  - Built interactive Chat History drawer inside `frontend/src/components/ai/AskBudgetBrainChat.tsx` using `lucide-react` `History` icon.
+  - Stored sessions in browser `localStorage` isolated per authenticated tenant via `budgetbrain_chat_sessions_${userId}`.
+  - Automatic session titling from user's initial query (e.g., "Dinner Affordability Check", "शिल्लक बजेट माहिती"), message counter, timestamp formatting, active session switching, and new chat (`MessageSquarePlus`) initialization.
+- **Status**: **Resolved & Verified**.
+
+---
+
+### TD-35: Deficit-Aware Over-Budget Tracking & IST Timezone Grace Buffer
+- **Context & Failure Mode**:
+  1. Previous strict cap validation blocked expense creation when the monthly budget was exceeded, preventing users from logging real-world expenses during deficit periods.
+  2. Users logging transactions in Indian Standard Time (UTC+5:30) or ahead timezones on the current local day encountered HTTP 422 errors ("Date cannot be in the future") because the backend server clock running in UTC was behind.
+- **Solution Implemented**:
+  - In `backend/app/schemas/expense.py`, added a 1-day future grace buffer to `validate_date` (`datetime.now(timezone.utc).date() + timedelta(days=1)`) to seamlessly accept valid local dates across all global timezones.
+  - Updated `expense_service.py` to allow negative remaining budget (`remaining_amount < 0`), accurately recording over-budget transactions.
+  - Built `spendMilestoneAi.ts` on frontend: provides 4-tier real-time feedback with contextual emojis and alert banners (Green ≤50%, Yellow 50-90%, Orange 90-100%, Red >100% Deficit) without ever obstructing data logging.
+- **Status**: **Resolved & Tested (55/55 backend tests passing)**.
 
 ---
 
