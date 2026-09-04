@@ -23,7 +23,18 @@ from app.services.ai.rules_provider import RulesProvider
 
 class GeminiProvider(BaseLLMProvider):
     def __init__(self, api_key: str, model_name: str | None = None, temperature: float = 0.3):
-        super().__init__(model_name=model_name, temperature=temperature)
+        chosen_model = (model_name or "").strip()
+        if not chosen_model or chosen_model in [
+            "gemini-1.5-flash",
+            "gemini-1.5-pro",
+            "gemini-2.0-flash",
+            "gemini-2.5-flash",
+            "gemini-2.5-flash-lite",
+            "gemini-flash-latest",
+        ]:
+            chosen_model = "gemini-3-flash-preview"
+
+        super().__init__(model_name=chosen_model, temperature=temperature)
         self.api_key = api_key
         self.fallback = RulesProvider()
 
@@ -33,7 +44,24 @@ class GeminiProvider(BaseLLMProvider):
 
     @property
     def default_model(self) -> str:
-        return "gemini-1.5-flash"
+        return "gemini-3-flash-preview"
+
+    async def _post_content(self, client: httpx.AsyncClient, payload: dict) -> dict | None:
+        models_to_try = [self.model_name]
+        for candidate in ["gemini-3-flash-preview", "gemini-3.1-flash-lite"]:
+            if candidate not in models_to_try:
+                models_to_try.append(candidate)
+
+        for model in models_to_try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={self.api_key}"
+            try:
+                res = await client.post(url, json=payload)
+                if res.status_code == 200:
+                    return res.json()
+                print(f"[GeminiProvider] Model '{model}' returned HTTP {res.status_code}: {res.text[:120]}")
+            except Exception as e:
+                print(f"[GeminiProvider] Model '{model}' failed: {e}")
+        return None
 
     async def generate_financial_insights(
         self,
@@ -92,8 +120,6 @@ JSON Output Format (array of 3 objects):
 
 Return ONLY the raw JSON array. Do not enclose in markdown ticks if possible.
 """
-
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model_name}:generateContent?key={self.api_key}"
         payload = {
             "contents": [{"parts": [{"text": prompt}]}],
             "generationConfig": {
@@ -104,9 +130,8 @@ Return ONLY the raw JSON array. Do not enclose in markdown ticks if possible.
 
         try:
             async with httpx.AsyncClient(timeout=15.0) as client:
-                res = await client.post(url, json=payload)
-                if res.status_code == 200:
-                    data = res.json()
+                data = await self._post_content(client, payload)
+                if data:
                     candidates = data.get("candidates", [])
                     if candidates:
                         parts = candidates[0].get("content", {}).get("parts", [])
@@ -204,7 +229,6 @@ Return ONLY raw JSON with structure:
   "reasoning": "Reason for suggestion"
 }}
 """
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model_name}:generateContent?key={self.api_key}"
         payload = {
             "contents": [{"parts": [{"text": prompt}]}],
             "generationConfig": {
@@ -214,10 +238,9 @@ Return ONLY raw JSON with structure:
         }
 
         try:
-            async with httpx.AsyncClient(timeout=8.0) as client:
-                res = await client.post(url, json=payload)
-                if res.status_code == 200:
-                    data = res.json()
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                data = await self._post_content(client, payload)
+                if data:
                     candidates = data.get("candidates", [])
                     if candidates:
                         parts = candidates[0].get("content", {}).get("parts", [])
@@ -284,7 +307,6 @@ Return ONLY raw JSON:
   "notes": "Items list"
 }}
 """
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model_name}:generateContent?key={self.api_key}"
         payload = {
             "contents": [
                 {
@@ -306,10 +328,9 @@ Return ONLY raw JSON:
         }
 
         try:
-            async with httpx.AsyncClient(timeout=15.0) as client:
-                res = await client.post(url, json=payload)
-                if res.status_code == 200:
-                    data = res.json()
+            async with httpx.AsyncClient(timeout=20.0) as client:
+                data = await self._post_content(client, payload)
+                if data:
                     candidates = data.get("candidates", [])
                     if candidates:
                         parts = candidates[0].get("content", {}).get("parts", [])
@@ -372,7 +393,6 @@ Output strictly valid JSON:
   "rationale": "2-sentence clear explanation with specific savings numbers."
 }}
 """
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model_name}:generateContent?key={self.api_key}"
         payload = {
             "contents": [{"parts": [{"text": prompt}]}],
             "generationConfig": {
@@ -382,10 +402,9 @@ Output strictly valid JSON:
         }
 
         try:
-            async with httpx.AsyncClient(timeout=8.0) as client:
-                res = await client.post(url, json=payload)
-                if res.status_code == 200:
-                    data = res.json()
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                data = await self._post_content(client, payload)
+                if data:
                     candidates = data.get("candidates", [])
                     if candidates:
                         parts = candidates[0].get("content", {}).get("parts", [])
@@ -453,7 +472,6 @@ Instructions:
             role = "user" if msg.role == "user" else "model"
             contents.append({"role": role, "parts": [{"text": msg.content}]})
 
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model_name}:generateContent?key={self.api_key}"
         payload = {
             "contents": contents,
             "generationConfig": {
@@ -463,10 +481,9 @@ Instructions:
         }
 
         try:
-            async with httpx.AsyncClient(timeout=12.0) as client:
-                res = await client.post(url, json=payload)
-                if res.status_code == 200:
-                    data = res.json()
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                data = await self._post_content(client, payload)
+                if data:
                     candidates = data.get("candidates", [])
                     if candidates:
                         parts = candidates[0].get("content", {}).get("parts", [])
@@ -530,7 +547,6 @@ JSON Output Format (Array of 2-3 objects):
 ]
 Return ONLY raw JSON array.
 """
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model_name}:generateContent?key={self.api_key}"
         payload = {
             "contents": [{"parts": [{"text": prompt}]}],
             "generationConfig": {
@@ -540,10 +556,9 @@ Return ONLY raw JSON array.
         }
 
         try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                res = await client.post(url, json=payload)
-                if res.status_code == 200:
-                    data = res.json()
+            async with httpx.AsyncClient(timeout=12.0) as client:
+                data = await self._post_content(client, payload)
+                if data:
                     candidates = data.get("candidates", [])
                     if candidates:
                         parts = candidates[0].get("content", {}).get("parts", [])

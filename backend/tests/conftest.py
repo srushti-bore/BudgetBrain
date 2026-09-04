@@ -25,6 +25,16 @@ TEST_USER = User(
 )
 
 
+@pytest.fixture(autouse=True)
+def force_offline_ai_for_tests(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Ensure test suite runs deterministically with RulesProvider without consuming external API quota."""
+    from app.config import get_settings
+    monkeypatch.setenv("AI_PROVIDER", "rules")
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
+
+
 @pytest.fixture
 def client() -> Generator[TestClient, None, None]:
     """
