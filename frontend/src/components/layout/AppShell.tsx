@@ -18,13 +18,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       {isAuthRoute ? (
         <main className="min-h-screen w-full">{children}</main>
       ) : (
-        <div className="min-h-screen flex flex-col lg:flex-row">
-          <Sidebar />
-          <main className="flex-1 lg:ml-64 pt-20 lg:pt-8 p-5 sm:p-8 lg:p-10 lg:px-12 overflow-x-hidden">
-            {children}
-          </main>
+        <>
+          <div className="min-h-screen flex flex-col lg:flex-row">
+            <Sidebar />
+            <main className="flex-1 lg:ml-64 pt-20 lg:pt-8 p-5 sm:p-8 lg:p-10 lg:px-12 overflow-x-hidden">
+              {children}
+            </main>
+          </div>
           <AskBudgetBrainChat />
-        </div>
+        </>
       )}
       <PWAInstallPrompt />
     </AuthGuard>

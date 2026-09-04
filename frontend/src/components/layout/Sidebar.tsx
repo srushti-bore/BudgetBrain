@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Receipt, Tag, Target, Settings, Menu, X, Sun, Moon, LogOut, MoreVertical, ShieldCheck, User } from 'lucide-react';
+import { LayoutDashboard, Receipt, Tag, Target, Settings, Menu, X, Sun, Moon, LogOut, MoreVertical, ShieldCheck, User, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useTranslation } from '@/providers/LanguageProvider';
@@ -142,6 +142,25 @@ export default function Sidebar() {
               );
             })}
           </nav>
+
+          {/* Ask BudgetBrain AI Trigger Button in Sidebar */}
+          <div className="pt-3">
+            <button
+              type="button"
+              onClick={() => {
+                setIsOpen(false);
+                window.dispatchEvent(new CustomEvent('open-budgetbrain-chat'));
+              }}
+              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600/15 via-teal-600/10 to-emerald-600/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 font-bold text-xs hover:from-emerald-600/25 hover:to-teal-600/25 hover:border-emerald-500/50 hover:shadow-md hover:shadow-emerald-600/10 transition-all cursor-pointer group shadow-2xs"
+              title="Ask BudgetBrain AI Financial Advisor"
+            >
+              <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400 group-hover:rotate-12 transition-transform shrink-0 animate-pulse" />
+              <span className="truncate">Ask BudgetBrain</span>
+              <span className="ml-auto px-1.5 py-0.5 rounded bg-emerald-500/25 text-[9px] uppercase font-extrabold text-emerald-700 dark:text-emerald-300">
+                AI
+              </span>
+            </button>
+          </div>
         </div>
 
         {/* User Profile & 3-Dots Dropdown at Sidebar Footer */}

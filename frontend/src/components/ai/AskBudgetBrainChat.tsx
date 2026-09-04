@@ -60,6 +60,24 @@ export default function AskBudgetBrainChat() {
     }
   }, [isOpen, messages]);
 
+  // Global event listener to open chat from anywhere
+  useEffect(() => {
+    const handleOpen = () => setIsOpen(true);
+    window.addEventListener('open-budgetbrain-chat', handleOpen);
+    return () => window.removeEventListener('open-budgetbrain-chat', handleOpen);
+  }, []);
+
+  // Keyboard shortcut to close chat on Escape
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        setIsOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
+
   if (!user || !isAuthenticated) {
     return null;
   }
@@ -141,34 +159,38 @@ export default function AskBudgetBrainChat() {
   return (
     <>
       {/* Floating Action Trigger Button */}
-      <AnimatePresence>
-        {!isOpen && (
-          <motion.button
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0, opacity: 0 }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setIsOpen(true)}
-            className="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-4 py-3 rounded-full bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white font-bold text-xs sm:text-sm shadow-xl shadow-emerald-700/30 hover:shadow-2xl hover:shadow-emerald-700/40 transition-all cursor-pointer border border-white/20"
-            title="Ask BudgetBrain AI"
-          >
-            <Sparkles className="w-4 h-4 animate-pulse text-amber-300" />
-            <span>Ask BudgetBrain</span>
-            <span className="w-2 h-2 rounded-full bg-amber-300 animate-ping" />
-          </motion.button>
-        )}
-      </AnimatePresence>
+      {!isOpen && (
+        <button
+          key="ask-budgetbrain-floating-trigger"
+          id="ask-budgetbrain-btn"
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsOpen(true);
+          }}
+          className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-full bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white font-bold text-xs sm:text-sm shadow-xl shadow-emerald-700/40 hover:shadow-2xl hover:shadow-emerald-700/60 hover:scale-105 active:scale-95 transition-all cursor-pointer border border-white/20 select-none group"
+          title="Ask BudgetBrain AI Financial Advisor"
+        >
+          <Sparkles className="w-4 h-4 animate-pulse text-amber-300 pointer-events-none group-hover:rotate-12 transition-transform" />
+          <span className="pointer-events-none">Ask BudgetBrain</span>
+          <span className="relative flex h-2 w-2 pointer-events-none">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-300 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400"></span>
+          </span>
+        </button>
+      )}
 
       {/* Slide-over / Modal Chat Window */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
+            key="ask-budgetbrain-chat-window"
             initial={{ opacity: 0, y: 30, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 30, scale: 0.96 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-[95vw] sm:w-[420px] h-[580px] max-h-[85vh] rounded-2xl shadow-2xl glass-modal border border-emerald-500/25 flex flex-col overflow-hidden bg-white/95 dark:bg-[#121815]/95 backdrop-blur-xl"
+            className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[70] w-[95vw] sm:w-[420px] h-[580px] max-h-[85vh] rounded-2xl shadow-2xl glass-modal border border-emerald-500/25 flex flex-col overflow-hidden bg-white/95 dark:bg-[#121815]/95 backdrop-blur-xl"
           >
             {/* Header */}
             <div className="px-4 py-3.5 bg-gradient-to-r from-emerald-600/15 via-teal-600/10 to-transparent border-b border-ink/10 dark:border-white/10 flex items-center justify-between gap-2">
