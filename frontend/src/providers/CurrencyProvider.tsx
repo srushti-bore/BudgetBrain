@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { formatCurrency } from '@/lib/utils';
 
-export type Currency = 'INR' | 'USD' | 'EUR' | 'GBP';
+export type Currency = 'INR' | 'USD' | 'EUR' | 'GBP' | 'JPY' | 'CAD' | 'AUD';
 
 interface CurrencyContextType {
   currency: Currency;
@@ -20,7 +20,20 @@ const FALLBACK_RATES: Record<Currency, number> = {
   USD: 0.012019, // ~83.20 INR
   EUR: 0.011086, // ~90.20 INR
   GBP: 0.009496, // ~105.30 INR
+  JPY: 1.82,    // ~0.55 INR
+  CAD: 0.0163,  // ~61.35 INR
+  AUD: 0.0185,  // ~54.05 INR
 };
+
+export const AVAILABLE_CURRENCIES: { code: Currency; symbol: string; name: string }[] = [
+  { code: 'INR', symbol: '₹', name: 'Indian Rupee' },
+  { code: 'USD', symbol: '$', name: 'US Dollar' },
+  { code: 'EUR', symbol: '€', name: 'Euro' },
+  { code: 'GBP', symbol: '£', name: 'British Pound' },
+  { code: 'JPY', symbol: '¥', name: 'Japanese Yen' },
+  { code: 'CAD', symbol: 'CA$', name: 'Canadian Dollar' },
+  { code: 'AUD', symbol: 'AU$', name: 'Australian Dollar' },
+];
 
 export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   const [currency, setCurrencyState] = useState<Currency>('INR');
@@ -30,7 +43,7 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setIsMounted(true);
     const saved = localStorage.getItem('budgetbrain_currency') as Currency;
-    if (saved && ['INR', 'USD', 'EUR', 'GBP'].includes(saved)) {
+    if (saved && AVAILABLE_CURRENCIES.some((c) => c.code === saved)) {
       setCurrencyState(saved);
     }
 
@@ -47,6 +60,9 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
             USD: data.rates.USD || FALLBACK_RATES.USD,
             EUR: data.rates.EUR || FALLBACK_RATES.EUR,
             GBP: data.rates.GBP || FALLBACK_RATES.GBP,
+            JPY: data.rates.JPY || FALLBACK_RATES.JPY,
+            CAD: data.rates.CAD || FALLBACK_RATES.CAD,
+            AUD: data.rates.AUD || FALLBACK_RATES.AUD,
           };
           setRates(apiRates);
         }

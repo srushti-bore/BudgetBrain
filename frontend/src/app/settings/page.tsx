@@ -2,20 +2,18 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useTheme } from '@/providers/ThemeProvider';
-import { useCurrency } from '@/providers/CurrencyProvider';
-import { useSettings, DateFormatOption } from '@/providers/SettingsProvider';
+import { useSettings } from '@/providers/SettingsProvider';
 import { useTranslation } from '@/providers/LanguageProvider';
 import { categoryApi, expenseApi, budgetApi, API_BASE_URL } from '@/lib/api';
 import { exportExpensesToCSV, exportFullBackupJSON, validateBackupJSON } from '@/lib/exportUtils';
 import { useAuth } from '@/providers/AuthProvider';
+import { useCurrency } from '@/providers/CurrencyProvider';
+import SettingsTabs, { SettingsTabId } from '@/components/settings/SettingsTabs';
+import DisplayRegionPanel from '@/components/settings/DisplayRegionPanel';
 import {
   Settings,
-  Palette,
   Sliders,
   Database,
-  Sun,
-  Moon,
   Download,
   Upload,
   AlertTriangle,
@@ -29,14 +27,12 @@ import {
   X,
   Wifi,
   ShieldAlert,
-  Globe,
   ShieldCheck,
   KeyRound,
   LogOut,
   Lock,
   Eye,
   EyeOff,
-  LayoutGrid,
 } from 'lucide-react';
 
 const starterCategories = [
@@ -51,35 +47,18 @@ const starterCategories = [
   'Miscellaneous',
 ];
 
-const SECTIONS = [
-  { id: 'all', label: 'All Sections', icon: LayoutGrid },
-  { id: 'display', label: 'Display & Region', icon: Palette },
-  { id: 'budgets', label: 'Budget & Alerts', icon: Sliders },
-  { id: 'account', label: 'Account & Security', icon: ShieldCheck },
-  { id: 'data', label: 'Data & Backup', icon: Database },
-  { id: 'system', label: 'System & Health', icon: Activity },
-] as const;
-
-type SectionId = (typeof SECTIONS)[number]['id'];
-
 export default function SettingsPage() {
-  const { theme, toggleTheme } = useTheme();
-  const { currency, setCurrency } = useCurrency();
   const { user, changePassword, logoutAll, logout } = useAuth();
+  const { currency } = useCurrency();
   const {
-    dateFormat,
-    setDateFormat,
-    firstDayOfWeek,
-    setFirstDayOfWeek,
     nearLimitThreshold,
     setNearLimitThreshold,
     showPredictiveInsights,
     setShowPredictiveInsights,
-    formatCustomDate,
   } = useSettings();
-  const { t, language, setLanguage, languages } = useTranslation();
+  const { t } = useTranslation();
 
-  const [activeSection, setActiveSection] = useState<SectionId>('all');
+  const [activeSection, setActiveSection] = useState<SettingsTabId>('all');
   const [isExportingCSV, setIsExportingCSV] = useState(false);
   const [isExportingJSON, setIsExportingJSON] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
@@ -111,6 +90,17 @@ export default function SettingsPage() {
   const [showResetCatModal, setShowResetCatModal] = useState(false);
   const [resetCatInputText, setResetCatInputText] = useState('');
   const [isResettingCategories, setIsResettingCategories] = useState(false);
+
+  // Read URL query tab on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get('tab') as SettingsTabId | null;
+      if (tabParam && ['all', 'display', 'budgets', 'account', 'data', 'system'].includes(tabParam)) {
+        setActiveSection(tabParam);
+      }
+    }
+  }, []);
 
   // Health Ping Function
   const checkHealth = async () => {
@@ -156,15 +146,11 @@ export default function SettingsPage() {
     setTimeout(() => setToastMessage(null), 4000);
   };
 
-  const handleSelectSection = (id: SectionId) => {
+  const handleSelectSection = (id: SettingsTabId) => {
     setActiveSection(id);
-    if (id !== 'all') {
-      setTimeout(() => {
-        const el = document.getElementById(`section-${id}`);
-        if (el) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }, 50);
+    if (typeof window !== 'undefined') {
+      const url = id === 'all' ? '/settings' : `/settings?tab=${id}`;
+      window.history.replaceState(null, '', url);
     }
   };
 
@@ -312,226 +298,37 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* Section Filter & Jump Pills */}
-      <div className="flex flex-wrap gap-2 p-1.5 rounded-2xl bg-ink/5 dark:bg-white/5 border border-ink/5 dark:border-white/10 sticky top-2 z-20 backdrop-blur-md">
-        {SECTIONS.map((sec) => {
-          const Icon = sec.icon;
-          const isActive = activeSection === sec.id;
-          return (
-            <button
-              key={sec.id}
-              type="button"
-              onClick={() => handleSelectSection(sec.id)}
-              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer select-none ${
-                isActive
-                  ? 'bg-white dark:bg-[#17211d] text-sage shadow-xs border border-sage/25 font-bold'
-                  : 'text-ink-muted hover:text-ink dark:hover:text-cream hover:bg-white/50 dark:hover:bg-white/5'
-              }`}
-            >
-              <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-sage' : 'text-ink-muted'}`} />
-              <span>{sec.label}</span>
-            </button>
-          );
-        })}
-      </div>
+      {/* TASK 1: Reusable Horizontal Pill-Style Tab Bar */}
+      <SettingsTabs activeTab={activeSection} onTabChange={handleSelectSection} />
 
-      {/* Main Settings Clean Grid / Card Layout */}
+      {/* Swappable Content Panels / Grid Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         {/* ========================================================================= */}
-        {/* 1. Display & Region Card (Card 1 in 2-column grid) */}
+        {/* TASK 2: 1. Display & Region Panel */}
         {/* ========================================================================= */}
         {(activeSection === 'all' || activeSection === 'display') && (
           <motion.div
-            id="section-display"
+            key="section-display"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            className={`glass-card p-5 sm:p-6 space-y-5 shadow-xs hover:shadow-sm transition-all ${
-              activeSection === 'display' ? 'lg:col-span-2 max-w-3xl mx-auto w-full' : 'lg:col-span-1'
-            }`}
+            className={activeSection === 'display' ? 'lg:col-span-2' : 'lg:col-span-1'}
           >
-            {/* Card Header */}
-            <div className="flex items-center gap-3 pb-3.5 border-b border-ink/5 dark:border-white/10">
-              <div className="w-9 h-9 rounded-xl bg-sage-light dark:bg-sage/15 flex items-center justify-center text-sage border border-sage/20 shrink-0">
-                <Palette className="w-4 h-4" />
-              </div>
-              <div>
-                <h2 className="font-display font-bold text-base text-ink">
-                  Display & Region
-                </h2>
-                <p className="text-[11px] text-ink-muted">
-                  Visual theme, interface language, currency & dates
-                </p>
-              </div>
-            </div>
-
-            {/* Visual Theme Mode */}
-            <div className="space-y-2">
-              <span className="text-[11px] font-bold text-ink uppercase tracking-wider block">
-                Visual Theme Mode
-              </span>
-              <div className="grid grid-cols-2 gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => { if (theme !== 'light') toggleTheme(); }}
-                  className={`p-3 rounded-xl border flex items-center justify-between transition-all cursor-pointer text-left ${
-                    theme === 'light'
-                      ? 'border-sage bg-sage-light/60 dark:bg-sage/10 text-sage font-bold shadow-xs'
-                      : 'border-ink/10 dark:border-white/10 hover:bg-ink/5 dark:hover:bg-white/5 text-ink'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-7 h-7 rounded-lg bg-honey/15 flex items-center justify-center text-honey shrink-0">
-                      <Sun className="w-3.5 h-3.5" />
-                    </div>
-                    <div className="min-w-0">
-                      <span className="text-xs block font-bold truncate">Light Mineral</span>
-                      <span className="text-[10px] text-ink-muted font-normal block truncate">Warm cream</span>
-                    </div>
-                  </div>
-                  {theme === 'light' && <CheckCircle className="w-3.5 h-3.5 text-sage shrink-0" />}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => { if (theme !== 'dark') toggleTheme(); }}
-                  className={`p-3 rounded-xl border flex items-center justify-between transition-all cursor-pointer text-left ${
-                    theme === 'dark'
-                      ? 'border-sage bg-sage-light/60 dark:bg-sage/10 text-sage font-bold shadow-xs'
-                      : 'border-ink/10 dark:border-white/10 hover:bg-ink/5 dark:hover:bg-white/5 text-ink'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-7 h-7 rounded-lg bg-sky/15 flex items-center justify-center text-sky shrink-0">
-                      <Moon className="w-3.5 h-3.5" />
-                    </div>
-                    <div className="min-w-0">
-                      <span className="text-xs block font-bold truncate">Dark Slate</span>
-                      <span className="text-[10px] text-ink-muted font-normal block truncate">Deep forest</span>
-                    </div>
-                  </div>
-                  {theme === 'dark' && <CheckCircle className="w-3.5 h-3.5 text-sage shrink-0" />}
-                </button>
-              </div>
-            </div>
-
-            {/* Interface Language */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-1.5">
-                <Globe className="w-3.5 h-3.5 text-sage" />
-                <span className="text-[11px] font-bold text-ink uppercase tracking-wider">
-                  {t('language_selection', 'Interface Language / भाषा')}
-                </span>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                {languages.map((opt) => {
-                  const isSelected = language === opt.code;
-                  return (
-                    <button
-                      key={opt.code}
-                      type="button"
-                      onClick={() => {
-                        setLanguage(opt.code);
-                        showToast(`Language switched to ${opt.nativeName}`);
-                      }}
-                      className={`p-2.5 rounded-xl border flex flex-col items-center text-center justify-center transition-all cursor-pointer ${
-                        isSelected
-                          ? 'border-sage bg-sage-light/60 dark:bg-sage/15 text-sage font-bold shadow-xs'
-                          : 'border-ink/10 dark:border-white/10 hover:bg-ink/5 dark:hover:bg-white/5 text-ink'
-                      }`}
-                    >
-                      <span className="text-lg leading-none">{opt.flag}</span>
-                      <span className="text-xs font-bold mt-1 block truncate w-full text-ink dark:text-cream">
-                        {opt.nativeName}
-                      </span>
-                      <span className="text-[9px] text-ink-muted block truncate w-full">{opt.name}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Regional Formats: Currency & Date Format */}
-            <div className="pt-2 border-t border-ink/5 dark:border-white/10 space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {/* Active Currency */}
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-bold text-ink uppercase tracking-wider block">
-                    Display Currency
-                  </label>
-                  <select
-                    value={currency}
-                    onChange={(e) => setCurrency(e.target.value as any)}
-                    className="w-full p-2 rounded-xl border border-ink/10 dark:border-white/10 text-xs font-semibold cursor-pointer bg-white dark:bg-white/5 text-ink"
-                  >
-                    <option value="INR">INR (₹) — Indian Rupee</option>
-                    <option value="USD">USD ($) — US Dollar</option>
-                    <option value="EUR">EUR (€) — Euro</option>
-                    <option value="GBP">GBP (£) — British Pound</option>
-                  </select>
-                </div>
-
-                {/* Date Format */}
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-bold text-ink uppercase tracking-wider block">
-                    Date Format
-                  </label>
-                  <select
-                    value={dateFormat}
-                    onChange={(e) => setDateFormat(e.target.value as DateFormatOption)}
-                    className="w-full p-2 rounded-xl border border-ink/10 dark:border-white/10 text-xs font-semibold cursor-pointer bg-white dark:bg-white/5 text-ink"
-                  >
-                    <option value="DD/MM/YYYY">DD/MM/YYYY (29 Aug 2026)</option>
-                    <option value="MM/DD/YYYY">MM/DD/YYYY (Aug 29, 2026)</option>
-                    <option value="YYYY-MM-DD">YYYY-MM-DD (2026-08-29)</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* First Day of Week */}
-              <div className="space-y-1.5 pt-1">
-                <div className="flex items-center justify-between">
-                  <label className="text-[11px] font-bold text-ink uppercase tracking-wider block">
-                    First Day of Week
-                  </label>
-                  <span className="text-[10px] text-ink-muted">
-                    Preview: <strong className="text-ink">{formatCustomDate(new Date().toISOString())}</strong>
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setFirstDayOfWeek('monday')}
-                    className={`py-1.5 px-3 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-                      firstDayOfWeek === 'monday'
-                        ? 'bg-sage-light text-sage border-sage/40 dark:bg-sage/15 shadow-xs'
-                        : 'border-ink/10 dark:border-white/10 hover:bg-ink/5 dark:hover:bg-white/5 text-ink'
-                    }`}
-                  >
-                    Monday
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFirstDayOfWeek('sunday')}
-                    className={`py-1.5 px-3 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-                      firstDayOfWeek === 'sunday'
-                        ? 'bg-sage-light text-sage border-sage/40 dark:bg-sage/15 shadow-xs'
-                        : 'border-ink/10 dark:border-white/10 hover:bg-ink/5 dark:hover:bg-white/5 text-ink'
-                    }`}
-                  >
-                    Sunday
-                  </button>
-                </div>
-              </div>
-            </div>
+            <DisplayRegionPanel
+              isFullWidth={activeSection === 'display'}
+              onSaveToast={(msg) => showToast(msg, 'success')}
+            />
           </motion.div>
         )}
 
         {/* ========================================================================= */}
-        {/* 2. Budget & Alerts Card (Card 2 in 2-column grid) */}
+        {/* 2. Budget & Alerts Card */}
         {/* ========================================================================= */}
         {(activeSection === 'all' || activeSection === 'budgets') && (
           <motion.div
-            id="section-budgets"
+            id="panel-budgets"
+            key="section-budgets"
+            role="tabpanel"
+            aria-labelledby="tab-budgets"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             className={`glass-card p-5 sm:p-6 space-y-5 shadow-xs hover:shadow-sm transition-all ${
@@ -665,11 +462,14 @@ export default function SettingsPage() {
         )}
 
         {/* ========================================================================= */}
-        {/* 3. Account & Security Card (Card 3 in 2-column grid) */}
+        {/* 3. Account & Security Card */}
         {/* ========================================================================= */}
         {(activeSection === 'all' || activeSection === 'account') && (
           <motion.div
-            id="section-account"
+            id="panel-account"
+            key="section-account"
+            role="tabpanel"
+            aria-labelledby="tab-account"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             className={`glass-card p-5 sm:p-6 space-y-5 shadow-xs hover:shadow-sm transition-all ${
@@ -893,11 +693,14 @@ export default function SettingsPage() {
         )}
 
         {/* ========================================================================= */}
-        {/* 4. Data & Backup Card (Card 4 in 2-column grid) */}
+        {/* 4. Data & Backup Card */}
         {/* ========================================================================= */}
         {(activeSection === 'all' || activeSection === 'data') && (
           <motion.div
-            id="section-data"
+            id="panel-data"
+            key="section-data"
+            role="tabpanel"
+            aria-labelledby="tab-data"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             className={`glass-card p-5 sm:p-6 space-y-5 shadow-xs hover:shadow-sm transition-all ${
@@ -1017,14 +820,19 @@ export default function SettingsPage() {
         )}
 
         {/* ========================================================================= */}
-        {/* 5. System & Health Card (Card 5 spanning 2 columns across the base) */}
+        {/* 5. System & Health Card */}
         {/* ========================================================================= */}
         {(activeSection === 'all' || activeSection === 'system') && (
           <motion.div
-            id="section-system"
+            id="panel-system"
+            key="section-system"
+            role="tabpanel"
+            aria-labelledby="tab-system"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            className="glass-card p-5 sm:p-6 space-y-5 shadow-xs hover:shadow-sm transition-all lg:col-span-2"
+            className={`glass-card p-5 sm:p-6 space-y-5 shadow-xs hover:shadow-sm transition-all ${
+              activeSection === 'system' ? 'lg:col-span-2 max-w-4xl mx-auto w-full' : 'lg:col-span-2'
+            }`}
           >
             {/* Card Header */}
             <div className="flex items-center justify-between pb-3.5 border-b border-ink/5 dark:border-white/10">

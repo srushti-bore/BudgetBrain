@@ -4,21 +4,27 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 export type DateFormatOption = 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD';
 export type FirstDayOption = 'monday' | 'sunday';
+export type NumberFormatOption = 'indian' | 'international';
 
-interface SettingsState {
+export interface SettingsState {
   dateFormat: DateFormatOption;
   firstDayOfWeek: FirstDayOption;
   nearLimitThreshold: number; // 75, 80, 85, 90
   showPredictiveInsights: boolean;
   defaultDailyLimit: number | null;
+  numberFormat: NumberFormatOption;
+  timezone: string;
 }
 
-interface SettingsContextType extends SettingsState {
+export interface SettingsContextType extends SettingsState {
   setDateFormat: (format: DateFormatOption) => void;
   setFirstDayOfWeek: (day: FirstDayOption) => void;
   setNearLimitThreshold: (threshold: number) => void;
   setShowPredictiveInsights: (show: boolean) => void;
   setDefaultDailyLimit: (limit: number | null) => void;
+  setNumberFormat: (format: NumberFormatOption) => void;
+  setTimezone: (tz: string) => void;
+  updateSettings: (partial: Partial<SettingsState>) => void;
   formatCustomDate: (dateString: string) => string;
 }
 
@@ -28,6 +34,8 @@ const defaultSettings: SettingsState = {
   nearLimitThreshold: 80,
   showPredictiveInsights: true,
   defaultDailyLimit: null,
+  numberFormat: 'indian',
+  timezone: 'Asia/Kolkata',
 };
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -39,8 +47,21 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     try {
       const saved = localStorage.getItem('budgetbrain_settings');
+      let initialTimezone = defaultSettings.timezone;
+      try {
+        initialTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata';
+      } catch {
+        // fallback
+      }
+
       if (saved) {
-        setSettings({ ...defaultSettings, ...JSON.parse(saved) });
+        setSettings({
+          ...defaultSettings,
+          timezone: initialTimezone,
+          ...JSON.parse(saved),
+        });
+      } else {
+        setSettings((prev) => ({ ...prev, timezone: initialTimezone }));
       }
     } catch (e) {
       console.warn('Failed to load settings from localStorage', e);
@@ -77,6 +98,18 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     saveSettings({ ...settings, defaultDailyLimit });
   };
 
+  const setNumberFormat = (numberFormat: NumberFormatOption) => {
+    saveSettings({ ...settings, numberFormat });
+  };
+
+  const setTimezone = (timezone: string) => {
+    saveSettings({ ...settings, timezone });
+  };
+
+  const updateSettings = (partial: Partial<SettingsState>) => {
+    saveSettings({ ...settings, ...partial });
+  };
+
   const formatCustomDate = (dateString: string): string => {
     if (!dateString) return '';
     const date = new Date(dateString);
@@ -107,6 +140,9 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         setNearLimitThreshold,
         setShowPredictiveInsights,
         setDefaultDailyLimit,
+        setNumberFormat,
+        setTimezone,
+        updateSettings,
         formatCustomDate,
       }}
     >
