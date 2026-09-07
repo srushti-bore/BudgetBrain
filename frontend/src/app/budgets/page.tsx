@@ -336,7 +336,7 @@ export default function BudgetsPage() {
                 type="button"
                 onClick={handleOneClickAdopt}
                 disabled={isAdopting}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-600/20 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                className="px-4 py-2 bg-sage hover:bg-sage-dark text-white text-xs font-semibold rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 btn-subtle-shimmer"
                 title="1-Click Adopt: Immediately save recommended limits"
               >
                 {isAdopting ? (

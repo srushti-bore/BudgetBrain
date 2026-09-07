@@ -79,7 +79,7 @@ export default function ForgotPasswordPage() {
               <div className="pt-2 space-y-2">
                 <Link
                   href={`/reset-password?email=${encodeURIComponent(email.trim())}`}
-                  className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold text-sm inline-flex items-center justify-center gap-2 shadow-lg shadow-emerald-700/20 transition-all cursor-pointer"
+                  className="w-full py-3 px-4 rounded-xl bg-sage hover:bg-sage-dark text-white font-semibold text-sm inline-flex items-center justify-center gap-2 shadow-xs hover:shadow-sm border border-white/10 dark:border-white/5 transition-all cursor-pointer btn-subtle-shimmer"
                 >
                   Enter 6-Digit Code & Reset Password &rarr;
                 </Link>
@@ -125,7 +125,7 @@ export default function ForgotPasswordPage() {
                 whileTap={{ scale: 0.99 }}
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full mt-2 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-medium text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-700/20 disabled:opacity-50 transition-all"
+                className="w-full mt-2 py-3 px-4 rounded-xl bg-sage hover:bg-sage-dark text-white font-medium text-sm flex items-center justify-center gap-2 shadow-xs hover:shadow-sm border border-white/10 dark:border-white/5 disabled:opacity-50 transition-all btn-subtle-shimmer"
               >
                 {isSubmitting ? (
                   <>

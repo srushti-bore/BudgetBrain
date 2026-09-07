@@ -465,7 +465,7 @@ export default function ExpenseModal({
               ) : (
                 <>
                   {/* Capture from Camera (Mobile/Tablet ONLY) */}
-                  <label className="md:hidden px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer transition-all hover:scale-105 active:scale-95">
+                  <label className="md:hidden px-2.5 py-1.5 rounded-xl bg-sage hover:bg-sage-dark text-white text-xs font-semibold shadow-xs flex items-center gap-1.5 cursor-pointer transition-all hover:scale-105 active:scale-95">
                     <Camera className="w-3.5 h-3.5" />
                     <span>Capture</span>
                     <input
@@ -478,7 +478,7 @@ export default function ExpenseModal({
                     />
                   </label>
                   {/* Upload from Gallery (Mobile/Tablet) / File Upload (Laptop/Desktop) */}
-                  <label className="px-2.5 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer transition-all hover:scale-105 active:scale-95">
+                  <label className="px-2.5 py-1.5 rounded-xl bg-sage/90 hover:bg-sage-dark text-white text-xs font-semibold shadow-xs flex items-center gap-1.5 cursor-pointer transition-all hover:scale-105 active:scale-95">
                     <Upload className="w-3.5 h-3.5" />
                     <span className="md:hidden">Gallery</span>
                     <span className="hidden md:inline">Upload Bill</span>
@@ -939,12 +939,12 @@ export default function ExpenseModal({
             <button
               type="submit"
               disabled={isSubmitting}
-              className={`px-5 py-2.5 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+              className={`px-5 py-2.5 text-white text-xs font-semibold rounded-xl shadow-xs hover:shadow-sm transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed btn-subtle-shimmer ${
                 duplicateWarning?.is_duplicate && !isDuplicateAcknowledged
-                  ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/20'
+                  ? 'bg-amber-600 hover:bg-amber-700'
                   : isOverMonthly
-                  ? 'bg-coral hover:bg-coral-dark shadow-coral/20'
-                  : 'bg-sage hover:bg-sage-dark shadow-sage/20'
+                  ? 'bg-coral hover:bg-coral-dark'
+                  : 'bg-sage hover:bg-sage-dark'
               }`}
             >
               {isSubmitting ? (

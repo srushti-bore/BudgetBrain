@@ -232,7 +232,7 @@ export default function RegisterPage() {
                     type="button"
                     onClick={() => handleVerifyOtp()}
                     disabled={otp.length !== 6 || isVerifyingOtp || isOtpSuccess}
-                    className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-medium text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-700/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full py-3 px-4 rounded-xl bg-sage hover:bg-sage-dark text-white font-medium text-sm flex items-center justify-center gap-2 shadow-xs hover:shadow-sm border border-white/10 dark:border-white/5 transition-all disabled:opacity-50 disabled:cursor-not-allowed btn-subtle-shimmer"
                   >
                     {isVerifyingOtp ? (
                       <>
@@ -478,7 +478,7 @@ export default function RegisterPage() {
                     whileTap={{ scale: 0.99 }}
                     type="submit"
                     disabled={isSubmitting || !isEmailValid || !isPasswordValid}
-                    className="w-full mt-3 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-medium text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-700/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    className="w-full mt-3 py-3 px-4 rounded-xl bg-sage hover:bg-sage-dark text-white font-medium text-sm flex items-center justify-center gap-2 shadow-xs hover:shadow-sm border border-white/10 dark:border-white/5 disabled:opacity-50 disabled:cursor-not-allowed transition-all btn-subtle-shimmer"
                   >
                     {isSubmitting ? (
                       <>

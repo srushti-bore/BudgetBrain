@@ -265,7 +265,7 @@ function LoginFormContent() {
           whileTap={{ scale: 0.99 }}
           type="submit"
           disabled={isSubmitting}
-          className="w-full mt-2 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-medium text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-700/20 disabled:opacity-75 disabled:cursor-wait transition-all"
+          className="w-full mt-2 py-3 px-4 rounded-xl bg-sage hover:bg-sage-dark text-white font-medium text-sm flex items-center justify-center gap-2 shadow-xs hover:shadow-sm border border-white/10 dark:border-white/5 disabled:opacity-75 disabled:cursor-wait transition-all btn-subtle-shimmer"
         >
           {isRedirecting ? (
             <>

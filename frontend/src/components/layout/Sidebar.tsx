@@ -151,12 +151,12 @@ export default function Sidebar() {
                 setIsOpen(false);
                 window.dispatchEvent(new CustomEvent('open-budgetbrain-chat'));
               }}
-              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600/15 via-teal-600/10 to-emerald-600/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 font-bold text-xs hover:from-emerald-600/25 hover:to-teal-600/25 hover:border-emerald-500/50 hover:shadow-md hover:shadow-emerald-600/10 transition-all cursor-pointer group shadow-2xs"
+              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-sage/10 hover:bg-sage/15 border border-sage/20 hover:border-sage/30 text-sage hover:text-sage-dark dark:text-emerald-300 font-semibold text-xs transition-all cursor-pointer group shadow-2xs btn-subtle-shimmer"
               title="Ask BudgetBrain AI Financial Advisor"
             >
-              <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400 group-hover:rotate-12 transition-transform shrink-0 animate-pulse" />
+              <Sparkles className="w-4 h-4 text-sage dark:text-emerald-400 group-hover:rotate-12 transition-transform shrink-0" />
               <span className="truncate">Ask BudgetBrain</span>
-              <span className="ml-auto px-1.5 py-0.5 rounded bg-emerald-500/25 text-[9px] uppercase font-extrabold text-emerald-700 dark:text-emerald-300">
+              <span className="ml-auto px-1.5 py-0.5 rounded bg-sage/15 text-[9px] uppercase font-bold text-sage dark:text-emerald-300">
                 AI
               </span>
             </button>

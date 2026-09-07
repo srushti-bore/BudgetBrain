@@ -392,15 +392,12 @@ export default function AskBudgetBrainChat() {
             e.stopPropagation();
             setIsOpen(true);
           }}
-          className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-full bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white font-bold text-xs sm:text-sm shadow-xl shadow-emerald-700/40 hover:shadow-2xl hover:shadow-emerald-700/60 hover:scale-105 active:scale-95 transition-all cursor-pointer border border-white/20 select-none group"
+          className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-[#34654F] hover:bg-[#2B5441] text-white/95 font-semibold text-xs sm:text-sm shadow-sm hover:shadow-md hover:scale-[1.02] active:scale-95 transition-all cursor-pointer border border-white/15 dark:border-white/10 select-none group btn-subtle-shimmer"
           title="Ask BudgetBrain AI Financial Advisor"
         >
-          <Sparkles className="w-4 h-4 animate-pulse text-amber-300 pointer-events-none group-hover:rotate-12 transition-transform" />
+          <Sparkles className="w-4 h-4 text-emerald-200/90 pointer-events-none group-hover:rotate-12 transition-transform" />
           <span className="pointer-events-none">Ask BudgetBrain</span>
-          <span className="relative flex h-2 w-2 pointer-events-none">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-300 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400"></span>
-          </span>
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-300/80 pointer-events-none" />
         </button>
       )}
 
@@ -753,7 +750,7 @@ export default function AskBudgetBrainChat() {
                   <button
                     type="submit"
                     disabled={!input.trim() || isLoading}
-                    className="p-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-xs"
+                    className="p-2 rounded-xl bg-sage hover:bg-sage-dark text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-xs"
                   >
                     <Send className="w-4 h-4" />
                   </button>

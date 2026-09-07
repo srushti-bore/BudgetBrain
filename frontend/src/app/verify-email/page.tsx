@@ -121,7 +121,7 @@ function VerifyEmailContent() {
           <div className="pt-2">
             <Link
               href="/login?verified=true"
-              className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-medium text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-700/20 transition-all"
+              className="w-full py-3 px-4 rounded-xl bg-sage hover:bg-sage-dark text-white font-medium text-sm flex items-center justify-center gap-2 shadow-xs hover:shadow-sm border border-white/10 dark:border-white/5 transition-all btn-subtle-shimmer"
             >
               <span>Sign In to Your Vault</span>
               <ArrowRight className="w-4 h-4" />

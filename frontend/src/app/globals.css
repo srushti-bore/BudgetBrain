@@ -185,3 +185,59 @@ body[data-expense-modal-open="true"] #ask-budgetbrain-btn {
   opacity: 0 !important;
 }
 
+/* ── Natural, Subtle Button System & Low-Intensity Shimmer ── */
+.btn-natural-primary {
+  background-color: var(--sage);
+  color: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.07), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+.btn-natural-primary:hover:not(:disabled) {
+  background-color: var(--sage-dark);
+  box-shadow: 0 3px 8px -1px rgba(30, 40, 36, 0.10);
+}
+
+/* Light, minimal, low-intensity shimmer sweep (smooth, non-distracting) */
+.btn-subtle-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-subtle-shimmer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -120%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.08) 50%,
+    transparent 100%
+  );
+  transform: skewX(-20deg);
+  animation: subtle-shimmer-sweep 5.5s infinite ease-in-out;
+  pointer-events: none;
+}
+
+.dark .btn-subtle-shimmer::after {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.06) 50%,
+    transparent 100%
+  );
+}
+
+@keyframes subtle-shimmer-sweep {
+  0%, 65% {
+    left: -120%;
+  }
+  100% {
+    left: 220%;
+  }
+}
+
