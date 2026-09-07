@@ -44,6 +44,11 @@ export default function RegisterPage() {
   const hasNumber = /[0-9]/.test(password);
   const isPasswordValid = hasMinLength && hasUpper && hasLower && hasNumber;
 
+  // Warm-up and prefetch dashboard route immediately on mount
+  useEffect(() => {
+    router.prefetch('/');
+  }, [router]);
+
   // Countdown timer for resend cooldown
   useEffect(() => {
     if (resendCooldown <= 0) return;
@@ -98,17 +103,14 @@ export default function RegisterPage() {
     try {
       await verifyOtp(registeredEmail, code);
       setIsOtpSuccess(true);
-      setTimeout(() => {
-        router.push('/');
-      }, 1000);
+      router.push('/');
     } catch (err: any) {
+      setIsVerifyingOtp(false);
       const msg =
         err.response?.data?.error?.message ||
         err.message ||
         'Invalid verification code. Please check and try again.';
       setOtpError(msg);
-    } finally {
-      setIsVerifyingOtp(false);
     }
   };
 

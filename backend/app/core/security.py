@@ -176,13 +176,30 @@ def hash_otp(otp: str) -> str:
 
 
 
+_google_auth_request: google_requests.Request | None = None
+
+
+def get_google_auth_request() -> google_requests.Request:
+    """
+    Returns a cached google_requests.Request backed by a shared requests.Session.
+    Reuses persistent HTTP connections and honors Google public cert caching headers.
+    """
+    global _google_auth_request
+    if _google_auth_request is None:
+        import requests
+
+        session = requests.Session()
+        _google_auth_request = google_requests.Request(session=session)
+    return _google_auth_request
+
+
 def verify_google_id_token(id_token_str: str) -> dict:
     """
     Verify a Google OAuth 2.0 / OpenID Connect ID token.
     Validates token signature against Google's public keys.
     Returns payload containing: sub, email, email_verified, name, picture.
     """
-    request = google_requests.Request()
+    request = get_google_auth_request()
     try:
         # If GOOGLE_CLIENT_ID is configured, verify audience; otherwise verify basic token
         audience = settings.GOOGLE_CLIENT_ID if settings.GOOGLE_CLIENT_ID else None

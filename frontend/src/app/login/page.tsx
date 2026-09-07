@@ -21,12 +21,18 @@ function LoginFormContent() {
   const [resendCooldown, setResendCooldown] = useState<number>(0);
   const [isResending, setIsResending] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   const { login } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const isJustRegistered = searchParams.get('registered') === 'true';
   const isJustVerified = searchParams.get('verified') === 'true';
+
+  // Warm-up and prefetch dashboard route immediately on mount
+  useEffect(() => {
+    router.prefetch('/');
+  }, [router]);
 
   useEffect(() => {
     if (resendCooldown <= 0) return;
@@ -51,9 +57,12 @@ function LoginFormContent() {
 
     try {
       await login(email.trim(), password);
+      setIsRedirecting(true);
       router.push('/');
     } catch (err: any) {
       console.error('Login error:', err);
+      setIsSubmitting(false);
+      setIsRedirecting(false);
       const errCode = err.response?.data?.error?.code;
       let msg =
         err.response?.data?.error?.message ||
@@ -68,8 +77,6 @@ function LoginFormContent() {
         setIsEmailUnverified(true);
       }
       setError(msg);
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -253,9 +260,14 @@ function LoginFormContent() {
           whileTap={{ scale: 0.99 }}
           type="submit"
           disabled={isSubmitting}
-          className="w-full mt-2 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-medium text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-700/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          className="w-full mt-2 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-medium text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-700/20 disabled:opacity-75 disabled:cursor-wait transition-all"
         >
-          {isSubmitting ? (
+          {isRedirecting ? (
+            <>
+              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              <span>Opening Vault...</span>
+            </>
+          ) : isSubmitting ? (
             <>
               <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               <span>Authenticating...</span>

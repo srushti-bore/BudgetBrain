@@ -54,6 +54,11 @@ export default function GoogleAuthButton({ text = 'continue_with', onError }: Go
 
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
 
+  // Warm-up and prefetch dashboard route immediately on mount
+  useEffect(() => {
+    router.prefetch('/');
+  }, [router]);
+
   const handleCredentialResponse = useCallback(
     async (response: { credential: string }) => {
       if (!response.credential) return;
@@ -62,11 +67,10 @@ export default function GoogleAuthButton({ text = 'continue_with', onError }: Go
         await googleLogin(response.credential);
         router.push('/');
       } catch (err: unknown) {
+        setIsLoading(false);
         const apiError = err as { response?: { data?: { error?: { message?: string } } }; message?: string };
         const msg = apiError.response?.data?.error?.message || apiError.message || 'Google authentication failed.';
         onError?.(msg);
-      } finally {
-        setIsLoading(false);
       }
     },
     [googleLogin, router, onError]
@@ -182,6 +186,16 @@ export default function GoogleAuthButton({ text = 'continue_with', onError }: Go
         className="w-full flex justify-center items-center overflow-hidden"
         style={{ minHeight: '44px' }}
       />
+
+      {/* Instant glassmorphic feedback overlay during Google Auth & Vault Unlocking */}
+      {isLoading && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center gap-2.5 rounded-full bg-[var(--color-surface)]/95 border border-[var(--color-border)] shadow-lg backdrop-blur-md px-4 py-2 pointer-events-none">
+          <span className="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+          <span className="text-xs font-semibold text-[var(--color-text-primary)]">
+            Opening Vault...
+          </span>
+        </div>
+      )}
 
       {/* Fallback button when Google script is loading or Client ID is missing */}
       {!isGsiLoaded && (

@@ -7,6 +7,8 @@ and event loops (e.g. FastAPI dev server, pytest-asyncio, Starlette TestClient).
 """
 
 import asyncio
+import os
+import sys
 from collections.abc import AsyncGenerator
 
 from sqlalchemy.pool import NullPool
@@ -40,12 +42,27 @@ def get_engine_and_factory():
         elif db_url.startswith("postgresql://") and not db_url.startswith("postgresql+asyncpg://"):
             db_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
 
-        engine = create_async_engine(
-            db_url,
-            poolclass=NullPool,
-            echo=settings.APP_DEBUG,
-            future=True,
-        )
+        # In testing environments, retain NullPool to prevent session pool limit errors across test client instances
+        # In production/dev runtime, use pooled connections with pre-ping to eliminate 2-4s TLS handshake overhead
+        is_testing = "pytest" in sys.modules or os.environ.get("TESTING") == "true"
+        if is_testing:
+            engine = create_async_engine(
+                db_url,
+                poolclass=NullPool,
+                echo=settings.APP_DEBUG,
+                future=True,
+            )
+        else:
+            engine = create_async_engine(
+                db_url,
+                pool_size=5,
+                max_overflow=5,
+                pool_timeout=30,
+                pool_recycle=300,
+                pool_pre_ping=True,
+                echo=settings.APP_DEBUG,
+                future=True,
+            )
         session_factory = async_sessionmaker(
             bind=engine,
             class_=AsyncSession,

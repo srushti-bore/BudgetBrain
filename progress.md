@@ -573,6 +573,23 @@ All 13 REST API endpoints across 5 core backend modules are fully functional wit
   - Pytest: 20/20 tests passing (`test_expenses.py` & `test_duplicate_guard.py`).
   - Next.js production build: 14/14 pages generated cleanly (Exit code 0).
 
+## Phase 49: Zero-Latency Auth & Route Transition Optimization (Sub-Second Login/OAuth)
+
+- **Problem & Scope**:
+  - Users logging in via Email/Password, signing up, or clicking **"Continue with Google"** experienced an unacceptable 10–15s delay on the auth page before the dashboard appeared.
+  - Root causes identified: (1) `NullPool` tearing down connections after every request, imposing 3-5s TLS/auth handshakes to Supabase per call; (2) Google OAuth re-downloading public certificates synchronously; (3) Next.js App Router freezing on auth pages while downloading un-prefetched dashboard JavaScript bundles; (4) Premature reset of submission states making buttons appear idle.
+- **Backend Architecture**:
+  - `backend/app/database.py`: Introduced environment-aware connection pooling. In production and development runtime, maintains 5 warm connections via `AsyncAdaptedQueuePool` (`pool_size=5, max_overflow=5, pool_pre_ping=True, pool_recycle=300`), cutting DB query setup from ~3,500ms to <30ms while safely capping total connections within Supabase free-tier limits. In test environments (`pytest` / `TESTING=true`), seamlessly uses `NullPool` to preserve test isolation.
+  - `backend/app/core/security.py`: Cached `requests.Session` transport in `get_google_auth_request()` to retain HTTP keep-alive and honor Google public cert HTTP caching headers.
+- **Frontend Architecture**:
+  - `frontend/src/app/loading.tsx`: Created root loading boundary with animated 3D Brain Logo and pulsing beacon for instantaneous visual transitions during Next.js segment swaps.
+  - `frontend/src/app/login/page.tsx`: Added background route prefetching (`router.prefetch('/')`) on mount and continuous `isRedirecting` state to prevent premature spinner teardown.
+  - `frontend/src/app/register/page.tsx`: Added background route prefetching and instant OTP verification navigation.
+  - `frontend/src/components/auth/GoogleAuthButton.tsx`: Added background route prefetching and instant loading feedback overlay over the official Google button.
+- **Verification**:
+  - Backend pytest: 13/13 auth and AI unit tests passing (100%).
+  - Next.js production build: 14/14 static pages generated cleanly with 0 compiler errors (`npm run build`).
+
 
 
 

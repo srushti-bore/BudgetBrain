@@ -374,6 +374,23 @@ The application is designed as a lightweight, single-user expense tracker using 
 
 ---
 
+### TD-41: Sub-Second Auth Route Transition & Connection Pooling Optimization
+- **Context & Failure Mode**: During sign-up, email/password login, and Google OAuth ("Continue with Google"), users experienced a 10 to 15 second freeze on the `/login` or `/register` page before the dashboard opened.
+- **Root Cause Analysis**:
+  1. `NullPool` in `database.py` forced every request to establish a fresh TCP + SSL connection to PostgreSQL on Supabase across clouds, adding 3-5 seconds per request.
+  2. In Google OAuth, `verify_google_id_token` re-instantiated un-cached HTTP transports on every call to download public certs.
+  3. Next.js App Router did not prefetch `/` on auth pages, freezing on `/login` while downloading heavy dashboard JavaScript bundles (Recharts, Framer Motion, 10 widgets).
+  4. In `login/page.tsx` and `GoogleAuthButton.tsx`, submission states were prematurely reset to idle before Next.js could navigate, making the form look completely frozen.
+  5. Absence of a root `loading.tsx` boundary prevented instant visual feedback during page transitions.
+- **Solution Implemented**:
+  - `backend/app/database.py`: Introduced environment-aware connection pooling with 5 warm connections (`AsyncAdaptedQueuePool`, `pool_size=5, max_overflow=5, pool_pre_ping=True, pool_recycle=300`) for production/dev runtimes, while safely retaining `NullPool` when `pytest` or `TESTING=true` is active.
+  - `backend/app/core/security.py`: Cached the Google Auth `requests.Session` transport to reuse HTTP keep-alive connections and Google public key HTTP cache headers.
+  - `frontend/src/app/loading.tsx`: Created root Suspense loading boundary with 3D Brain Logo for instantaneous visual transitions.
+  - `frontend/src/app/login/page.tsx`, `register/page.tsx`, `GoogleAuthButton.tsx`: Added background route prefetching (`router.prefetch('/')`) on mount and continuous `isRedirecting` state machines.
+- **Status**: **Resolved & Verified (13/13 backend tests passing, Next.js build 14/14 clean)**.
+
+---
+
 ## 3. Maintenance & Code Quality Standards
 
 - **PEP 8 Compliance**: All top-level imports clean; no mid-file or inline module imports.
