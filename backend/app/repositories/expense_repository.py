@@ -212,3 +212,69 @@ class ExpenseRepository(BaseRepository[Expense]):
         )
         res = await self.session.execute(stmt)
         return [(r[0], r[1]) for r in res.all()]
+
+    async def find_duplicate_candidate(
+        self,
+        user_id: str,
+        title: str,
+        amount: Decimal,
+        date_val: date,
+        exclude_id: str | None = None,
+    ) -> tuple[Expense, str | None, str] | None:
+        """
+        Feature 21: Duplicate Transaction Guard.
+        Searches for an existing expense belonging to user with:
+        - Exact matching amount
+        - Date within ±2 days (date_val - 2 days <= date <= date_val + 2 days)
+        - Matching or highly similar description/title
+        Returns (expense, category_name, match_type) or None.
+        """
+        from datetime import timedelta
+        start_date = date_val - timedelta(days=2)
+        end_date = date_val + timedelta(days=2)
+
+        conditions = [
+            Expense.user_id == user_id,
+            Expense.amount == amount,
+            Expense.date >= start_date,
+            Expense.date <= end_date,
+        ]
+        if exclude_id:
+            conditions.append(Expense.id != exclude_id)
+
+        stmt = (
+            select(Expense, Category.name.label("category_name"))
+            .outerjoin(
+                Category,
+                (Expense.category_id == Category.id) & (Category.user_id == user_id),
+            )
+            .where(*conditions)
+            .order_by(Expense.date.desc(), Expense.created_at.desc())
+        )
+        res = await self.session.execute(stmt)
+        candidates = [(r[0], r[1]) for r in res.all()]
+
+        if not candidates:
+            return None
+
+        clean_input = title.strip().lower()
+        input_words = set(w for w in clean_input.split() if len(w) > 1)
+
+        # 1. Exact title match (highest priority)
+        for exp, cat_name in candidates:
+            exp_title_clean = exp.title.strip().lower()
+            if exp_title_clean == clean_input:
+                return (exp, cat_name, "exact")
+
+        # 2. Substring / Token overlap match
+        for exp, cat_name in candidates:
+            exp_title_clean = exp.title.strip().lower()
+            if clean_input in exp_title_clean or exp_title_clean in clean_input:
+                return (exp, cat_name, "similar")
+
+            exp_words = set(w for w in exp_title_clean.split() if len(w) > 1)
+            if input_words and exp_words and (input_words & exp_words):
+                return (exp, cat_name, "similar")
+
+        return None
+

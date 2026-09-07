@@ -15,6 +15,8 @@ import {
   MessageResponse,
   ExpenseMood,
   EmotionalSpendingResponse,
+  DuplicateCheckRequest,
+  DuplicateCheckResponse,
 } from '@/types';
 
 const DEFAULT_PRODUCTION_API_URL = 'https://budgetbrain-ojnr.onrender.com/api/v1';
@@ -349,6 +351,10 @@ export const expenseApi = {
   },
   delete: async (id: string): Promise<void> => {
     await apiClient.delete(`/expenses/${id}`);
+  },
+  checkDuplicate: async (data: DuplicateCheckRequest): Promise<DuplicateCheckResponse> => {
+    const response = await apiClient.post<APIEnvelope<DuplicateCheckResponse>>('/expenses/check-duplicate', data);
+    return response.data.data;
   },
 };
 

@@ -112,3 +112,21 @@ class ExpenseFilters(BaseModel):
         default="desc",
         pattern="^(asc|desc)$",
     )
+
+
+class DuplicateCheckRequest(BaseModel):
+    """Payload for checking duplicate transactions within ±2 days."""
+    title: str = Field(..., min_length=1, max_length=100)
+    amount: Decimal = Field(..., gt=0, decimal_places=2)
+    date: dt_date
+    exclude_id: str | None = None
+
+
+class DuplicateCheckResponse(BaseModel):
+    """Result of duplicate transaction check."""
+    is_duplicate: bool
+    match_type: str | None = None  # "exact" | "similar"
+    existing_expense: ExpenseOut | None = None
+    days_difference: int | None = None
+    message: str | None = None
+

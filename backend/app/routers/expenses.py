@@ -11,10 +11,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_current_user
 from app.database import get_db
-from app.models.expense import PaymentMode
+from app.models.expense import ExpenseMood, PaymentMode
 from app.models.user import User
 from app.schemas.common import DataResponse, PaginatedMeta, PaginatedResponse
 from app.schemas.expense import (
+    DuplicateCheckRequest,
+    DuplicateCheckResponse,
     ExpenseCreate,
     ExpenseFilters,
     ExpenseOut,
@@ -43,6 +45,7 @@ async def list_expenses(
     amount_min: float | None = Query(default=None, ge=0),
     amount_max: float | None = Query(default=None, ge=0),
     payment_mode: PaymentMode | None = Query(default=None),
+    mood: ExpenseMood | None = Query(default=None),
     is_recurring: bool | None = Query(default=None),
     # Sort
     sort_by: str = Query(default="date", pattern="^(amount|date|category)$"),
@@ -70,6 +73,7 @@ async def list_expenses(
         amount_min=amount_min,
         amount_max=amount_max,
         payment_mode=payment_mode,
+        mood=mood,
         is_recurring=is_recurring,
         sort_by=sort_by,
         sort_order=sort_order,
@@ -101,6 +105,25 @@ async def create_expense(
     service = ExpenseService(db)
     expense = await service.create_expense(body, user_id=current_user.id)
     return DataResponse(data=expense)
+
+
+@router.post(
+    "/check-duplicate",
+    response_model=DataResponse[DuplicateCheckResponse],
+    summary="Check for duplicate transactions within ±2 days",
+)
+async def check_duplicate_expense(
+    body: DuplicateCheckRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Feature 21: Duplicate Transaction Guard.
+    Checks whether a matching amount and description was already logged within ±2 days.
+    """
+    service = ExpenseService(db)
+    result = await service.check_duplicate(user_id=current_user.id, data=body)
+    return DataResponse(data=result)
 
 
 @router.get(

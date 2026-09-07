@@ -10,6 +10,8 @@ from app.repositories.dashboard_repository import DashboardRepository
 from app.repositories.expense_repository import ExpenseRepository
 from app.services.ai.rag_service import RAGService
 from app.schemas.expense import (
+    DuplicateCheckRequest,
+    DuplicateCheckResponse,
     ExpenseCreate,
     ExpenseFilters,
     ExpenseOut,
@@ -193,3 +195,62 @@ class ExpenseService:
 
         await self.repo.delete(exp)
         await self.session.commit()
+
+    async def check_duplicate(
+        self, user_id: str, data: DuplicateCheckRequest
+    ) -> DuplicateCheckResponse:
+        """
+        Feature 21: Duplicate Transaction Guard.
+        Checks if a transaction with matching amount and similar description exists within ±2 days.
+        """
+        candidate = await self.repo.find_duplicate_candidate(
+            user_id=user_id,
+            title=data.title,
+            amount=data.amount,
+            date_val=data.date,
+            exclude_id=data.exclude_id,
+        )
+
+        if not candidate:
+            return DuplicateCheckResponse(is_duplicate=False)
+
+        exp, cat_name, match_type = candidate
+        days_diff = (data.date - exp.date).days
+
+        if days_diff == 0:
+            rel_day = "on the same day"
+        elif days_diff == 1:
+            rel_day = "yesterday"
+        elif days_diff == -1:
+            rel_day = "tomorrow"
+        elif days_diff > 1:
+            rel_day = f"{days_diff} days earlier"
+        else:
+            rel_day = f"{abs(days_diff)} days later"
+
+        category_part = f" in {cat_name}" if cat_name else ""
+        msg = f"A matching transaction of ₹{float(exp.amount):,.2f} for '{exp.title}' was already logged {rel_day}{category_part} ({exp.date.strftime('%b %d, %Y')})."
+
+        existing_out = ExpenseOut(
+            id=exp.id,
+            title=exp.title,
+            amount=exp.amount,
+            category_id=exp.category_id,
+            category_name=cat_name,
+            date=exp.date,
+            notes=exp.notes,
+            payment_mode=exp.payment_mode,
+            mood=exp.mood,
+            is_recurring=exp.is_recurring,
+            created_at=exp.created_at,
+            updated_at=exp.updated_at,
+        )
+
+        return DuplicateCheckResponse(
+            is_duplicate=True,
+            match_type=match_type,
+            existing_expense=existing_out,
+            days_difference=days_diff,
+            message=msg,
+        )
+

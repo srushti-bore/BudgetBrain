@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Expense, Category, PaymentMode, ExpenseMood } from '@/types';
 import { getTodayDateString, capitalizeFirstLetter } from '@/lib/utils';
 import { X, Plus, AlertCircle, Repeat, Flame, AlertTriangle, ShieldCheck, ShieldAlert, Sparkles, Wand2, Camera, Upload, Loader2 } from 'lucide-react';
-import { categoryApi, dashboardApi, aiApi, SuggestCategoryResponse, ScanReceiptResponse } from '@/lib/api';
+import { categoryApi, dashboardApi, aiApi, expenseApi, SuggestCategoryResponse, ScanReceiptResponse, DuplicateCheckResponse } from '@/lib/api';
 import { useCurrency, useFormatCurrency } from '@/providers/CurrencyProvider';
 import { useSettings } from '@/providers/SettingsProvider';
 import { useQuery } from '@tanstack/react-query';
@@ -67,6 +67,11 @@ export default function ExpenseModal({
   const [hasManuallySelectedPaymentMode, setHasManuallySelectedPaymentMode] = useState(false);
   const [hasManuallySelectedMood, setHasManuallySelectedMood] = useState(false);
 
+  // Duplicate Transaction Guard state (Feature 21)
+  const [duplicateWarning, setDuplicateWarning] = useState<DuplicateCheckResponse | null>(null);
+  const [isCheckingDuplicate, setIsCheckingDuplicate] = useState(false);
+  const [isDuplicateAcknowledged, setIsDuplicateAcknowledged] = useState(false);
+
   // Fetch current dashboard summary to calculate budget impact in real time
   const { data: summary } = useQuery({
     queryKey: ['dashboardSummary'],
@@ -99,6 +104,9 @@ export default function ExpenseModal({
       setHasManuallySelectedPaymentMode(false);
       setHasManuallySelectedMood(false);
     }
+    setDuplicateWarning(null);
+    setIsCheckingDuplicate(false);
+    setIsDuplicateAcknowledged(false);
     setErrorMsg('');
   }, [initialData, isOpen, categories, currency]);
 
@@ -155,6 +163,49 @@ export default function ExpenseModal({
 
     return () => clearTimeout(timer);
   }, [title, parsedBaseAmount, isOpen, initialData, categories, hasManuallySelectedCategory, hasManuallySelectedPaymentMode, paymentMode]);
+
+  // Real-time Duplicate Transaction Guard Check (Feature 21)
+  useEffect(() => {
+    if (!isOpen) {
+      setDuplicateWarning(null);
+      setIsDuplicateAcknowledged(false);
+      return;
+    }
+
+    const cleanTitle = title.trim();
+    if (cleanTitle.length < 2 || parsedBaseAmount <= 0 || !date) {
+      setDuplicateWarning(null);
+      setIsDuplicateAcknowledged(false);
+      return;
+    }
+
+    // Reset duplicate acknowledgment if user modifies input
+    setIsDuplicateAcknowledged(false);
+
+    const timer = setTimeout(async () => {
+      setIsCheckingDuplicate(true);
+      try {
+        const res = await expenseApi.checkDuplicate({
+          title: cleanTitle,
+          amount: parsedBaseAmount,
+          date,
+          exclude_id: initialData?.id || null,
+        });
+        if (res && res.is_duplicate) {
+          setDuplicateWarning(res);
+        } else {
+          setDuplicateWarning(null);
+        }
+      } catch (err) {
+        // Tolerant duplicate check failure
+        setDuplicateWarning(null);
+      } finally {
+        setIsCheckingDuplicate(false);
+      }
+    }, 450);
+
+    return () => clearTimeout(timer);
+  }, [title, parsedBaseAmount, date, isOpen, initialData?.id]);
 
   const handleApplyAiSuggestion = () => {
     if (!aiSuggestion) return;
@@ -285,6 +336,15 @@ export default function ExpenseModal({
     }
     if (date > getTodayDateString()) {
       setErrorMsg('Expense date cannot be in the future');
+      return;
+    }
+
+    // Prevent accidental duplicate submission unless user explicitly acknowledged
+    if (duplicateWarning?.is_duplicate && !isDuplicateAcknowledged) {
+      setErrorMsg(
+        duplicateWarning.message ||
+          'Potential duplicate transaction detected within ±2 days! Please review or confirm below before saving.'
+      );
       return;
     }
 
@@ -513,6 +573,100 @@ export default function ExpenseModal({
               />
             </div>
           </div>
+
+          {/* Duplicate Transaction Guard Alert Banner (Feature 21) */}
+          <AnimatePresence>
+            {duplicateWarning?.is_duplicate && (
+              <motion.div
+                initial={{ opacity: 0, height: 0, y: -6 }}
+                animate={{ opacity: 1, height: 'auto', y: 0 }}
+                exit={{ opacity: 0, height: 0, y: -6 }}
+                className={`p-3.5 rounded-2xl border transition-all ${
+                  isDuplicateAcknowledged
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-800 dark:text-emerald-300'
+                    : 'bg-amber-500/10 border-amber-500/40 dark:bg-amber-500/15 text-amber-900 dark:text-amber-200 shadow-sm'
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <div
+                    className={`p-2 rounded-xl shrink-0 ${
+                      isDuplicateAcknowledged
+                        ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                        : 'bg-amber-500/20 text-amber-600 dark:text-amber-400 animate-pulse'
+                    }`}
+                  >
+                    <ShieldAlert className="w-5 h-5" />
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-xs">
+                          {isDuplicateAcknowledged
+                            ? 'Duplicate Warning Acknowledged'
+                            : 'Duplicate Transaction Guard: Possible Duplicate'}
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                          {duplicateWarning.match_type === 'exact' ? 'Exact Match' : 'Similar Title'} · ±2 Days
+                        </span>
+                      </div>
+                    </div>
+
+                    <p className="mt-1 text-xs leading-relaxed opacity-90">
+                      {duplicateWarning.message}
+                    </p>
+
+                    {duplicateWarning.existing_expense && (
+                      <div className="mt-2.5 p-2.5 rounded-xl bg-white/70 dark:bg-black/30 border border-amber-500/20 text-[11px] grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        <div>
+                          <span className="text-ink-muted block text-[10px]">Existing Title</span>
+                          <span className="font-bold text-ink truncate block">
+                            {duplicateWarning.existing_expense.title}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-ink-muted block text-[10px]">Logged Amount</span>
+                          <span className="font-bold text-ink block">
+                            {formatCurrency(duplicateWarning.existing_expense.amount)}
+                          </span>
+                        </div>
+                        <div className="col-span-2 sm:col-span-1">
+                          <span className="text-ink-muted block text-[10px]">Logged Date</span>
+                          <span className="font-bold text-ink block">
+                            {duplicateWarning.existing_expense.date}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="mt-3 flex items-center justify-end gap-2">
+                      {!isDuplicateAcknowledged ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsDuplicateAcknowledged(true);
+                            setErrorMsg('');
+                          }}
+                          className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
+                        >
+                          <ShieldCheck className="w-3.5 h-3.5" />
+                          <span>I Understand, Log Anyway</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setIsDuplicateAcknowledged(false)}
+                          className="text-[11px] text-ink-muted hover:text-ink underline cursor-pointer"
+                        >
+                          Re-check duplicate guard
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Live Real-time Budget Threshold Alert Banner */}
           <AnimatePresence>
@@ -769,13 +923,20 @@ export default function ExpenseModal({
               type="submit"
               disabled={isSubmitting}
               className={`px-5 py-2.5 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
-                isOverMonthly
+                duplicateWarning?.is_duplicate && !isDuplicateAcknowledged
+                  ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/20'
+                  : isOverMonthly
                   ? 'bg-coral hover:bg-coral-dark shadow-coral/20'
                   : 'bg-sage hover:bg-sage-dark shadow-sage/20'
               }`}
             >
               {isSubmitting ? (
                 <span>Saving...</span>
+              ) : duplicateWarning?.is_duplicate && !isDuplicateAcknowledged ? (
+                <>
+                  <ShieldAlert className="w-3.5 h-3.5" />
+                  <span>Review Duplicate Warning</span>
+                </>
               ) : isOverMonthly ? (
                 <>
                   <Flame className="w-3.5 h-3.5" />

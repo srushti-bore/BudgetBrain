@@ -172,3 +172,18 @@ export interface EmotionalSpendingResponse {
   model: string;
 }
 
+export interface DuplicateCheckRequest {
+  title: string;
+  amount: number;
+  date: string;
+  exclude_id?: string | null;
+}
+
+export interface DuplicateCheckResponse {
+  is_duplicate: boolean;
+  match_type?: 'exact' | 'similar' | null;
+  existing_expense?: Expense | null;
+  days_difference?: number | null;
+  message?: string | null;
+}
+
