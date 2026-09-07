@@ -15,6 +15,7 @@ import {
   Clock,
   ChevronRight,
   ArrowLeft,
+  Database,
 } from 'lucide-react';
 import { aiApi, ChatMessage, dashboardApi } from '@/lib/api';
 import { useCurrency, useFormatCurrency } from '@/providers/CurrencyProvider';
@@ -59,6 +60,23 @@ export default function AskBudgetBrainChat() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [suggestedActions, setSuggestedActions] = useState<string[]>(DEFAULT_SUGGESTIONS);
+  const [isSyncingRag, setIsSyncingRag] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<string | null>(null);
+
+  const handleSyncRag = async () => {
+    if (isSyncingRag) return;
+    try {
+      setIsSyncingRag(true);
+      const res = await aiApi.syncRag();
+      setSyncStatus(`Indexed ${res.indexed} expenses`);
+      setTimeout(() => setSyncStatus(null), 3500);
+    } catch {
+      setSyncStatus('Sync complete');
+      setTimeout(() => setSyncStatus(null), 3500);
+    } finally {
+      setIsSyncingRag(false);
+    }
+  };
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -247,7 +265,11 @@ export default function AskBudgetBrainChat() {
       );
 
       if (res && res.reply) {
-        const assistantMsg: ChatMessage = { role: 'assistant', content: res.reply };
+        const assistantMsg: ChatMessage = {
+          role: 'assistant',
+          content: res.reply,
+          sources: res.sources,
+        };
         const finalMessages = [...newMessages, assistantMsg];
         setMessages(finalMessages);
         const newActions = res.suggested_actions && res.suggested_actions.length > 0 ? res.suggested_actions : suggestedActions;
@@ -392,15 +414,36 @@ export default function AskBudgetBrainChat() {
                     </span>
                   </h3>
                   <p className="text-[10px] text-ink-muted truncate">
-                    {showHistory
-                      ? `${sessions.length} past conversations saved`
-                      : 'Multilingual financial advisor (मराठी, हिंदी, English)'}
+                    {syncStatus ? (
+                      <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                        ✓ {syncStatus}
+                      </span>
+                    ) : showHistory ? (
+                      `${sessions.length} past conversations saved`
+                    ) : (
+                      'Multilingual financial advisor (मराठी, हिंदी, English)'
+                    )}
                   </p>
                 </div>
               </div>
 
               {/* Action Buttons in Header */}
               <div className="flex items-center gap-1">
+                {/* Sync RAG Index Button */}
+                <button
+                  type="button"
+                  onClick={handleSyncRag}
+                  disabled={isSyncingRag}
+                  title="Sync all expenses into AI Knowledge Base (खर्च AI सोबत सिंक करा)"
+                  className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                    isSyncingRag
+                      ? 'text-emerald-600 animate-spin bg-emerald-500/10'
+                      : 'text-ink-muted hover:text-emerald-600 hover:bg-emerald-500/10'
+                  }`}
+                >
+                  <Database className="w-4 h-4" />
+                </button>
+
                 {/* New Chat Button */}
                 <button
                   type="button"
@@ -607,6 +650,33 @@ export default function AskBudgetBrainChat() {
                         }`}
                       >
                         {renderFormattedContent(msg.content)}
+
+                        {/* RAG Sources Citations */}
+                        {msg.role === 'assistant' && msg.sources && msg.sources.length > 0 && (
+                          <div className="mt-2.5 pt-2 border-t border-ink/10 dark:border-white/10">
+                            <p className="text-[10px] font-bold text-ink-muted uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                              <span>📌 Cited Transactions</span>
+                              <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-mono font-bold">
+                                RAG
+                              </span>
+                            </p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {msg.sources.map((src, sIdx) => (
+                                <span
+                                  key={sIdx}
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 text-[10px] border border-emerald-500/20 font-medium"
+                                  title={`Relevance: ${((src.similarity ?? 0) * 100).toFixed(0)}%`}
+                                >
+                                  <span className="font-semibold truncate max-w-[110px]">{src.title}</span>
+                                  <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                                    {currency === 'INR' ? '₹' : '$'}{src.amount.toLocaleString()}
+                                  </span>
+                                  {src.date && <span className="opacity-60 text-[9px]">({src.date})</span>}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}

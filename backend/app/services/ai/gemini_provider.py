@@ -448,6 +448,16 @@ Output strictly valid JSON:
         remaining_budget = financial_context.get("remaining_budget")
         daily_average = financial_context.get("daily_average", 0.0)
         top_cats = financial_context.get("top_categories", [])
+        rag_expenses = financial_context.get("rag_expenses", [])
+
+        rag_text = ""
+        if rag_expenses:
+            rag_lines = []
+            for r in rag_expenses:
+                rag_lines.append(
+                    f"- Date: {r.get('date', '')} | Title: {r.get('title', '')} | Amount: {sym}{r.get('amount', 0.0):,.2f} | Category: {r.get('category_name', 'General')} | Relevance: {r.get('similarity', 0.0):.0%}"
+                )
+            rag_text = "\n### RELEVANT USER TRANSACTIONS (Retrieved via RAG Semantic Vector Search):\n" + "\n".join(rag_lines) + "\n"
 
         system_instruction = f"""
 You are BudgetBrain AI, a sharp, empathetic personal finance assistant built into BudgetBrain.
@@ -460,7 +470,7 @@ You have real-time access to the user's financial telemetry:
 - Deficit Status: {"YES, IN DEFICIT of " + str(abs(remaining_budget)) if remaining_budget and remaining_budget < 0 else "NO DEFICIT"}
 - Daily Average Spend: {sym}{daily_average:,.2f}
 - Top Spending Categories: {json.dumps(top_cats)}
-
+{rag_text}
 CRITICAL MULTILINGUAL INSTRUCTIONS:
 1. YOU MUST UNDERSTAND AND RESPOND IN ANY LANGUAGE:
    - Carefully detect the language and script used in the user's latest query (e.g. Marathi / मराठी, Romanized Marathi / Marathinglish like "me 3000 cha dinner karu shakto ka", Hindi / हिंदी, Hinglish like "kya mai 3000 ka dinner kar sakta hu", English, etc.).
@@ -474,16 +484,20 @@ CRITICAL MULTILINGUAL INSTRUCTIONS:
    - English example: ["Where is most of my money going?", "Can I afford ₹2,000?", "How do I save more?"]
 
 TELEMETRY & REASONING RULES:
-1. If user asks "Can I afford X" / "मी X खर्च करू शकतो का?":
+1. If user asks about specific purchases, merchants, items (medicine, electronics, dining, groceries, etc.), or past transactions:
+   - Carefully examine the RELEVANT USER TRANSACTIONS section above.
+   - CITE the exact transactions found with their titles, dates, amounts, and categories!
+   - If no matching transactions are found in the list, clarify politely in the user's language that no such transactions were recorded.
+2. If user asks "Can I afford X" / "मी X खर्च करू शकतो का?":
    - If no budget set: State they haven't set a monthly budget yet, show their total spend, and advise adopting an AI budget.
    - If already in deficit: Calculate new increased deficit = (current_deficit + X) and warn them against spending.
    - If within budget: Compare X to remaining balance. If X <= remaining, confirm it fits and show the new remaining balance (remaining - X). If X > remaining, warn that it will trigger a deficit of (X - remaining).
-2. If user asks "Where is my money going?" / "माझे पैसे कुठे खर्च झाले?":
+3. If user asks "Where is my money going?" / "माझे पैसे कुठे खर्च झाले?":
    - Break down their top spending categories with amounts and percentages of total spent.
-3. If user asks "How do I recover from deficit?" / "तोटा कसा भरून काढू?":
+4. If user asks "How do I recover from deficit?" / "तोटा कसा भरून काढू?":
    - Provide clear, actionable steps: pause non-essential spending, adhere to daily limit, track daily expenses.
-4. Always keep responses concise, well-structured with markdown bolding and bullet points, and encouraging.
-5. Strict Output JSON format:
+5. Always keep responses concise, well-structured with markdown bolding and bullet points, and encouraging.
+6. Strict Output JSON format:
 {{
   "reply": "Markdown formatted advice in the user's language",
   "suggested_actions": ["Prompt 1 in user language", "Prompt 2 in user language", "Prompt 3 in user language"]

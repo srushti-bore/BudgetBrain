@@ -551,9 +551,19 @@ export interface SuggestBudgetResponse {
   rationale: string;
 }
 
+export interface RagSource {
+  expense_id: string;
+  title: string;
+  amount: number;
+  date: string;
+  category_name?: string | null;
+  similarity?: number;
+}
+
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
+  sources?: RagSource[];
 }
 
 export interface ChatRequest {
@@ -565,6 +575,23 @@ export interface ChatResponse {
   suggested_actions?: string[];
   provider: string;
   model: string;
+  sources?: RagSource[];
+}
+
+export interface RagSyncResponse {
+  indexed: number;
+  total_pending: number;
+  message: string;
+}
+
+export interface SemanticSearchItem {
+  expense_id: string;
+  title: string;
+  amount: number;
+  date: string;
+  category_name?: string | null;
+  similarity: number;
+  content: string;
 }
 
 export const aiApi = {
@@ -596,6 +623,16 @@ export const aiApi = {
     formData.append('file', file);
     const response = await apiClient.post<APIEnvelope<ScanReceiptResponse>>('/ai/scan-receipt', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data.data;
+  },
+  syncRag: async (): Promise<RagSyncResponse> => {
+    const response = await apiClient.post<APIEnvelope<RagSyncResponse>>('/ai/rag/sync');
+    return response.data.data;
+  },
+  semanticSearch: async (query: string, limit: number = 10): Promise<SemanticSearchItem[]> => {
+    const response = await apiClient.get<APIEnvelope<SemanticSearchItem[]>>('/ai/search', {
+      params: { q: query, limit },
     });
     return response.data.data;
   },

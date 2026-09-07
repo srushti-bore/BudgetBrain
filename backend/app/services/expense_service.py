@@ -8,6 +8,7 @@ from app.repositories.budget_repository import BudgetRepository
 from app.repositories.category_repository import CategoryRepository
 from app.repositories.dashboard_repository import DashboardRepository
 from app.repositories.expense_repository import ExpenseRepository
+from app.services.ai.rag_service import RAGService
 from app.schemas.expense import (
     ExpenseCreate,
     ExpenseFilters,
@@ -28,6 +29,7 @@ class ExpenseService:
         self.category_repo = CategoryRepository(session)
         self.budget_repo = BudgetRepository(session)
         self.dashboard_repo = DashboardRepository(session)
+        self.rag_service = RAGService(session)
 
     async def list_expenses(
         self,
@@ -109,6 +111,14 @@ class ExpenseService:
             is_recurring=data.is_recurring if hasattr(data, "is_recurring") and data.is_recurring is not None else False,
         )
         await self.session.commit()
+
+        # Automatic RAG Vector Indexing (resilient & non-blocking)
+        try:
+            await self.rag_service.index_expense(exp, category_name=cat.name)
+            await self.session.commit()
+        except Exception:
+            pass
+
         return ExpenseOut(
             id=exp.id,
             title=exp.title,
@@ -144,6 +154,13 @@ class ExpenseService:
         await self.session.commit()
         cat = await self.category_repo.get_by_id_and_user(updated.category_id, user_id)
 
+        # Update RAG Vector Index
+        try:
+            await self.rag_service.index_expense(updated, category_name=cat.name if cat else None)
+            await self.session.commit()
+        except Exception:
+            pass
+
         return ExpenseOut(
             id=updated.id,
             title=updated.title,
@@ -167,5 +184,12 @@ class ExpenseService:
         exp = await self.repo.get_by_id_and_user(expense_id, user_id)
         if not exp:
             raise NotFoundException("Expense")
+        
+        # Remove RAG index
+        try:
+            await self.rag_service.delete_expense_index(expense_id, user_id)
+        except Exception:
+            pass
+
         await self.repo.delete(exp)
         await self.session.commit()

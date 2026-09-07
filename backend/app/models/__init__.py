@@ -5,6 +5,7 @@ from app.models.refresh_token import RefreshToken
 from app.models.category import Category
 from app.models.expense import Expense
 from app.models.budget import Budget
+from app.models.expense_embedding import ExpenseEmbedding
 
 __all__ = [
     "Base",
@@ -14,4 +15,5 @@ __all__ = [
     "Category",
     "Expense",
     "Budget",
+    "ExpenseEmbedding",
 ]

@@ -18,7 +18,9 @@ from app.schemas.ai import (
     ChatRequest,
     ChatResponse,
     InsightsResponse,
+    RagSyncResponse,
     ScanReceiptResponse,
+    SemanticSearchItem,
     SuggestBudgetResponse,
     SuggestCategoryRequest,
     SuggestCategoryResponse,
@@ -132,5 +134,62 @@ async def scan_receipt(
         mime_type=file.content_type,
     )
     return DataResponse(data=result)
+
+
+@router.post(
+    "/rag/sync",
+    response_model=DataResponse[RagSyncResponse],
+    summary="Batch index all historical expenses for RAG semantic search",
+)
+async def sync_rag_index(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Scans for user transactions lacking vector embeddings, generates 768-dim
+    embeddings, and stores them in the RAG knowledge store.
+    """
+    service = AIService(db)
+    res = await service.sync_rag(current_user)
+    return DataResponse(
+        data=RagSyncResponse(
+            indexed=res.get("indexed", 0),
+            total_pending=res.get("total_pending", 0),
+            message=f"Successfully indexed {res.get('indexed', 0)} expense(s) into RAG knowledge store.",
+        )
+    )
+
+
+@router.get(
+    "/search",
+    response_model=DataResponse[list[SemanticSearchItem]],
+    summary="Semantic natural language search across expenses",
+)
+async def semantic_search(
+    q: str = Query(..., min_length=1, max_length=200, description="Natural language search query"),
+    limit: int = Query(default=10, ge=1, le=50),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Performs cosine vector similarity search across user expenses.
+    Finds conceptual matches even when keywords do not match exactly.
+    """
+    service = AIService(db)
+    matches = await service.semantic_search(current_user, query=q, limit=limit)
+    items = [
+        SemanticSearchItem(
+            expense_id=m["expense_id"],
+            title=m["title"],
+            amount=m["amount"],
+            date=m["date"],
+            category_name=m.get("category_name"),
+            similarity=m.get("similarity", 0.0),
+            content=m.get("content", ""),
+        )
+        for m in matches
+    ]
+    return DataResponse(data=items)
+
 
 

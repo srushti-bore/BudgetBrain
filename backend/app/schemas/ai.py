@@ -59,11 +59,37 @@ class ChatRequest(BaseModel):
     messages: list[ChatMessage] = Field(..., min_length=1, max_length=20)
 
 
+class RagSource(BaseModel):
+    expense_id: str
+    title: str
+    amount: float
+    date: str
+    category_name: str | None = None
+    similarity: float = 0.0
+
+
 class ChatResponse(BaseModel):
     reply: str
     suggested_actions: list[str] = Field(default_factory=list)
     provider: str
     model: str
+    sources: list[RagSource] = Field(default_factory=list)
+
+
+class RagSyncResponse(BaseModel):
+    indexed: int
+    total_pending: int
+    message: str
+
+
+class SemanticSearchItem(BaseModel):
+    expense_id: str
+    title: str
+    amount: float
+    date: str
+    category_name: str | None = None
+    similarity: float
+    content: str
 
 
 class ScanReceiptResponse(BaseModel):

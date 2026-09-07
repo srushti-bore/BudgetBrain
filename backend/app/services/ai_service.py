@@ -17,12 +17,14 @@ from app.schemas.ai import (
     ChatRequest,
     ChatResponse,
     InsightsResponse,
+    RagSource,
     ScanReceiptResponse,
     SuggestBudgetResponse,
     SuggestCategoryRequest,
     SuggestCategoryResponse,
 )
 from app.services.ai.factory import get_ai_provider
+from app.services.ai.rag_service import RAGService
 from app.services.dashboard_service import DashboardService
 
 
@@ -31,6 +33,7 @@ class AIService:
         self.session = session
         self.dashboard_service = DashboardService(session)
         self.category_repo = CategoryRepository(session)
+        self.rag_service = RAGService(session)
         self.settings = get_settings()
 
     async def get_financial_insights(self, user: User, currency_symbol: str = "₹") -> InsightsResponse:
@@ -207,6 +210,23 @@ class AIService:
 
         user_display = user.full_name or user.email.split("@")[0]
 
+        # Extract latest user message for semantic retrieval
+        user_queries = [m.content for m in request.messages if m.role == "user"]
+        latest_query = user_queries[-1] if user_queries else ""
+
+        # Retrieve relevant user transactions using semantic vector similarity
+        rag_matches: list[dict] = []
+        if latest_query:
+            try:
+                rag_matches = await self.rag_service.search_similar_expenses(
+                    user_id=user.id,
+                    query=latest_query,
+                    limit=5,
+                    threshold=0.25,
+                )
+            except Exception:
+                rag_matches = []
+
         financial_context = {
             "user_name": user_display,
             "currency_symbol": currency_symbol,
@@ -215,11 +235,51 @@ class AIService:
             "remaining_budget": remaining_budget,
             "daily_average": daily_average,
             "top_categories": top_categories,
+            "rag_expenses": rag_matches,
         }
 
         provider = get_ai_provider(self.settings)
-        return await provider.chat(
+        response = await provider.chat(
             messages=request.messages,
             financial_context=financial_context,
         )
+
+        # Attach source citations from RAG retrieval
+        if rag_matches:
+            response.sources = [
+                RagSource(
+                    expense_id=m["expense_id"],
+                    title=m["title"],
+                    amount=m["amount"],
+                    date=m["date"],
+                    category_name=m.get("category_name"),
+                    similarity=m.get("similarity", 0.0),
+                )
+                for m in rag_matches
+            ]
+
+        return response
+
+    async def sync_rag(self, user: User) -> dict:
+        """
+        Backfills embeddings for all user expenses.
+        """
+        return await self.rag_service.sync_all_user_expenses(user.id)
+
+    async def semantic_search(
+        self,
+        user: User,
+        query: str,
+        limit: int = 10,
+    ) -> list[dict]:
+        """
+        Performs natural language semantic search across all user expenses.
+        """
+        return await self.rag_service.search_similar_expenses(
+            user_id=user.id,
+            query=query,
+            limit=limit,
+            threshold=0.20,
+        )
+
 

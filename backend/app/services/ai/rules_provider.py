@@ -662,6 +662,55 @@ class RulesProvider(BaseLLMProvider):
                 model=self.default_model,
             )
 
+        # 4.5. Semantic RAG Search Query handling in rules fallback
+        rag_expenses = financial_context.get("rag_expenses", [])
+        search_triggers = [
+            "find", "show", "search", "bought", "buy", "spent on", "purchase",
+            "dakhva", "pahije", "kharedi", "kuthe kharch", "kiti", "दाखवा", "खरेदी",
+            "कितना", "कहाँ", "दिखाओ"
+        ]
+        if rag_expenses and any(w in q_lower for w in search_triggers):
+            if lang == "mr":
+                lines = [
+                    f"- **{r.get('title')}**: {sym}{r.get('amount', 0.0):,.2f} ({r.get('date')}) — {r.get('category_name', 'सामान्य')}"
+                    for r in rag_expenses[:4]
+                ]
+                reply = (
+                    f"🔍 **संबंधित व्यवहार सापडले (RAG Semantic Match):**\n\n"
+                    + "\n".join(lines)
+                    + f"\n\nतुम्ही या खर्चाबद्दल अधिक माहिती विचारू शकता!"
+                )
+                actions = ["माझे पैसे कुठे जात आहेत?", "शिल्लक बजेट किती आहे?", "बचत कशी करावी?"]
+            elif lang == "hi":
+                lines = [
+                    f"- **{r.get('title')}**: {sym}{r.get('amount', 0.0):,.2f} ({r.get('date')}) — {r.get('category_name', 'सामान्य')}"
+                    for r in rag_expenses[:4]
+                ]
+                reply = (
+                    f"🔍 **संबंधित लेन-देन मिले (RAG Semantic Match):**\n\n"
+                    + "\n".join(lines)
+                    + f"\n\nआप इनमें से किसी भी खर्च के बारे में और पूछ सकते हैं!"
+                )
+                actions = ["कहाँ ज्यादा खर्च हो रहा है?", "बचा हुआ बजट कितना है?", "बचत के उपाय"]
+            else:
+                lines = [
+                    f"- **{r.get('title')}**: {sym}{r.get('amount', 0.0):,.2f} on {r.get('date')} ({r.get('category_name', 'General')})"
+                    for r in rag_expenses[:4]
+                ]
+                reply = (
+                    f"🔍 **Matched Transactions (RAG Semantic Match):**\n\n"
+                    + "\n".join(lines)
+                    + f"\n\nAsk me if you need more details about any of these items."
+                )
+                actions = ["Where is my money going?", "What is my remaining budget?", "How to save more?"]
+
+            return ChatResponse(
+                reply=reply,
+                suggested_actions=actions,
+                provider=self.provider_name,
+                model=self.default_model,
+            )
+
         # 5. Default / Snapshot Greeting in detected language
         budget_str = f"{sym}{monthly_budget:,.2f}" if monthly_budget else ("सेट नाही" if lang == "mr" else "सेट नहीं" if lang == "hi" else "Not set")
         rem_str = f"{sym}{remaining_budget:,.2f}" if remaining_budget is not None else "N/A"
