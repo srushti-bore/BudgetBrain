@@ -367,27 +367,42 @@ export default function ExpenseModal({
               </div>
             </div>
 
-            <label className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer transition-all hover:scale-105 active:scale-95 shrink-0">
+            <div className="flex items-center gap-2 shrink-0">
               {isScanning ? (
-                <>
+                <div className="px-3 py-1.5 rounded-xl bg-emerald-600 text-white text-xs font-bold shadow-xs flex items-center gap-1.5">
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   <span>Scanning...</span>
-                </>
+                </div>
               ) : (
                 <>
-                  <Upload className="w-3.5 h-3.5" />
-                  <span>Upload Bill</span>
+                  {/* Capture from Camera */}
+                  <label className="px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer transition-all hover:scale-105 active:scale-95">
+                    <Camera className="w-3.5 h-3.5" />
+                    <span>Capture</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      disabled={isScanning}
+                      onChange={handleScanReceipt}
+                      className="hidden"
+                    />
+                  </label>
+                  {/* Upload from Gallery */}
+                  <label className="px-2.5 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer transition-all hover:scale-105 active:scale-95">
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>Gallery</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      disabled={isScanning}
+                      onChange={handleScanReceipt}
+                      className="hidden"
+                    />
+                  </label>
                 </>
               )}
-              <input
-                type="file"
-                accept="image/*"
-                capture="environment"
-                disabled={isScanning}
-                onChange={handleScanReceipt}
-                className="hidden"
-              />
-            </label>
+            </div>
           </div>
 
           {/* Title Input */}
