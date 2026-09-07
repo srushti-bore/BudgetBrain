@@ -10,11 +10,11 @@
 8. **Subscription & Recurring Expense / Leak Audit** — Scans transaction history to detect recurring charges (Netflix, rent, gym) and small recurring "leak" purchases, flagging unused subscriptions and projecting their annualized cost.
 9. **Anomaly Detection & Predictive Spending Forecast** — Flags unusual, duplicate, or abnormally large transactions, and forecasts future spending (overall and category-wise) based on historical data.
 10. **Goal-Based Savings Planner** — Given a savings goal (amount + timeframe), generates a personalized plan with category-wise spending cuts.
-11. **Emotion-Aware Mood Tracking** — Tracks and auto-detects the user's emotional state per expense (from title or manual entry), correlates mood with spending categories, and auto-flags "Stressed" with an alert when a transaction breaches budget.
+11. ~~**Emotion-Aware Mood Tracking**~~ *(Replaced by #15)* — Previously tracked emotional state per expense in modal; removed in favor of holistic Visual Mood Representation.
 12. **50/30/20 Budget Optimization Rule** — Auto-classifies expenses into Needs (50%), Wants (30%), and Savings (20%), and advises how to rebalance toward the target split.
 13. **"Can I Afford This?" Purchase Simulator** — Simulates the impact of a prospective purchase on the monthly budget and gives a Safe/Caution/Over-Budget verdict before it's logged.
 14. **Safe-to-Spend Speedometer** — A real-time widget showing the safe amount that can still be spent per day without breaking the budget, plus a depletion-date forecast.
-15. **Visual Mood Representation** — Represents financial status visually through an animated mascot and/or emoji-based indicators (e.g. 😱 Distressed, 🥳 Thriving, 🧘 Zen) on dashboard/budget cards.
+15. **Visual Mood Representation** *(Active)* — Represents financial status visually through an animated mascot ("Brainy") and emoji-based indicators (😱 Distressed, ⚡ Cautious, 🧘 Zen, 🥳 Thriving) on dashboard velocity meter and budget cards.
 16. **Sentiment Analysis on Expense Notes** — Classifies the emotional tone of a transaction's notes (Positive/Neutral/Negative) and tags things like "Buyer's Remorse" or "Stress Spending."
 17. **Alternate Expense Import (CSV & SMS Parsing)** — Imports bank CSV statements with auto column/category detection, and parses raw bank/UPI SMS text into structured expenses, with automatic masking of account/card numbers.
 18. **Executive "Wrapped" Style Monthly Digest** — A Spotify-Wrapped-style monthly summary of spending milestones, achievements, and goals for the month.

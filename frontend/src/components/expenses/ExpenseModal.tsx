@@ -48,7 +48,6 @@ export default function ExpenseModal({
   const [categoryId, setCategoryId] = useState('');
   const [date, setDate] = useState(getTodayDateString());
   const [paymentMode, setPaymentMode] = useState<PaymentMode | ''>('');
-  const [mood, setMood] = useState<ExpenseMood | ''>('');
   const [notes, setNotes] = useState('');
   const [isRecurring, setIsRecurring] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -65,7 +64,6 @@ export default function ExpenseModal({
   const [isScanning, setIsScanning] = useState(false);
   const [hasManuallySelectedCategory, setHasManuallySelectedCategory] = useState(false);
   const [hasManuallySelectedPaymentMode, setHasManuallySelectedPaymentMode] = useState(false);
-  const [hasManuallySelectedMood, setHasManuallySelectedMood] = useState(false);
 
   // Duplicate Transaction Guard state (Feature 21)
   const [duplicateWarning, setDuplicateWarning] = useState<DuplicateCheckResponse | null>(null);
@@ -87,7 +85,6 @@ export default function ExpenseModal({
       setCategoryId(initialData.category_id);
       setDate(initialData.date);
       setPaymentMode(initialData.payment_mode || '');
-      setMood(initialData.mood || '');
       setNotes(initialData.notes || '');
       setIsRecurring(Boolean(initialData.is_recurring));
     } else {
@@ -96,13 +93,11 @@ export default function ExpenseModal({
       setCategoryId(categories.length > 0 ? categories[0].id : '');
       setDate(getTodayDateString());
       setPaymentMode('');
-      setMood('');
       setNotes('');
       setIsRecurring(false);
       setAiSuggestion(null);
       setHasManuallySelectedCategory(false);
       setHasManuallySelectedPaymentMode(false);
-      setHasManuallySelectedMood(false);
     }
     setDuplicateWarning(null);
     setIsCheckingDuplicate(false);
@@ -155,11 +150,6 @@ export default function ExpenseModal({
             if (validModes.includes(m)) {
               setPaymentMode(m);
             }
-          }
-
-          // Auto-select mood if suggested and user hasn't explicitly overridden it
-          if (res.suggested_mood && !hasManuallySelectedMood) {
-            setMood(res.suggested_mood);
           }
         }
       } catch (err) {
@@ -232,10 +222,6 @@ export default function ExpenseModal({
         setHasManuallySelectedPaymentMode(true);
       }
     }
-    if (aiSuggestion.suggested_mood) {
-      setMood(aiSuggestion.suggested_mood);
-      setHasManuallySelectedMood(true);
-    }
   };
 
   const processReceiptFile = async (file: File) => {
@@ -270,10 +256,6 @@ export default function ExpenseModal({
           setPaymentMode(m);
           setHasManuallySelectedPaymentMode(true);
         }
-      }
-      if (data.mood) {
-        setMood(data.mood);
-        setHasManuallySelectedMood(true);
       }
     } catch (err: any) {
       setErrorMsg(err?.response?.data?.error?.message || 'Failed to scan receipt image.');
@@ -375,7 +357,7 @@ export default function ExpenseModal({
           category_id: categoryId,
           date,
           payment_mode: (paymentMode as PaymentMode) || null,
-          mood: (mood as ExpenseMood) || null,
+          mood: initialData?.mood || null,
           notes: notes.trim() || null,
           is_recurring: isRecurring,
         },
@@ -824,72 +806,6 @@ export default function ExpenseModal({
             </div>
           </div>
 
-          {/* Emotion / Mood Selector (AI Auto-Predictive + Manual) */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <div className="flex items-center gap-1.5">
-                <label className="block text-xs font-semibold text-ink-muted">
-                  How did you feel? <span className="text-[11px] font-normal text-ink-muted/80">(AI Auto-detected)</span>
-                </label>
-                {aiSuggestion?.suggested_mood && !hasManuallySelectedMood && (
-                  <span className="px-1.5 py-0.2 rounded bg-emerald-500/15 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">
-                    ✨ AI Suggested
-                  </span>
-                )}
-              </div>
-              {mood && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMood('');
-                    setHasManuallySelectedMood(true);
-                  }}
-                  className="text-[11px] text-ink-muted hover:text-coral transition-colors cursor-pointer"
-                >
-                  Clear
-                </button>
-              )}
-            </div>
-
-            {/* Over-budget Stressed Mood Alert Trigger */}
-            {(isOverMonthly || isOverDaily) && (
-              <div className="mb-2 px-2.5 py-1.5 rounded-xl bg-rose-500/10 border border-rose-500/25 flex items-center gap-2 text-[11px] text-rose-700 dark:text-rose-300 font-medium">
-                <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-rose-500" />
-                <span>
-                  {isOverMonthly
-                    ? 'Monthly budget limit breached — AI automatically flagged Stressed mood'
-                    : 'Daily spending limit breached — AI automatically flagged Stressed mood'}
-                </span>
-              </div>
-            )}
-
-            <div className="grid grid-cols-5 gap-2">
-              {[
-                { id: 'happy', label: 'Happy', emoji: '😊' },
-                { id: 'normal', label: 'Normal', emoji: '😐' },
-                { id: 'sad', label: 'Sad', emoji: '😔' },
-                { id: 'stressed', label: 'Stressed', emoji: '😰' },
-                { id: 'excited', label: 'Excited', emoji: '🤩' },
-              ].map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => {
-                    setMood(mood === item.id ? '' : (item.id as ExpenseMood));
-                    setHasManuallySelectedMood(true);
-                  }}
-                  className={`py-2 px-1 rounded-xl text-center flex flex-col items-center gap-1 border transition-all cursor-pointer ${
-                    mood === item.id
-                      ? 'bg-sage/15 border-sage dark:bg-sage/25 shadow-xs font-bold'
-                      : 'bg-white/60 dark:bg-white/5 border-ink/10 dark:border-white/10 hover:bg-white text-ink-muted'
-                  }`}
-                >
-                  <span className="text-lg leading-none">{item.emoji}</span>
-                  <span className="text-[10px] truncate max-w-full leading-none">{item.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
 
           {/* Recurring Expense Checkbox */}
           <div className="flex items-center gap-2.5 p-3 rounded-xl bg-ink/5 dark:bg-white/5 border border-ink/5 dark:border-white/10">

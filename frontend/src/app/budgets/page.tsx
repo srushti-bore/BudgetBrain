@@ -175,21 +175,32 @@ export default function BudgetsPage() {
   const getStatusBadge = (status?: string, percentage: number = 0) => {
     if (status === 'over_budget' || percentage >= 100) {
       return (
-        <span className="px-2.5 py-1 rounded-full bg-coral-light text-coral border border-coral/30 text-xs font-bold flex items-center gap-1">
-          <Flame className="w-3.5 h-3.5" /> Over Budget
+        <span className="px-2.5 py-1 rounded-full bg-coral-light text-coral border border-coral/30 dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/30 text-xs font-bold flex items-center gap-1.5 shadow-xs animate-pulse">
+          <span className="text-sm leading-none">😱</span>
+          <span>Distressed (Over Budget)</span>
         </span>
       );
     }
     if (status === 'near_limit' || percentage >= 80) {
       return (
-        <span className="px-2.5 py-1 rounded-full bg-honey-light text-honey border border-honey/30 text-xs font-bold flex items-center gap-1">
-          <AlertTriangle className="w-3.5 h-3.5" /> Near Limit (≥80%)
+        <span className="px-2.5 py-1 rounded-full bg-honey-light text-honey border border-honey/30 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30 text-xs font-bold flex items-center gap-1.5 shadow-xs">
+          <span className="text-sm leading-none">⚡</span>
+          <span>Cautious (≥80%)</span>
+        </span>
+      );
+    }
+    if (percentage >= 60) {
+      return (
+        <span className="px-2.5 py-1 rounded-full bg-teal-500/15 text-teal-700 border border-teal-500/30 dark:bg-teal-500/20 dark:text-teal-300 dark:border-teal-500/30 text-xs font-bold flex items-center gap-1.5 shadow-xs">
+          <span className="text-sm leading-none">🧘</span>
+          <span>Zen (Balanced)</span>
         </span>
       );
     }
     return (
-      <span className="px-2.5 py-1 rounded-full bg-sage-light text-sage border border-sage/30 text-xs font-bold flex items-center gap-1">
-        <CheckCircle className="w-3.5 h-3.5" /> On Track
+      <span className="px-2.5 py-1 rounded-full bg-sage-light text-sage border border-sage/30 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30 text-xs font-bold flex items-center gap-1.5 shadow-xs">
+        <span className="text-sm leading-none">🥳</span>
+        <span>Thriving (On Track)</span>
       </span>
     );
   };
