@@ -17,10 +17,15 @@ import {
   EmotionalSpendingResponse,
 } from '@/types';
 
-const PRODUCTION_API_URL = 'https://budgetbrain-ojnr.onrender.com/api/v1';
+const DEFAULT_PRODUCTION_API_URL = 'https://budgetbrain-ojnr.onrender.com/api/v1';
 
 export const getApiBaseUrl = (): string => {
-  // Browser environment
+  // Primary: Strictly environment-driven configuration
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+
+  // Browser environment fallback when environment variable is omitted
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
 
@@ -29,14 +34,13 @@ export const getApiBaseUrl = (): string => {
       return `http://${hostname}:8000/api/v1`;
     }
 
-    // ANY other domain (Vercel, custom domain, etc.) → always use production backend
-    return PRODUCTION_API_URL;
+    // ANY other domain (Vercel, custom domain, etc.) → fallback
+    return DEFAULT_PRODUCTION_API_URL;
   }
 
-  // Server-side rendering (SSR) — fallback to production
-  return PRODUCTION_API_URL;
+  // Server-side rendering (SSR) fallback
+  return DEFAULT_PRODUCTION_API_URL;
 };
-
 
 export const API_BASE_URL = getApiBaseUrl();
 
