@@ -110,21 +110,12 @@ export default function ExpenseModal({
     setErrorMsg('');
   }, [initialData, isOpen, categories, currency]);
 
-  // Hide floating Ask BudgetBrain button while Add/Edit Expense modal is active
+  // Close open chat drawer when Add/Edit Expense modal opens
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (isOpen) {
-      document.body.setAttribute('data-expense-modal-open', 'true');
-      window.dispatchEvent(new CustomEvent('expense-modal-open', { detail: { open: true } }));
       window.dispatchEvent(new CustomEvent('close-budgetbrain-chat'));
-    } else {
-      document.body.removeAttribute('data-expense-modal-open');
-      window.dispatchEvent(new CustomEvent('expense-modal-open', { detail: { open: false } }));
     }
-    return () => {
-      document.body.removeAttribute('data-expense-modal-open');
-      window.dispatchEvent(new CustomEvent('expense-modal-open', { detail: { open: false } }));
-    };
   }, [isOpen]);
 
   // Real-time Budget & Alert Threshold Computations (must be before hooks that use them)

@@ -52,7 +52,6 @@ export default function AskBudgetBrainChat() {
   const formatCurrency = useFormatCurrency();
 
   const [isOpen, setIsOpen] = useState(false);
-  const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string>('');
@@ -143,27 +142,16 @@ export default function AskBudgetBrainChat() {
     return () => window.removeEventListener('open-budgetbrain-chat', handleOpen);
   }, []);
 
-  // Suppress Ask BudgetBrain floating button & drawer while ExpenseModal is active
+  // Global event listener to close chat from elsewhere
   useEffect(() => {
-    const handleExpenseModalToggle = (e: Event) => {
-      const customEvent = e as CustomEvent<{ open?: boolean }>;
-      const shouldHide = Boolean(customEvent.detail?.open);
-      setIsExpenseModalOpen(shouldHide);
-      if (shouldHide) {
-        setIsOpen(false);
-      }
-    };
     const handleCloseChat = () => setIsOpen(false);
-
-    window.addEventListener('expense-modal-open', handleExpenseModalToggle);
     window.addEventListener('close-budgetbrain-chat', handleCloseChat);
 
-    if (typeof document !== 'undefined' && document.body.getAttribute('data-expense-modal-open') === 'true') {
-      setIsExpenseModalOpen(true);
+    if (typeof document !== 'undefined') {
+      document.body.removeAttribute('data-expense-modal-open');
     }
 
     return () => {
-      window.removeEventListener('expense-modal-open', handleExpenseModalToggle);
       window.removeEventListener('close-budgetbrain-chat', handleCloseChat);
     };
   }, []);
@@ -381,8 +369,8 @@ export default function AskBudgetBrainChat() {
 
   return (
     <>
-      {/* Floating Action Trigger Button - Suppressed when ExpenseModal is active */}
-      {!isOpen && !isExpenseModalOpen && (
+      {/* Floating Action Trigger Button - Fixed in one place on screen */}
+      {!isOpen && (
         <button
           key="ask-budgetbrain-floating-trigger"
           id="ask-budgetbrain-btn"
@@ -392,12 +380,18 @@ export default function AskBudgetBrainChat() {
             e.stopPropagation();
             setIsOpen(true);
           }}
-          className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-[#34654F] hover:bg-[#2B5441] text-white/95 font-semibold text-xs sm:text-sm shadow-sm hover:shadow-md hover:scale-[1.02] active:scale-95 transition-all cursor-pointer border border-white/15 dark:border-white/10 select-none group btn-subtle-shimmer"
+          className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-[#34654F] hover:bg-[#2B5441] text-white/95 font-semibold text-xs sm:text-sm shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-95 transition-all cursor-pointer border border-white/20 dark:border-white/15 select-none group btn-subtle-shimmer"
+          style={{
+            position: 'fixed',
+            bottom: '1.5rem',
+            right: '1.5rem',
+            zIndex: 50,
+          }}
           title="Ask BudgetBrain AI Financial Advisor"
         >
-          <Sparkles className="w-4 h-4 text-emerald-200/90 pointer-events-none group-hover:rotate-12 transition-transform" />
-          <span className="pointer-events-none">Ask BudgetBrain</span>
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-300/80 pointer-events-none" />
+          <Sparkles className="w-4 h-4 text-emerald-200 pointer-events-none group-hover:rotate-12 transition-transform" />
+          <span className="pointer-events-none font-semibold">Ask BudgetBrain</span>
+          <span className="w-2 h-2 rounded-full bg-emerald-300 pointer-events-none animate-pulse" />
         </button>
       )}
 

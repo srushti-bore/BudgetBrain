@@ -177,12 +177,12 @@ input:focus, select:focus, textarea:focus {
   border-radius: 4px;
 }
 
-/* Suppress floating Ask BudgetBrain button when Add/Edit Expense modal is active */
-body[data-expense-modal-open="true"] #ask-budgetbrain-btn {
-  display: none !important;
-  visibility: hidden !important;
-  pointer-events: none !important;
-  opacity: 0 !important;
+/* Fixed Ask BudgetBrain AI Floating Button - Always fixed in place */
+#ask-budgetbrain-btn {
+  position: fixed !important;
+  bottom: 1.5rem !important;
+  right: 1.5rem !important;
+  z-index: 50 !important;
 }
 
 /* ── Natural, Subtle Button System & Low-Intensity Shimmer ── */
