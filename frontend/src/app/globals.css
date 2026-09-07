@@ -177,3 +177,11 @@ input:focus, select:focus, textarea:focus {
   border-radius: 4px;
 }
 
+/* Suppress floating Ask BudgetBrain button when Add/Edit Expense modal is active */
+body[data-expense-modal-open="true"] #ask-budgetbrain-btn {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+}
+

@@ -65,7 +65,13 @@ export default function GoogleAuthButton({ text = 'continue_with', onError }: Go
       try {
         setIsLoading(true);
         await googleLogin(response.credential);
-        router.push('/');
+        router.replace('/');
+        // Fail-safe immediate redirect guarantee if Next.js router transition stalls
+        setTimeout(() => {
+          if (typeof window !== 'undefined' && window.location.pathname.startsWith('/login')) {
+            window.location.replace('/');
+          }
+        }, 1200);
       } catch (err: unknown) {
         setIsLoading(false);
         const apiError = err as { response?: { data?: { error?: { message?: string } } }; message?: string };

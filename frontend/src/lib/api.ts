@@ -58,7 +58,7 @@ export const getApiBaseUrl = (): string => {
 export const API_BASE_URL = getApiBaseUrl();
 
 
-// ── In-Memory Token Store ──────────────────────────────────────────────────
+// ── In-Memory Token Store with Fast Session Fallback ────────────────────────
 let inMemoryAccessToken: string | null = null;
 
 export const setAccessToken = (token: string | null) => {
@@ -66,14 +66,26 @@ export const setAccessToken = (token: string | null) => {
   if (typeof window !== 'undefined') {
     if (token) {
       sessionStorage.setItem('budgetbrain_session_active', '1');
+      sessionStorage.setItem('budgetbrain_access_token', token);
     } else {
       sessionStorage.removeItem('budgetbrain_session_active');
+      sessionStorage.removeItem('budgetbrain_access_token');
     }
   }
 };
 
 export const getAccessToken = (): string | null => {
-  return inMemoryAccessToken;
+  if (inMemoryAccessToken) {
+    return inMemoryAccessToken;
+  }
+  if (typeof window !== 'undefined') {
+    const stored = sessionStorage.getItem('budgetbrain_access_token');
+    if (stored) {
+      inMemoryAccessToken = stored;
+      return stored;
+    }
+  }
+  return null;
 };
 
 // ── Axios Client ───────────────────────────────────────────────────────────

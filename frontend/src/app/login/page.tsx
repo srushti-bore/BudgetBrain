@@ -58,7 +58,12 @@ function LoginFormContent() {
     try {
       await login(email.trim(), password);
       setIsRedirecting(true);
-      router.push('/');
+      router.replace('/');
+      setTimeout(() => {
+        if (typeof window !== 'undefined' && window.location.pathname.startsWith('/login')) {
+          window.location.replace('/');
+        }
+      }, 1200);
     } catch (err: any) {
       console.error('Login error:', err);
       setIsSubmitting(false);

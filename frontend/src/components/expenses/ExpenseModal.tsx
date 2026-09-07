@@ -110,6 +110,23 @@ export default function ExpenseModal({
     setErrorMsg('');
   }, [initialData, isOpen, categories, currency]);
 
+  // Hide floating Ask BudgetBrain button while Add/Edit Expense modal is active
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (isOpen) {
+      document.body.setAttribute('data-expense-modal-open', 'true');
+      window.dispatchEvent(new CustomEvent('expense-modal-open', { detail: { open: true } }));
+      window.dispatchEvent(new CustomEvent('close-budgetbrain-chat'));
+    } else {
+      document.body.removeAttribute('data-expense-modal-open');
+      window.dispatchEvent(new CustomEvent('expense-modal-open', { detail: { open: false } }));
+    }
+    return () => {
+      document.body.removeAttribute('data-expense-modal-open');
+      window.dispatchEvent(new CustomEvent('expense-modal-open', { detail: { open: false } }));
+    };
+  }, [isOpen]);
+
   // Real-time Budget & Alert Threshold Computations (must be before hooks that use them)
   const parsedViewAmount = parseFloat(amount) || 0;
   const parsedBaseAmount = parsedViewAmount > 0 ? Number(convertToBase(parsedViewAmount).toFixed(2)) : 0;
@@ -400,7 +417,7 @@ export default function ExpenseModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-ink/40 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[60] bg-ink/40 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
       <motion.div
         initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}

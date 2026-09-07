@@ -52,6 +52,7 @@ export default function AskBudgetBrainChat() {
   const formatCurrency = useFormatCurrency();
 
   const [isOpen, setIsOpen] = useState(false);
+  const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string>('');
@@ -140,6 +141,31 @@ export default function AskBudgetBrainChat() {
     const handleOpen = () => setIsOpen(true);
     window.addEventListener('open-budgetbrain-chat', handleOpen);
     return () => window.removeEventListener('open-budgetbrain-chat', handleOpen);
+  }, []);
+
+  // Suppress Ask BudgetBrain floating button & drawer while ExpenseModal is active
+  useEffect(() => {
+    const handleExpenseModalToggle = (e: Event) => {
+      const customEvent = e as CustomEvent<{ open?: boolean }>;
+      const shouldHide = Boolean(customEvent.detail?.open);
+      setIsExpenseModalOpen(shouldHide);
+      if (shouldHide) {
+        setIsOpen(false);
+      }
+    };
+    const handleCloseChat = () => setIsOpen(false);
+
+    window.addEventListener('expense-modal-open', handleExpenseModalToggle);
+    window.addEventListener('close-budgetbrain-chat', handleCloseChat);
+
+    if (typeof document !== 'undefined' && document.body.getAttribute('data-expense-modal-open') === 'true') {
+      setIsExpenseModalOpen(true);
+    }
+
+    return () => {
+      window.removeEventListener('expense-modal-open', handleExpenseModalToggle);
+      window.removeEventListener('close-budgetbrain-chat', handleCloseChat);
+    };
   }, []);
 
   // Keyboard shortcut to close chat on Escape
@@ -355,8 +381,8 @@ export default function AskBudgetBrainChat() {
 
   return (
     <>
-      {/* Floating Action Trigger Button */}
-      {!isOpen && (
+      {/* Floating Action Trigger Button - Suppressed when ExpenseModal is active */}
+      {!isOpen && !isExpenseModalOpen && (
         <button
           key="ask-budgetbrain-floating-trigger"
           id="ask-budgetbrain-btn"

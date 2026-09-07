@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { authApi, setAccessToken } from '@/lib/api';
+import { authApi, setAccessToken, getAccessToken } from '@/lib/api';
 import { User, TokenResponse, RegisterResponse } from '@/types';
 
 interface AuthContextType {
@@ -36,8 +36,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const refreshed = await authApi.refresh();
       handleAuthSuccess(refreshed);
     } catch {
-      setUser(null);
-      setAccessToken(null);
+      setUser((curr) => {
+        if (curr) return curr;
+        setAccessToken(null);
+        return null;
+      });
     }
   }, [handleAuthSuccess]);
 
@@ -46,9 +49,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let isMounted = true;
 
     const initAuth = async () => {
-      // 3.5s timeout promise so the UI never gets stuck on the loading vault screen
+      // 1. Fast check: If token already exists in memory or session, verify with getMe()
+      const existingToken = getAccessToken();
+      if (existingToken) {
+        try {
+          const me = await authApi.getMe();
+          if (isMounted) {
+            setUser(me);
+            setIsLoading(false);
+          }
+          return;
+        } catch {
+          // Token expired or invalid, proceed to refresh
+        }
+      }
+
+      // Check if this browser tab ever had an active session
+      const hasActiveSession =
+        typeof window !== 'undefined' && sessionStorage.getItem('budgetbrain_session_active') === '1';
+
+      // If user is on an unauthenticated login/register page and never had an active session, don't wait long
+      const timeoutMs = hasActiveSession ? 3000 : 1500;
       const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Session restoration timeout')), 3500)
+        setTimeout(() => reject(new Error('Session restoration timeout')), timeoutMs)
       );
 
       try {
@@ -58,8 +81,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       } catch {
         if (isMounted) {
-          setUser(null);
-          setAccessToken(null);
+          // CRITICAL RACE CONDITION GUARD:
+          // Never wipe out an authenticated user if user signed in (via Google or password) while initAuth was pending!
+          setUser((currentUser) => {
+            if (currentUser) return currentUser;
+            setAccessToken(null);
+            return null;
+          });
         }
       } finally {
         if (isMounted) {
@@ -67,7 +95,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
     };
-
 
     initAuth();
 

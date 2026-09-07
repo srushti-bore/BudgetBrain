@@ -176,20 +176,67 @@ def hash_otp(otp: str) -> str:
 
 
 
-_google_auth_request: google_requests.Request | None = None
-
-
-def get_google_auth_request() -> google_requests.Request:
+class CachedGoogleAuthRequest(google_requests.Request):
     """
-    Returns a cached google_requests.Request backed by a shared requests.Session.
-    Reuses persistent HTTP connections and honors Google public cert caching headers.
+    A Google Auth Request transport that caches public key certificates in memory
+    for up to 6 hours (or per Cache-Control max-age), eliminating redundant 1.5-2.5s
+    network round-trips to Google's public cert endpoints on user sign-in.
+    """
+
+    def __init__(self, session=None, default_ttl_seconds: int = 21600):
+        import requests
+
+        super().__init__(session=session or requests.Session())
+        self._cache: dict[str, tuple[float, object]] = {}
+        self._default_ttl = default_ttl_seconds
+
+    def __call__(self, url, method="GET", body=None, headers=None, timeout=10, **kwargs):
+        import time
+
+        now = time.time()
+        # Only cache idempotent GET requests without a body (e.g. Google cert endpoints)
+        if method.upper() == "GET" and not body:
+            cached_entry = self._cache.get(url)
+            if cached_entry:
+                expires_at, cached_resp = cached_entry
+                if now < expires_at:
+                    return cached_resp
+
+        resp = super().__call__(
+            url, method=method, body=body, headers=headers, timeout=timeout, **kwargs
+        )
+
+        if method.upper() == "GET" and not body and getattr(resp, "status", None) == 200:
+            ttl = self._default_ttl
+            cc = getattr(resp, "headers", {}).get("cache-control", "")
+            if "max-age=" in cc:
+                try:
+                    for part in [p.strip() for p in cc.split(",")]:
+                        if part.startswith("max-age="):
+                            ttl = max(60, int(part.split("=")[1]))
+                            break
+                except Exception:
+                    pass
+            self._cache[url] = (now + ttl, resp)
+
+        return resp
+
+    def clear_cache(self) -> None:
+        """Clear cached certificates to allow key rotation recovery."""
+        self._cache.clear()
+
+
+_google_auth_request: CachedGoogleAuthRequest | None = None
+
+
+def get_google_auth_request() -> CachedGoogleAuthRequest:
+    """
+    Returns a cached google_requests.Request backed by a shared requests.Session
+    and certificate in-memory TTL caching.
     """
     global _google_auth_request
     if _google_auth_request is None:
-        import requests
-
-        session = requests.Session()
-        _google_auth_request = google_requests.Request(session=session)
+        _google_auth_request = CachedGoogleAuthRequest()
     return _google_auth_request
 
 
@@ -200,14 +247,23 @@ def verify_google_id_token(id_token_str: str) -> dict:
     Returns payload containing: sub, email, email_verified, name, picture.
     """
     request = get_google_auth_request()
+    audience = settings.GOOGLE_CLIENT_ID if settings.GOOGLE_CLIENT_ID else None
+
     try:
-        # If GOOGLE_CLIENT_ID is configured, verify audience; otherwise verify basic token
-        audience = settings.GOOGLE_CLIENT_ID if settings.GOOGLE_CLIENT_ID else None
         payload = google_id_token.verify_oauth2_token(
             id_token_str, request, audience=audience
         )
-        if not payload.get("email_verified", False):
-            raise ValueError("Google email is not verified.")
-        return payload
-    except Exception as exc:
-        raise ValueError(f"Invalid Google ID token: {str(exc)}") from exc
+    except Exception as first_exc:
+        # If certificate cache might be stale due to key rotation, clear and retry once
+        if hasattr(request, "clear_cache"):
+            request.clear_cache()
+        try:
+            payload = google_id_token.verify_oauth2_token(
+                id_token_str, request, audience=audience
+            )
+        except Exception as retry_exc:
+            raise ValueError(f"Invalid Google ID token: {str(retry_exc)}") from retry_exc
+
+    if not payload.get("email_verified", False):
+        raise ValueError("Google email is not verified.")
+    return payload
