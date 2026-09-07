@@ -33,7 +33,6 @@ import {
   ShieldCheck,
   KeyRound,
   LogOut,
-  User as UserIcon,
   Lock,
   Eye,
   EyeOff,
@@ -276,7 +275,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="space-y-7 max-w-6xl mx-auto pb-24">
+    <div className="space-y-6 max-w-6xl mx-auto pb-24">
       {/* Toast Notification (Center Top) */}
       <AnimatePresence>
         {toastMessage && (
@@ -307,8 +306,8 @@ export default function SettingsPage() {
               Settings & Preferences
             </h1>
           </div>
-          <p className="text-xs md:text-sm text-ink-muted mt-1.5 font-medium">
-            Manage your regional formats, alert thresholds, account security, database backups, and system connectivity.
+          <p className="text-xs md:text-sm text-ink-muted mt-1 font-medium">
+            Manage display formats, alert thresholds, account credentials, backups, and system telemetry.
           </p>
         </div>
       </div>
@@ -336,94 +335,94 @@ export default function SettingsPage() {
         })}
       </div>
 
-      {/* Main Settings Grid / Card Layout */}
+      {/* Main Settings Clean Grid / Card Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         {/* ========================================================================= */}
-        {/* 1. Display & Region Card */}
+        {/* 1. Display & Region Card (Card 1 in 2-column grid) */}
         {/* ========================================================================= */}
         {(activeSection === 'all' || activeSection === 'display') && (
           <motion.div
             id="section-display"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            className="glass-card p-6 sm:p-7 space-y-6 lg:col-span-2 shadow-xs hover:shadow-sm transition-shadow"
+            className={`glass-card p-5 sm:p-6 space-y-5 shadow-xs hover:shadow-sm transition-all ${
+              activeSection === 'display' ? 'lg:col-span-2 max-w-3xl mx-auto w-full' : 'lg:col-span-1'
+            }`}
           >
-            {/* Card Section Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-ink/5 dark:border-white/10">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-sage-light dark:bg-sage/15 flex items-center justify-center text-sage border border-sage/20 shrink-0">
-                  <Palette className="w-5 h-5" />
-                </div>
-                <div>
-                  <h2 className="font-display font-bold text-base sm:text-lg text-ink">
-                    Display & Region
-                  </h2>
-                  <p className="text-xs text-ink-muted">
-                    Configure visual appearance, interface language, currency, and date formats
-                  </p>
-                </div>
+            {/* Card Header */}
+            <div className="flex items-center gap-3 pb-3.5 border-b border-ink/5 dark:border-white/10">
+              <div className="w-9 h-9 rounded-xl bg-sage-light dark:bg-sage/15 flex items-center justify-center text-sage border border-sage/20 shrink-0">
+                <Palette className="w-4 h-4" />
+              </div>
+              <div>
+                <h2 className="font-display font-bold text-base text-ink">
+                  Display & Region
+                </h2>
+                <p className="text-[11px] text-ink-muted">
+                  Visual theme, interface language, currency & dates
+                </p>
               </div>
             </div>
 
             {/* Visual Theme Mode */}
-            <div className="space-y-3">
-              <span className="text-xs font-bold text-ink uppercase tracking-wider block">
+            <div className="space-y-2">
+              <span className="text-[11px] font-bold text-ink uppercase tracking-wider block">
                 Visual Theme Mode
               </span>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-2.5">
                 <button
                   type="button"
                   onClick={() => { if (theme !== 'light') toggleTheme(); }}
-                  className={`p-4 rounded-xl border flex items-center justify-between transition-all cursor-pointer ${
+                  className={`p-3 rounded-xl border flex items-center justify-between transition-all cursor-pointer text-left ${
                     theme === 'light'
                       ? 'border-sage bg-sage-light/60 dark:bg-sage/10 text-sage font-bold shadow-xs'
                       : 'border-ink/10 dark:border-white/10 hover:bg-ink/5 dark:hover:bg-white/5 text-ink'
                   }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-honey/15 flex items-center justify-center text-honey">
-                      <Sun className="w-4 h-4" />
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-7 h-7 rounded-lg bg-honey/15 flex items-center justify-center text-honey shrink-0">
+                      <Sun className="w-3.5 h-3.5" />
                     </div>
-                    <div className="text-left">
-                      <span className="text-sm block font-bold">Light Mineral Theme</span>
-                      <span className="text-[11px] text-ink-muted font-normal">Warm cream & mineral sage</span>
+                    <div className="min-w-0">
+                      <span className="text-xs block font-bold truncate">Light Mineral</span>
+                      <span className="text-[10px] text-ink-muted font-normal block truncate">Warm cream</span>
                     </div>
                   </div>
-                  {theme === 'light' && <CheckCircle className="w-4 h-4 text-sage" />}
+                  {theme === 'light' && <CheckCircle className="w-3.5 h-3.5 text-sage shrink-0" />}
                 </button>
 
                 <button
                   type="button"
                   onClick={() => { if (theme !== 'dark') toggleTheme(); }}
-                  className={`p-4 rounded-xl border flex items-center justify-between transition-all cursor-pointer ${
+                  className={`p-3 rounded-xl border flex items-center justify-between transition-all cursor-pointer text-left ${
                     theme === 'dark'
                       ? 'border-sage bg-sage-light/60 dark:bg-sage/10 text-sage font-bold shadow-xs'
                       : 'border-ink/10 dark:border-white/10 hover:bg-ink/5 dark:hover:bg-white/5 text-ink'
                   }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-sky/15 flex items-center justify-center text-sky">
-                      <Moon className="w-4 h-4" />
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-7 h-7 rounded-lg bg-sky/15 flex items-center justify-center text-sky shrink-0">
+                      <Moon className="w-3.5 h-3.5" />
                     </div>
-                    <div className="text-left">
-                      <span className="text-sm block font-bold">Dark Slate Theme</span>
-                      <span className="text-[11px] text-ink-muted font-normal">Deep forest & slate green</span>
+                    <div className="min-w-0">
+                      <span className="text-xs block font-bold truncate">Dark Slate</span>
+                      <span className="text-[10px] text-ink-muted font-normal block truncate">Deep forest</span>
                     </div>
                   </div>
-                  {theme === 'dark' && <CheckCircle className="w-4 h-4 text-sage" />}
+                  {theme === 'dark' && <CheckCircle className="w-3.5 h-3.5 text-sage shrink-0" />}
                 </button>
               </div>
             </div>
 
-            {/* Language Selection */}
-            <div className="space-y-3 pt-2">
-              <div className="flex items-center gap-2">
-                <Globe className="w-4 h-4 text-sage" />
-                <span className="text-xs font-bold text-ink uppercase tracking-wider">
+            {/* Interface Language */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-1.5">
+                <Globe className="w-3.5 h-3.5 text-sage" />
+                <span className="text-[11px] font-bold text-ink uppercase tracking-wider">
                   {t('language_selection', 'Interface Language / भाषा')}
                 </span>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-3 gap-2">
                 {languages.map((opt) => {
                   const isSelected = language === opt.code;
                   return (
@@ -432,104 +431,95 @@ export default function SettingsPage() {
                       type="button"
                       onClick={() => {
                         setLanguage(opt.code);
-                        showToast(`Language switched to ${opt.nativeName} (${opt.name})`);
+                        showToast(`Language switched to ${opt.nativeName}`);
                       }}
-                      className={`p-3.5 rounded-xl border flex items-center justify-between transition-all cursor-pointer ${
+                      className={`p-2.5 rounded-xl border flex flex-col items-center text-center justify-center transition-all cursor-pointer ${
                         isSelected
                           ? 'border-sage bg-sage-light/60 dark:bg-sage/15 text-sage font-bold shadow-xs'
                           : 'border-ink/10 dark:border-white/10 hover:bg-ink/5 dark:hover:bg-white/5 text-ink'
                       }`}
                     >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <span className="text-xl shrink-0">{opt.flag}</span>
-                        <div className="text-left min-w-0">
-                          <span className="text-xs sm:text-sm font-bold block truncate text-ink dark:text-cream">
-                            {opt.nativeName}
-                          </span>
-                          <span className="text-[10px] text-ink-muted block truncate">{opt.name}</span>
-                        </div>
-                      </div>
-                      {isSelected && <CheckCircle className="w-4 h-4 text-sage shrink-0 ml-1.5" />}
+                      <span className="text-lg leading-none">{opt.flag}</span>
+                      <span className="text-xs font-bold mt-1 block truncate w-full text-ink dark:text-cream">
+                        {opt.nativeName}
+                      </span>
+                      <span className="text-[9px] text-ink-muted block truncate w-full">{opt.name}</span>
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            {/* Regional Currency & Date Preferences */}
-            <div className="pt-2 border-t border-ink/5 dark:border-white/10">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-2">
+            {/* Regional Formats: Currency & Date Format */}
+            <div className="pt-2 border-t border-ink/5 dark:border-white/10 space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {/* Active Currency */}
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-ink uppercase tracking-wider block">
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-bold text-ink uppercase tracking-wider block">
                     Display Currency
                   </label>
                   <select
                     value={currency}
                     onChange={(e) => setCurrency(e.target.value as any)}
-                    className="w-full p-2.5 rounded-xl border text-sm font-semibold cursor-pointer bg-white dark:bg-white/5"
+                    className="w-full p-2 rounded-xl border border-ink/10 dark:border-white/10 text-xs font-semibold cursor-pointer bg-white dark:bg-white/5 text-ink"
                   >
                     <option value="INR">INR (₹) — Indian Rupee</option>
                     <option value="USD">USD ($) — US Dollar</option>
                     <option value="EUR">EUR (€) — Euro</option>
                     <option value="GBP">GBP (£) — British Pound</option>
                   </select>
-                  <span className="text-[11px] text-ink-muted block">
-                    Automatic dynamic currency conversion.
-                  </span>
                 </div>
 
                 {/* Date Format */}
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-ink uppercase tracking-wider block">
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-bold text-ink uppercase tracking-wider block">
                     Date Format
                   </label>
                   <select
                     value={dateFormat}
                     onChange={(e) => setDateFormat(e.target.value as DateFormatOption)}
-                    className="w-full p-2.5 rounded-xl border text-sm font-semibold cursor-pointer bg-white dark:bg-white/5"
+                    className="w-full p-2 rounded-xl border border-ink/10 dark:border-white/10 text-xs font-semibold cursor-pointer bg-white dark:bg-white/5 text-ink"
                   >
-                    <option value="DD/MM/YYYY">DD/MM/YYYY — e.g. 29 Aug 2026</option>
-                    <option value="MM/DD/YYYY">MM/DD/YYYY — e.g. Aug 29, 2026</option>
-                    <option value="YYYY-MM-DD">YYYY-MM-DD — e.g. 2026-08-29 (ISO)</option>
+                    <option value="DD/MM/YYYY">DD/MM/YYYY (29 Aug 2026)</option>
+                    <option value="MM/DD/YYYY">MM/DD/YYYY (Aug 29, 2026)</option>
+                    <option value="YYYY-MM-DD">YYYY-MM-DD (2026-08-29)</option>
                   </select>
-                  <span className="text-[11px] text-ink-muted block">
+                </div>
+              </div>
+
+              {/* First Day of Week */}
+              <div className="space-y-1.5 pt-1">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-bold text-ink uppercase tracking-wider block">
+                    First Day of Week
+                  </label>
+                  <span className="text-[10px] text-ink-muted">
                     Preview: <strong className="text-ink">{formatCustomDate(new Date().toISOString())}</strong>
                   </span>
                 </div>
-
-                {/* First Day of Week */}
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-ink uppercase tracking-wider block">
-                    First Day of Week
-                  </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setFirstDayOfWeek('monday')}
-                      className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-                        firstDayOfWeek === 'monday'
-                          ? 'bg-sage-light text-sage border-sage/40 dark:bg-sage/15 shadow-xs'
-                          : 'border-ink/10 dark:border-white/10 hover:bg-ink/5 dark:hover:bg-white/5 text-ink'
-                      }`}
-                    >
-                      Monday
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setFirstDayOfWeek('sunday')}
-                      className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-                        firstDayOfWeek === 'sunday'
-                          ? 'bg-sage-light text-sage border-sage/40 dark:bg-sage/15 shadow-xs'
-                          : 'border-ink/10 dark:border-white/10 hover:bg-ink/5 dark:hover:bg-white/5 text-ink'
-                      }`}
-                    >
-                      Sunday
-                    </button>
-                  </div>
-                  <span className="text-[11px] text-ink-muted block">
-                    Used for weekly spending trends.
-                  </span>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setFirstDayOfWeek('monday')}
+                    className={`py-1.5 px-3 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                      firstDayOfWeek === 'monday'
+                        ? 'bg-sage-light text-sage border-sage/40 dark:bg-sage/15 shadow-xs'
+                        : 'border-ink/10 dark:border-white/10 hover:bg-ink/5 dark:hover:bg-white/5 text-ink'
+                    }`}
+                  >
+                    Monday
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFirstDayOfWeek('sunday')}
+                    className={`py-1.5 px-3 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                      firstDayOfWeek === 'sunday'
+                        ? 'bg-sage-light text-sage border-sage/40 dark:bg-sage/15 shadow-xs'
+                        : 'border-ink/10 dark:border-white/10 hover:bg-ink/5 dark:hover:bg-white/5 text-ink'
+                    }`}
+                  >
+                    Sunday
+                  </button>
                 </div>
               </div>
             </div>
@@ -537,38 +527,40 @@ export default function SettingsPage() {
         )}
 
         {/* ========================================================================= */}
-        {/* 2. Budget & Alerts Card */}
+        {/* 2. Budget & Alerts Card (Card 2 in 2-column grid) */}
         {/* ========================================================================= */}
         {(activeSection === 'all' || activeSection === 'budgets') && (
           <motion.div
             id="section-budgets"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            className="glass-card p-6 sm:p-7 space-y-6 lg:col-span-1 shadow-xs hover:shadow-sm transition-shadow"
+            className={`glass-card p-5 sm:p-6 space-y-5 shadow-xs hover:shadow-sm transition-all ${
+              activeSection === 'budgets' ? 'lg:col-span-2 max-w-3xl mx-auto w-full' : 'lg:col-span-1'
+            }`}
           >
-            {/* Card Section Header */}
-            <div className="flex items-center gap-3 pb-4 border-b border-ink/5 dark:border-white/10">
-              <div className="w-10 h-10 rounded-2xl bg-amber-500/10 dark:bg-amber-500/15 flex items-center justify-center text-honey border border-amber-500/20 shrink-0">
-                <Sliders className="w-5 h-5" />
+            {/* Card Header */}
+            <div className="flex items-center gap-3 pb-3.5 border-b border-ink/5 dark:border-white/10">
+              <div className="w-9 h-9 rounded-xl bg-amber-500/10 dark:bg-amber-500/15 flex items-center justify-center text-honey border border-amber-500/20 shrink-0">
+                <Sliders className="w-4 h-4" />
               </div>
               <div>
-                <h2 className="font-display font-bold text-base sm:text-lg text-ink">
+                <h2 className="font-display font-bold text-base text-ink">
                   Budget & Alerts
                 </h2>
-                <p className="text-xs text-ink-muted">
-                  Threshold limits, warning alerts, and dashboard widgets
+                <p className="text-[11px] text-ink-muted">
+                  Threshold limits, warning alerts & predictive widgets
                 </p>
               </div>
             </div>
 
             {/* Threshold Slider & Input */}
-            <div className="space-y-4">
+            <div className="space-y-3.5">
               <div className="flex items-center justify-between gap-2">
                 <div>
-                  <label htmlFor="custom-threshold-input" className="text-xs font-bold text-ink uppercase tracking-wider block">
+                  <label htmlFor="custom-threshold-input" className="text-[11px] font-bold text-ink uppercase tracking-wider block">
                     Near Limit Alert Threshold
                   </label>
-                  <p className="text-[11px] text-ink-muted mt-0.5">
+                  <p className="text-[10px] text-ink-muted mt-0.5">
                     Percentage when warnings and badges trigger
                   </p>
                 </div>
@@ -586,14 +578,14 @@ export default function SettingsPage() {
                         setNearLimitThreshold(Math.max(1, Math.min(99, val)));
                       }
                     }}
-                    className="w-18 px-2.5 py-1.5 rounded-xl bg-white dark:bg-white/10 border-2 border-honey/50 text-right font-display font-bold text-sm text-ink focus:outline-none focus:border-honey"
+                    className="w-16 px-2 py-1 rounded-xl bg-white dark:bg-white/10 border-2 border-honey/50 text-right font-display font-bold text-sm text-ink focus:outline-none focus:border-honey"
                   />
-                  <span className="ml-1.5 font-bold text-sm text-honey">%</span>
+                  <span className="ml-1.5 font-bold text-xs text-honey">%</span>
                 </div>
               </div>
 
               {/* Slider */}
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <input
                   type="range"
                   min={1}
@@ -621,7 +613,7 @@ export default function SettingsPage() {
                       key={val}
                       type="button"
                       onClick={() => setNearLimitThreshold(val)}
-                      className={`py-1.5 rounded-lg border text-center transition-all cursor-pointer text-xs ${
+                      className={`py-1 rounded-lg border text-center transition-all cursor-pointer text-xs ${
                         nearLimitThreshold === val
                           ? 'bg-honey-light text-honey border-honey/50 dark:bg-honey/20 font-bold shadow-xs'
                           : 'border-ink/10 dark:border-white/10 hover:bg-ink/5 dark:hover:bg-white/5 text-ink font-semibold'
@@ -635,9 +627,9 @@ export default function SettingsPage() {
 
               {/* Live Trigger Preview Pill */}
               <div className="p-3 rounded-xl bg-honey-light/40 dark:bg-honey/10 border border-honey/30 text-[11px] leading-relaxed text-ink-muted flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 text-honey shrink-0 mt-0.5" />
+                <AlertTriangle className="w-3.5 h-3.5 text-honey shrink-0 mt-0.5" />
                 <span>
-                  At <strong className="text-ink font-bold">{nearLimitThreshold}%</strong>, BudgetBrain displays the <span className="inline-flex items-center font-bold text-honey bg-honey-light dark:bg-honey/20 px-1.5 py-0.2 rounded border border-honey/30 text-[10px]">⚠️ Near Limit</span> warning and triggers real-time spending toasts.
+                  At <strong className="text-ink font-bold">{nearLimitThreshold}%</strong>, BudgetBrain displays the <span className="inline-flex items-center font-bold text-honey bg-honey-light dark:bg-honey/20 px-1 py-0.2 rounded border border-honey/30 text-[9px]">⚠️ Near Limit</span> warning on category cards.
                 </span>
               </div>
             </div>
@@ -647,23 +639,23 @@ export default function SettingsPage() {
             {/* Predictive Insights Toggle */}
             <div className="flex items-center justify-between gap-4">
               <div>
-                <span className="text-xs sm:text-sm font-bold text-ink block flex items-center gap-1.5">
+                <span className="text-xs font-bold text-ink flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5 text-honey" />
                   Predictive Health Widget
                 </span>
-                <span className="text-[11px] text-ink-muted block mt-0.5">
-                  Show monthly spend extrapolation and financial health score on Dashboard
+                <span className="text-[10px] text-ink-muted block mt-0.5">
+                  Extrapolate monthly spend and show health score on Dashboard
                 </span>
               </div>
               <button
                 type="button"
                 onClick={() => setShowPredictiveInsights(!showPredictiveInsights)}
-                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
                   showPredictiveInsights ? 'bg-sage' : 'bg-ink/20 dark:bg-white/20'
                 }`}
               >
                 <span
-                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition duration-200 ease-in-out ${
+                  className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition duration-200 ease-in-out ${
                     showPredictiveInsights ? 'translate-x-5' : 'translate-x-0'
                   }`}
                 />
@@ -673,27 +665,379 @@ export default function SettingsPage() {
         )}
 
         {/* ========================================================================= */}
-        {/* 5. System & Health Card (Side-by-side with Budget & Alerts on Desktop) */}
+        {/* 3. Account & Security Card (Card 3 in 2-column grid) */}
+        {/* ========================================================================= */}
+        {(activeSection === 'all' || activeSection === 'account') && (
+          <motion.div
+            id="section-account"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`glass-card p-5 sm:p-6 space-y-5 shadow-xs hover:shadow-sm transition-all ${
+              activeSection === 'account' ? 'lg:col-span-2 max-w-3xl mx-auto w-full' : 'lg:col-span-1'
+            }`}
+          >
+            {/* Card Header */}
+            <div className="flex items-center gap-3 pb-3.5 border-b border-ink/5 dark:border-white/10">
+              <div className="w-9 h-9 rounded-xl bg-sage-light dark:bg-sage/15 flex items-center justify-center text-sage border border-sage/20 shrink-0">
+                <ShieldCheck className="w-4 h-4" />
+              </div>
+              <div>
+                <h2 className="font-display font-bold text-base text-ink">
+                  Account & Security
+                </h2>
+                <p className="text-[11px] text-ink-muted">
+                  Tenant profile credentials, sessions & password updates
+                </p>
+              </div>
+            </div>
+
+            {/* Profile Overview & Session Actions */}
+            <div className="p-3.5 rounded-xl border border-ink/10 dark:border-white/10 bg-white/60 dark:bg-white/5 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block">
+                  Account Identity
+                </span>
+                {user?.is_verified ? (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-600 dark:text-emerald-400 text-[9px] font-bold">
+                    <Check className="w-2.5 h-2.5 stroke-[3]" />
+                    Verified ✓
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-600 dark:text-amber-400 text-[9px] font-bold">
+                    Unverified
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-bold text-ink font-mono truncate">{user?.email || 'N/A'}</p>
+                <span className="text-[10px] text-ink-muted truncate shrink-0">{user?.full_name || 'Personal'}</span>
+              </div>
+              <div className="flex items-center gap-2 pt-1 border-t border-ink/5 dark:border-white/5">
+                <button
+                  type="button"
+                  onClick={() => logout()}
+                  className="flex-1 py-1.5 px-2 rounded-lg border border-ink/15 dark:border-white/15 text-xs font-semibold text-ink hover:bg-ink/5 dark:hover:bg-white/5 transition-all inline-flex items-center justify-center gap-1 cursor-pointer"
+                >
+                  <LogOut className="w-3 h-3 text-ink-muted" />
+                  <span>Sign Out</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setIsLoggingOutAll(true);
+                    try {
+                      await logoutAll();
+                      showToast('Logged out from all devices!');
+                    } catch {
+                      showToast('Failed to logout from all devices.', 'error');
+                    } finally {
+                      setIsLoggingOutAll(false);
+                    }
+                  }}
+                  disabled={isLoggingOutAll}
+                  className="flex-1 py-1.5 px-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/20 text-xs font-semibold transition-all inline-flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
+                >
+                  <ShieldAlert className="w-3 h-3" />
+                  <span>{isLoggingOutAll ? 'Revoking...' : 'Revoke All'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Change Password Form */}
+            <div className="p-4 rounded-xl border border-ink/10 dark:border-white/10 bg-white/60 dark:bg-white/5 space-y-3">
+              <div className="flex items-center gap-2">
+                <KeyRound className="w-3.5 h-3.5 text-sage" />
+                <h3 className="font-bold text-xs uppercase tracking-wider text-ink">Change Password</h3>
+              </div>
+
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  const hasMin = newPassword.length >= 8;
+                  const hasUp = /[A-Z]/.test(newPassword);
+                  const hasLow = /[a-z]/.test(newPassword);
+                  const hasNum = /[0-9]/.test(newPassword);
+                  const isValid = hasMin && hasUp && hasLow && hasNum;
+
+                  if (!isValid) {
+                    showToast('Please satisfy all password security requirements.', 'error');
+                    return;
+                  }
+                  if (newPassword !== confirmNewPassword) {
+                    showToast('New passwords do not match.', 'error');
+                    return;
+                  }
+                  setIsUpdatingPassword(true);
+                  try {
+                    await changePassword(currentPassword, newPassword);
+                    showToast('Password updated successfully! Please sign in again.');
+                    setCurrentPassword('');
+                    setNewPassword('');
+                    setConfirmNewPassword('');
+                  } catch (err: any) {
+                    showToast(err.response?.data?.error?.message || err.message || 'Failed to update password.', 'error');
+                  } finally {
+                    setIsUpdatingPassword(false);
+                  }
+                }}
+                className="space-y-2.5"
+              >
+                {/* Current Password */}
+                <div>
+                  <label className="block text-[10px] font-semibold text-ink-muted mb-1">
+                    Current Password
+                  </label>
+                  <div className="relative flex items-center">
+                    <Lock className="absolute left-2.5 w-3.5 h-3.5 text-ink-muted" />
+                    <input
+                      type={showCurrentPass ? 'text' : 'password'}
+                      required
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full pl-8 pr-8 py-1.5 rounded-xl border border-ink/10 dark:border-white/10 text-xs bg-white dark:bg-white/5 focus:outline-none focus:ring-2 focus:ring-sage/40 text-ink"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrentPass(!showCurrentPass)}
+                      className="absolute right-2 text-ink-muted p-1 cursor-pointer"
+                    >
+                      {showCurrentPass ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* New Password */}
+                <div>
+                  <label className="block text-[10px] font-semibold text-ink-muted mb-1">
+                    New Password
+                  </label>
+                  <div className="relative flex items-center">
+                    <Lock className="absolute left-2.5 w-3.5 h-3.5 text-ink-muted" />
+                    <input
+                      type={showNewPass ? 'text' : 'password'}
+                      required
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full pl-8 pr-8 py-1.5 rounded-xl border border-ink/10 dark:border-white/10 text-xs bg-white dark:bg-white/5 focus:outline-none focus:ring-2 focus:ring-sage/40 text-ink"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPass(!showNewPass)}
+                      className="absolute right-2 text-ink-muted p-1 cursor-pointer"
+                    >
+                      {showNewPass ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                    </button>
+                  </div>
+
+                  {/* Requirements Badges */}
+                  {newPassword.length > 0 && (
+                    <div className="mt-1.5 p-1.5 rounded-lg bg-ink/5 dark:bg-white/5 text-[9px] grid grid-cols-2 gap-1">
+                      <span className={newPassword.length >= 8 ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-ink-muted'}>
+                        {newPassword.length >= 8 ? '✓' : '•'} 8+ Characters
+                      </span>
+                      <span className={/[A-Z]/.test(newPassword) ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-ink-muted'}>
+                        {/[A-Z]/.test(newPassword) ? '✓' : '•'} Uppercase (A-Z)
+                      </span>
+                      <span className={/[a-z]/.test(newPassword) ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-ink-muted'}>
+                        {/[a-z]/.test(newPassword) ? '✓' : '•'} Lowercase (a-z)
+                      </span>
+                      <span className={/[0-9]/.test(newPassword) ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-ink-muted'}>
+                        {/[0-9]/.test(newPassword) ? '✓' : '•'} Number (0-9)
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Confirm New Password */}
+                <div>
+                  <label className="block text-[10px] font-semibold text-ink-muted mb-1">
+                    Confirm New Password
+                  </label>
+                  <div className="relative flex items-center">
+                    <Lock className="absolute left-2.5 w-3.5 h-3.5 text-ink-muted" />
+                    <input
+                      type={showConfirmNewPass ? 'text' : 'password'}
+                      required
+                      value={confirmNewPassword}
+                      onChange={(e) => setConfirmNewPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full pl-8 pr-8 py-1.5 rounded-xl border border-ink/10 dark:border-white/10 text-xs bg-white dark:bg-white/5 focus:outline-none focus:ring-2 focus:ring-sage/40 text-ink"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmNewPass(!showConfirmNewPass)}
+                      className="absolute right-2 text-ink-muted p-1 cursor-pointer"
+                    >
+                      {showConfirmNewPass ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={
+                    isUpdatingPassword ||
+                    !currentPassword ||
+                    newPassword.length < 8 ||
+                    newPassword !== confirmNewPassword
+                  }
+                  className="w-full py-2 bg-sage hover:bg-sage-dark text-white font-semibold text-xs rounded-xl shadow-xs transition-all disabled:opacity-50 cursor-pointer btn-subtle-shimmer"
+                >
+                  {isUpdatingPassword ? 'Updating Password...' : 'Save New Password'}
+                </button>
+              </form>
+            </div>
+          </motion.div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* 4. Data & Backup Card (Card 4 in 2-column grid) */}
+        {/* ========================================================================= */}
+        {(activeSection === 'all' || activeSection === 'data') && (
+          <motion.div
+            id="section-data"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`glass-card p-5 sm:p-6 space-y-5 shadow-xs hover:shadow-sm transition-all ${
+              activeSection === 'data' ? 'lg:col-span-2 max-w-3xl mx-auto w-full' : 'lg:col-span-1'
+            }`}
+          >
+            {/* Card Header */}
+            <div className="flex items-center gap-3 pb-3.5 border-b border-ink/5 dark:border-white/10">
+              <div className="w-9 h-9 rounded-xl bg-sky/10 dark:bg-sky/15 flex items-center justify-center text-sky border border-sky/20 shrink-0">
+                <Database className="w-4 h-4" />
+              </div>
+              <div>
+                <h2 className="font-display font-bold text-base text-ink">
+                  Data & Backup
+                </h2>
+                <p className="text-[11px] text-ink-muted">
+                  Exports, integrity inspection & database maintenance
+                </p>
+              </div>
+            </div>
+
+            {/* Export Actions Grid */}
+            <div className="grid grid-cols-2 gap-2.5">
+              {/* CSV Export */}
+              <div className="p-3 rounded-xl border border-ink/10 dark:border-white/10 bg-white/60 dark:bg-white/5 space-y-2 flex flex-col justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-sage-light dark:bg-sage/15 flex items-center justify-center text-sage shrink-0">
+                    <FileSpreadsheet className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="font-bold text-xs text-ink truncate">Expenses CSV</h3>
+                    <span className="text-[9px] text-ink-muted block truncate">Spreadsheet</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleExportCSV}
+                  disabled={isExportingCSV}
+                  className="w-full py-1.5 bg-sage hover:bg-sage-dark disabled:opacity-50 text-white font-semibold text-[11px] rounded-lg shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer btn-subtle-shimmer"
+                >
+                  <Download className="w-3 h-3" />
+                  <span>{isExportingCSV ? 'Generating...' : 'Export CSV'}</span>
+                </button>
+              </div>
+
+              {/* JSON Backup */}
+              <div className="p-3 rounded-xl border border-ink/10 dark:border-white/10 bg-white/60 dark:bg-white/5 space-y-2 flex flex-col justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-sky-light dark:bg-sky/15 flex items-center justify-center text-sky shrink-0">
+                    <Database className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="font-bold text-xs text-ink truncate">Full Snapshot</h3>
+                    <span className="text-[9px] text-ink-muted block truncate">JSON Backup</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleExportJSON}
+                  disabled={isExportingJSON}
+                  className="w-full py-1.5 bg-sage/90 hover:bg-sage-dark disabled:opacity-50 text-white font-semibold text-[11px] rounded-lg shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer btn-subtle-shimmer"
+                >
+                  <Download className="w-3 h-3" />
+                  <span>{isExportingJSON ? 'Exporting...' : 'Backup JSON'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Inspect / Verify JSON Backup */}
+            <div className="p-3 rounded-xl border border-dashed border-ink/15 dark:border-white/15 bg-ink/2 dark:bg-white/2 flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <h4 className="font-bold text-xs text-ink flex items-center gap-1.5">
+                  <Upload className="w-3.5 h-3.5 text-sage shrink-0" />
+                  <span>Verify Backup Snapshot</span>
+                </h4>
+                <span className="text-[10px] text-ink-muted block truncate">
+                  Inspect an exported JSON backup without modifying data.
+                </span>
+              </div>
+              <label className="px-3 py-1.5 bg-ink/5 dark:bg-white/10 hover:bg-ink/10 text-ink font-semibold text-xs rounded-lg cursor-pointer transition-colors shrink-0">
+                <span>Inspect</span>
+                <input type="file" accept=".json" onChange={handleFileUpload} className="hidden" />
+              </label>
+            </div>
+
+            {/* Danger Zone */}
+            <div className="p-3.5 rounded-xl border border-coral/30 bg-coral-light/20 dark:bg-coral/5 space-y-2.5">
+              <div className="flex items-center gap-2 text-coral">
+                <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
+                <h3 className="font-bold text-xs uppercase tracking-wider">Database Maintenance</h3>
+              </div>
+              <p className="text-[10px] text-ink-muted leading-relaxed">
+                Purge test transactions or restore missing starter categories with confirmation guards.
+              </p>
+
+              <div className="grid grid-cols-2 gap-2 pt-0.5">
+                <button
+                  type="button"
+                  onClick={() => setShowClearModal(true)}
+                  className="p-2 rounded-lg border border-coral/30 bg-white/70 dark:bg-white/5 text-coral font-semibold text-xs flex items-center justify-center gap-1 hover:bg-coral hover:text-white transition-all cursor-pointer"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  <span>Clear Expenses</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowResetCatModal(true)}
+                  className="p-2 rounded-lg border border-honey/40 bg-white/70 dark:bg-white/5 text-honey font-semibold text-xs flex items-center justify-center gap-1 hover:bg-honey hover:text-white transition-all cursor-pointer"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  <span>Restore Categories</span>
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* 5. System & Health Card (Card 5 spanning 2 columns across the base) */}
         {/* ========================================================================= */}
         {(activeSection === 'all' || activeSection === 'system') && (
           <motion.div
             id="section-system"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            className="glass-card p-6 sm:p-7 space-y-6 lg:col-span-1 shadow-xs hover:shadow-sm transition-shadow"
+            className="glass-card p-5 sm:p-6 space-y-5 shadow-xs hover:shadow-sm transition-all lg:col-span-2"
           >
-            {/* Card Section Header */}
-            <div className="flex items-center justify-between pb-4 border-b border-ink/5 dark:border-white/10">
+            {/* Card Header */}
+            <div className="flex items-center justify-between pb-3.5 border-b border-ink/5 dark:border-white/10">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-sage-light dark:bg-sage/15 flex items-center justify-center text-sage border border-sage/20 shrink-0">
-                  <Activity className="w-5 h-5" />
+                <div className="w-9 h-9 rounded-xl bg-sage-light dark:bg-sage/15 flex items-center justify-center text-sage border border-sage/20 shrink-0">
+                  <Activity className="w-4 h-4" />
                 </div>
                 <div>
-                  <h2 className="font-display font-bold text-base sm:text-lg text-ink">
+                  <h2 className="font-display font-bold text-base text-ink">
                     System & Health
                   </h2>
-                  <p className="text-xs text-ink-muted">
-                    API connectivity status and platform runtime
+                  <p className="text-[11px] text-ink-muted">
+                    Real-time API connectivity telemetry and runtime platform infrastructure
                   </p>
                 </div>
               </div>
@@ -701,441 +1045,83 @@ export default function SettingsPage() {
                 type="button"
                 onClick={checkHealth}
                 disabled={isCheckingHealth}
-                className="px-2.5 py-1.5 rounded-lg bg-ink/5 dark:bg-white/10 hover:bg-ink/10 text-xs font-semibold text-ink transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                className="px-3 py-1.5 rounded-xl bg-ink/5 dark:bg-white/10 hover:bg-ink/10 text-xs font-semibold text-ink transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0"
               >
                 <Wifi className={`w-3.5 h-3.5 ${isCheckingHealth ? 'animate-spin' : ''}`} />
                 <span>{isCheckingHealth ? 'Pinging...' : 'Re-Check'}</span>
               </button>
             </div>
 
-            {/* Live Metrics Grid */}
-            <div className="grid grid-cols-3 gap-3">
-              <div className="p-3 rounded-xl bg-white/70 dark:bg-white/5 border border-ink/5 dark:border-white/10">
-                <span className="text-[10px] text-ink-muted font-bold uppercase tracking-wider block">Server</span>
-                <span className="text-xs sm:text-sm font-bold text-sage flex items-center gap-1 mt-1">
-                  <CheckCircle className="w-3.5 h-3.5 text-sage shrink-0" />
-                  {healthStatus?.status === 'ok' ? 'Online' : 'Error'}
+            {/* 2-Column Telemetry & Infrastructure Layout */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              {/* Left Column: Connectivity Metrics */}
+              <div className="space-y-3">
+                <span className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block">
+                  Live Service Status
                 </span>
-              </div>
-
-              <div className="p-3 rounded-xl bg-white/70 dark:bg-white/5 border border-ink/5 dark:border-white/10">
-                <span className="text-[10px] text-ink-muted font-bold uppercase tracking-wider block">Database</span>
-                <span className="text-xs sm:text-sm font-bold text-sage flex items-center gap-1 mt-1">
-                  <CheckCircle className="w-3.5 h-3.5 text-sage shrink-0" />
-                  {healthStatus?.database === 'connected' || healthStatus?.database === 'ok' ? 'Connected' : 'Offline'}
-                </span>
-              </div>
-
-              <div className="p-3 rounded-xl bg-white/70 dark:bg-white/5 border border-ink/5 dark:border-white/10">
-                <span className="text-[10px] text-ink-muted font-bold uppercase tracking-wider block">Latency</span>
-                <span className="text-xs sm:text-sm font-bold text-ink block mt-1">
-                  {healthStatus?.latency !== undefined ? `${healthStatus.latency} ms` : 'N/A'}
-                </span>
-              </div>
-            </div>
-
-            <div className="text-[11px] text-ink-muted break-all">
-              API Base URL: <code className="bg-ink/5 dark:bg-white/10 px-2 py-0.5 rounded font-mono text-[10px]">{API_BASE_URL}</code>
-            </div>
-
-            <hr className="border-ink/5 dark:border-white/10" />
-
-            {/* Platform Stack Snapshot */}
-            <div className="space-y-2.5">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-ink">BudgetBrain Enterprise</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-sage-light text-sage border border-sage/20 font-bold">
-                  v1.1.0 Multi-Tenant
-                </span>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
-                <div className="p-2 rounded-lg bg-ink/5 dark:bg-white/5">
-                  <span className="text-ink-muted text-[10px] block">Frontend</span>
-                  <strong className="text-ink text-[11px]">Next.js 16</strong>
-                </div>
-                <div className="p-2 rounded-lg bg-ink/5 dark:bg-white/5">
-                  <span className="text-ink-muted text-[10px] block">Backend</span>
-                  <strong className="text-ink text-[11px]">FastAPI 3.12</strong>
-                </div>
-                <div className="p-2 rounded-lg bg-ink/5 dark:bg-white/5">
-                  <span className="text-ink-muted text-[10px] block">Database</span>
-                  <strong className="text-ink text-[11px]">PostgreSQL</strong>
-                </div>
-                <div className="p-2 rounded-lg bg-ink/5 dark:bg-white/5">
-                  <span className="text-ink-muted text-[10px] block">AI Engine</span>
-                  <strong className="text-ink text-[11px]">Multi-Model</strong>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        )}
-
-        {/* ========================================================================= */}
-        {/* 3. Account & Security Card */}
-        {/* ========================================================================= */}
-        {(activeSection === 'all' || activeSection === 'account') && (
-          <motion.div
-            id="section-account"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="glass-card p-6 sm:p-7 space-y-6 lg:col-span-2 shadow-xs hover:shadow-sm transition-shadow"
-          >
-            {/* Card Section Header */}
-            <div className="flex items-center gap-3 pb-4 border-b border-ink/5 dark:border-white/10">
-              <div className="w-10 h-10 rounded-2xl bg-sage-light dark:bg-sage/15 flex items-center justify-center text-sage border border-sage/20 shrink-0">
-                <ShieldCheck className="w-5 h-5" />
-              </div>
-              <div>
-                <h2 className="font-display font-bold text-base sm:text-lg text-ink">
-                  Account & Security
-                </h2>
-                <p className="text-xs text-ink-muted">
-                  Tenant profile credentials, BCrypt password updates, and session revocation
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Left Column: Profile Overview & Sessions */}
-              <div className="space-y-5">
-                <div className="p-4 rounded-xl border border-ink/10 dark:border-white/10 bg-white/60 dark:bg-white/5 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-ink-muted uppercase tracking-wider block">
-                      Account Identity
+                <div className="grid grid-cols-3 gap-2.5">
+                  <div className="p-3 rounded-xl bg-white/70 dark:bg-white/5 border border-ink/5 dark:border-white/10 text-center">
+                    <span className="text-[9px] text-ink-muted font-bold uppercase tracking-wider block">Server</span>
+                    <span className="text-xs font-bold text-sage flex items-center justify-center gap-1 mt-1">
+                      <CheckCircle className="w-3 h-3 text-sage shrink-0" />
+                      {healthStatus?.status === 'ok' ? 'Online' : 'Error'}
                     </span>
-                    {user?.is_verified ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold">
-                        <Check className="w-3 h-3 stroke-[3]" />
-                        Verified ✓
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-600 dark:text-amber-400 text-[10px] font-bold">
-                        Unverified
-                      </span>
-                    )}
                   </div>
-                  <p className="text-sm font-bold text-ink font-mono">{user?.email || 'N/A'}</p>
-                  <p className="text-xs text-ink-muted">Name: {user?.full_name || 'Not Specified'}</p>
-                  <div className="flex items-center gap-1.5 text-[11px] text-emerald-600 dark:text-emerald-400 pt-1">
-                    <CheckCircle className="w-3.5 h-3.5 shrink-0" />
-                    <span>Multi-Tenant Row-Level Isolated Sandbox</span>
+
+                  <div className="p-3 rounded-xl bg-white/70 dark:bg-white/5 border border-ink/5 dark:border-white/10 text-center">
+                    <span className="text-[9px] text-ink-muted font-bold uppercase tracking-wider block">Database</span>
+                    <span className="text-xs font-bold text-sage flex items-center justify-center gap-1 mt-1">
+                      <CheckCircle className="w-3 h-3 text-sage shrink-0" />
+                      {healthStatus?.database === 'connected' || healthStatus?.database === 'ok' ? 'Connected' : 'Offline'}
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-white/70 dark:bg-white/5 border border-ink/5 dark:border-white/10 text-center">
+                    <span className="text-[9px] text-ink-muted font-bold uppercase tracking-wider block">Latency</span>
+                    <span className="text-xs font-bold text-ink block mt-1">
+                      {healthStatus?.latency !== undefined ? `${healthStatus.latency} ms` : 'N/A'}
+                    </span>
                   </div>
                 </div>
 
-                {/* Session Management */}
-                <div className="p-4 rounded-xl border border-ink/10 dark:border-white/10 bg-white/60 dark:bg-white/5 space-y-3">
-                  <h3 className="font-bold text-xs uppercase tracking-wider text-ink flex items-center gap-1.5">
-                    <Lock className="w-3.5 h-3.5 text-sage" />
-                    <span>Active Sessions</span>
-                  </h3>
-                  <p className="text-[11px] text-ink-muted">
-                    Sign out from your current browser or revoke all active multi-device sessions immediately.
-                  </p>
-                  <div className="flex flex-col sm:flex-row gap-2 pt-1">
-                    <button
-                      type="button"
-                      onClick={() => logout()}
-                      className="px-3.5 py-2 rounded-xl border border-ink/15 dark:border-white/15 text-xs font-semibold text-ink hover:bg-ink/5 dark:hover:bg-white/5 transition-all inline-flex items-center justify-center gap-1.5 cursor-pointer"
-                    >
-                      <LogOut className="w-3.5 h-3.5 text-ink-muted" />
-                      <span>Sign Out</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        setIsLoggingOutAll(true);
-                        try {
-                          await logoutAll();
-                          showToast('Logged out from all devices!');
-                        } catch {
-                          showToast('Failed to logout from all devices.', 'error');
-                        } finally {
-                          setIsLoggingOutAll(false);
-                        }
-                      }}
-                      disabled={isLoggingOutAll}
-                      className="px-3.5 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/20 text-xs font-semibold transition-all inline-flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
-                    >
-                      <ShieldAlert className="w-3.5 h-3.5" />
-                      <span>{isLoggingOutAll ? 'Revoking All...' : 'Sign Out All Devices'}</span>
-                    </button>
-                  </div>
+                <div className="text-[11px] text-ink-muted break-all pt-1">
+                  API Base URL: <code className="bg-ink/5 dark:bg-white/10 px-2 py-0.5 rounded font-mono text-[10px] text-ink">{API_BASE_URL}</code>
                 </div>
               </div>
 
-              {/* Right Column: Change Password Form */}
-              <div className="p-5 rounded-xl border border-ink/10 dark:border-white/10 bg-white/60 dark:bg-white/5 space-y-3">
-                <div className="flex items-center gap-2">
-                  <KeyRound className="w-4 h-4 text-sage" />
-                  <h3 className="font-bold text-xs uppercase tracking-wider text-ink">Change Password</h3>
+              {/* Right Column: Platform Runtime Breakdown */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">
+                    Enterprise Platform Stack
+                  </span>
+                  <span className="text-[9px] px-2 py-0.5 rounded-full bg-sage-light text-sage border border-sage/20 font-bold">
+                    v1.1.0 Multi-Tenant Active
+                  </span>
                 </div>
 
-                <form
-                  onSubmit={async (e) => {
-                    e.preventDefault();
-                    const hasMin = newPassword.length >= 8;
-                    const hasUp = /[A-Z]/.test(newPassword);
-                    const hasLow = /[a-z]/.test(newPassword);
-                    const hasNum = /[0-9]/.test(newPassword);
-                    const isValid = hasMin && hasUp && hasLow && hasNum;
-
-                    if (!isValid) {
-                      showToast('Please satisfy all password security requirements.', 'error');
-                      return;
-                    }
-                    if (newPassword !== confirmNewPassword) {
-                      showToast('New passwords do not match.', 'error');
-                      return;
-                    }
-                    setIsUpdatingPassword(true);
-                    try {
-                      await changePassword(currentPassword, newPassword);
-                      showToast('Password updated successfully! Please sign in again.');
-                      setCurrentPassword('');
-                      setNewPassword('');
-                      setConfirmNewPassword('');
-                    } catch (err: any) {
-                      showToast(err.response?.data?.error?.message || err.message || 'Failed to update password.', 'error');
-                    } finally {
-                      setIsUpdatingPassword(false);
-                    }
-                  }}
-                  className="space-y-3"
-                >
-                  {/* Current Password */}
-                  <div>
-                    <label className="block text-[11px] font-semibold text-ink-muted mb-1">
-                      Current Password
-                    </label>
-                    <div className="relative flex items-center">
-                      <Lock className="absolute left-3 w-3.5 h-3.5 text-ink-muted" />
-                      <input
-                        type={showCurrentPass ? 'text' : 'password'}
-                        required
-                        value={currentPassword}
-                        onChange={(e) => setCurrentPassword(e.target.value)}
-                        placeholder="••••••••"
-                        className="w-full pl-9 pr-9 py-2 rounded-xl border border-ink/10 dark:border-white/10 text-xs bg-white dark:bg-white/5 focus:outline-none focus:ring-2 focus:ring-sage/40"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowCurrentPass(!showCurrentPass)}
-                        className="absolute right-2.5 text-ink-muted p-1"
-                      >
-                        {showCurrentPass ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                      </button>
-                    </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
+                  <div className="p-2.5 rounded-xl bg-ink/5 dark:bg-white/5">
+                    <span className="text-ink-muted text-[9px] block">Frontend</span>
+                    <strong className="text-ink text-[11px]">Next.js 16</strong>
                   </div>
-
-                  {/* New Password */}
-                  <div>
-                    <label className="block text-[11px] font-semibold text-ink-muted mb-1">
-                      New Password
-                    </label>
-                    <div className="relative flex items-center">
-                      <Lock className="absolute left-3 w-3.5 h-3.5 text-ink-muted" />
-                      <input
-                        type={showNewPass ? 'text' : 'password'}
-                        required
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        placeholder="••••••••"
-                        className="w-full pl-9 pr-9 py-2 rounded-xl border border-ink/10 dark:border-white/10 text-xs bg-white dark:bg-white/5 focus:outline-none focus:ring-2 focus:ring-sage/40"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowNewPass(!showNewPass)}
-                        className="absolute right-2.5 text-ink-muted p-1"
-                      >
-                        {showNewPass ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                      </button>
-                    </div>
-
-                    {/* Requirements Badges */}
-                    {newPassword.length > 0 && (
-                      <div className="mt-1.5 p-2 rounded-lg bg-ink/5 dark:bg-white/5 text-[10px] grid grid-cols-2 gap-1">
-                        <span className={newPassword.length >= 8 ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-ink-muted'}>
-                          {newPassword.length >= 8 ? '✓' : '•'} 8+ Characters
-                        </span>
-                        <span className={/[A-Z]/.test(newPassword) ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-ink-muted'}>
-                          {/[A-Z]/.test(newPassword) ? '✓' : '•'} Uppercase (A-Z)
-                        </span>
-                        <span className={/[a-z]/.test(newPassword) ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-ink-muted'}>
-                          {/[a-z]/.test(newPassword) ? '✓' : '•'} Lowercase (a-z)
-                        </span>
-                        <span className={/[0-9]/.test(newPassword) ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-ink-muted'}>
-                          {/[0-9]/.test(newPassword) ? '✓' : '•'} Number (0-9)
-                        </span>
-                      </div>
-                    )}
+                  <div className="p-2.5 rounded-xl bg-ink/5 dark:bg-white/5">
+                    <span className="text-ink-muted text-[9px] block">Backend</span>
+                    <strong className="text-ink text-[11px]">FastAPI 3.12</strong>
                   </div>
-
-                  {/* Confirm New Password */}
-                  <div>
-                    <label className="block text-[11px] font-semibold text-ink-muted mb-1">
-                      Confirm New Password
-                    </label>
-                    <div className="relative flex items-center">
-                      <Lock className="absolute left-3 w-3.5 h-3.5 text-ink-muted" />
-                      <input
-                        type={showConfirmNewPass ? 'text' : 'password'}
-                        required
-                        value={confirmNewPassword}
-                        onChange={(e) => setConfirmNewPassword(e.target.value)}
-                        placeholder="••••••••"
-                        className="w-full pl-9 pr-9 py-2 rounded-xl border border-ink/10 dark:border-white/10 text-xs bg-white dark:bg-white/5 focus:outline-none focus:ring-2 focus:ring-sage/40"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirmNewPass(!showConfirmNewPass)}
-                        className="absolute right-2.5 text-ink-muted p-1"
-                      >
-                        {showConfirmNewPass ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                      </button>
-                    </div>
+                  <div className="p-2.5 rounded-xl bg-ink/5 dark:bg-white/5">
+                    <span className="text-ink-muted text-[9px] block">Database</span>
+                    <strong className="text-ink text-[11px]">PostgreSQL</strong>
                   </div>
-
-                  <button
-                    type="submit"
-                    disabled={
-                      isUpdatingPassword ||
-                      !currentPassword ||
-                      newPassword.length < 8 ||
-                      newPassword !== confirmNewPassword
-                    }
-                    className="w-full py-2 bg-sage hover:bg-sage-dark text-white font-semibold text-xs rounded-xl shadow-xs transition-all disabled:opacity-50 cursor-pointer btn-subtle-shimmer"
-                  >
-                    {isUpdatingPassword ? 'Updating Password...' : 'Save New Password'}
-                  </button>
-                </form>
-              </div>
-            </div>
-          </motion.div>
-        )}
-
-        {/* ========================================================================= */}
-        {/* 4. Data & Backup Card */}
-        {/* ========================================================================= */}
-        {(activeSection === 'all' || activeSection === 'data') && (
-          <motion.div
-            id="section-data"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="glass-card p-6 sm:p-7 space-y-6 lg:col-span-2 shadow-xs hover:shadow-sm transition-shadow"
-          >
-            {/* Card Section Header */}
-            <div className="flex items-center gap-3 pb-4 border-b border-ink/5 dark:border-white/10">
-              <div className="w-10 h-10 rounded-2xl bg-sky/10 dark:bg-sky/15 flex items-center justify-center text-sky border border-sky/20 shrink-0">
-                <Database className="w-5 h-5" />
-              </div>
-              <div>
-                <h2 className="font-display font-bold text-base sm:text-lg text-ink">
-                  Data & Backup
-                </h2>
-                <p className="text-xs text-ink-muted">
-                  CSV exports, full JSON database snapshots, backup inspection, and maintenance
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Left Column: Exports & Verification */}
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {/* CSV Export */}
-                  <div className="p-4 rounded-xl border border-ink/10 dark:border-white/10 bg-white/60 dark:bg-white/5 space-y-2.5">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-lg bg-sage-light dark:bg-sage/15 flex items-center justify-center text-sage">
-                        <FileSpreadsheet className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-xs text-ink">Expenses CSV</h3>
-                        <span className="text-[10px] text-ink-muted block">Spreadsheet data</span>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleExportCSV}
-                      disabled={isExportingCSV}
-                      className="w-full py-2 bg-sage hover:bg-sage-dark disabled:opacity-50 text-white font-semibold text-xs rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer btn-subtle-shimmer"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      <span>{isExportingCSV ? 'Generating...' : 'Export CSV'}</span>
-                    </button>
-                  </div>
-
-                  {/* JSON Backup */}
-                  <div className="p-4 rounded-xl border border-ink/10 dark:border-white/10 bg-white/60 dark:bg-white/5 space-y-2.5">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-lg bg-sky-light dark:bg-sky/15 flex items-center justify-center text-sky">
-                        <Database className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-xs text-ink">Full Snapshot</h3>
-                        <span className="text-[10px] text-ink-muted block">Categories & Budgets</span>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleExportJSON}
-                      disabled={isExportingJSON}
-                      className="w-full py-2 bg-sage/90 hover:bg-sage-dark disabled:opacity-50 text-white font-semibold text-xs rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer btn-subtle-shimmer"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      <span>{isExportingJSON ? 'Exporting...' : 'Backup JSON'}</span>
-                    </button>
+                  <div className="p-2.5 rounded-xl bg-ink/5 dark:bg-white/5">
+                    <span className="text-ink-muted text-[9px] block">AI Engine</span>
+                    <strong className="text-ink text-[11px]">Multi-Model</strong>
                   </div>
                 </div>
 
-                {/* Inspect / Verify JSON Backup */}
-                <div className="p-3.5 rounded-xl border border-dashed border-ink/15 dark:border-white/15 bg-ink/2 dark:bg-white/2 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-bold text-xs text-ink flex items-center gap-1.5">
-                        <Upload className="w-3.5 h-3.5 text-sage" />
-                        <span>Verify Backup Snapshot</span>
-                      </h4>
-                      <span className="text-[11px] text-ink-muted block">
-                        Upload an exported JSON backup to check integrity.
-                      </span>
-                    </div>
-                    <label className="px-3 py-1.5 bg-ink/5 dark:bg-white/10 hover:bg-ink/10 text-ink font-semibold text-xs rounded-lg cursor-pointer transition-colors shrink-0">
-                      <span>Inspect</span>
-                      <input type="file" accept=".json" onChange={handleFileUpload} className="hidden" />
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Column: Danger Zone */}
-              <div className="p-5 rounded-xl border border-coral/30 bg-coral-light/20 dark:bg-coral/5 space-y-3">
-                <div className="flex items-center gap-2 text-coral">
-                  <ShieldAlert className="w-4 h-4 shrink-0" />
-                  <h3 className="font-bold text-xs uppercase tracking-wider">Database Maintenance & Danger Zone</h3>
-                </div>
-                <p className="text-[11px] text-ink-muted leading-relaxed">
-                  Carefully reset test transactions or replenish default categories without altering custom limits.
-                </p>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => setShowClearModal(true)}
-                    className="p-2.5 rounded-xl border border-coral/30 bg-white/70 dark:bg-white/5 text-coral font-semibold text-xs flex items-center justify-center gap-1.5 hover:bg-coral hover:text-white transition-all cursor-pointer"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>Clear All Expenses</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setShowResetCatModal(true)}
-                    className="p-2.5 rounded-xl border border-honey/40 bg-white/70 dark:bg-white/5 text-honey font-semibold text-xs flex items-center justify-center gap-1.5 hover:bg-honey hover:text-white transition-all cursor-pointer"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    <span>Restore Starter Categories</span>
-                  </button>
+                <div className="text-[10px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 pt-1">
+                  <CheckCircle className="w-3 h-3 shrink-0" />
+                  <span>Row-Level Security & Encrypted Credential Sandboxing</span>
                 </div>
               </div>
             </div>
@@ -1158,7 +1144,7 @@ export default function SettingsPage() {
                   <AlertTriangle className="w-5 h-5" />
                   <span>Clear All Expenses?</span>
                 </div>
-                <button type="button" onClick={() => setShowClearModal(false)} className="p-1 text-ink-muted hover:text-ink">
+                <button type="button" onClick={() => setShowClearModal(false)} className="p-1 text-ink-muted hover:text-ink cursor-pointer">
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -1179,7 +1165,7 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   onClick={() => setShowClearModal(false)}
-                  className="flex-1 py-2 rounded-xl border border-ink/10 text-xs font-bold text-ink hover:bg-ink/5"
+                  className="flex-1 py-2 rounded-xl border border-ink/10 text-xs font-bold text-ink hover:bg-ink/5 cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -1187,7 +1173,7 @@ export default function SettingsPage() {
                   type="button"
                   onClick={handleExecuteClearExpenses}
                   disabled={clearInputText !== 'DELETE' || isClearingExpenses}
-                  className="flex-1 py-2 bg-coral hover:bg-coral-dark disabled:opacity-40 text-white text-xs font-bold rounded-xl"
+                  className="flex-1 py-2 bg-coral hover:bg-coral-dark disabled:opacity-40 text-white text-xs font-bold rounded-xl cursor-pointer"
                 >
                   {isClearingExpenses ? 'Deleting...' : 'Confirm Clear'}
                 </button>
@@ -1212,7 +1198,7 @@ export default function SettingsPage() {
                   <RotateCcw className="w-5 h-5" />
                   <span>Restore Starter Categories?</span>
                 </div>
-                <button type="button" onClick={() => setShowResetCatModal(false)} className="p-1 text-ink-muted hover:text-ink">
+                <button type="button" onClick={() => setShowResetCatModal(false)} className="p-1 text-ink-muted hover:text-ink cursor-pointer">
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -1233,7 +1219,7 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   onClick={() => setShowResetCatModal(false)}
-                  className="flex-1 py-2 rounded-xl border border-ink/10 text-xs font-bold text-ink hover:bg-ink/5"
+                  className="flex-1 py-2 rounded-xl border border-ink/10 text-xs font-bold text-ink hover:bg-ink/5 cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -1241,7 +1227,7 @@ export default function SettingsPage() {
                   type="button"
                   onClick={handleExecuteResetCategories}
                   disabled={resetCatInputText !== 'RESET' || isResettingCategories}
-                  className="flex-1 py-2 bg-honey hover:bg-honey-dark disabled:opacity-40 text-white text-xs font-bold rounded-xl"
+                  className="flex-1 py-2 bg-honey hover:bg-honey-dark disabled:opacity-40 text-white text-xs font-bold rounded-xl cursor-pointer"
                 >
                   {isResettingCategories ? 'Restoring...' : 'Confirm Restore'}
                 </button>
