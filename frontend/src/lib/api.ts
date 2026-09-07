@@ -19,10 +19,21 @@ import {
 
 const DEFAULT_PRODUCTION_API_URL = 'https://budgetbrain-ojnr.onrender.com/api/v1';
 
+export const normalizeApiUrl = (rawUrl?: string): string => {
+  if (!rawUrl || !rawUrl.trim()) {
+    return DEFAULT_PRODUCTION_API_URL;
+  }
+  let url = rawUrl.trim().replace(/\/+$/, '');
+  if (!url.endsWith('/api/v1')) {
+    url = `${url}/api/v1`;
+  }
+  return url;
+};
+
 export const getApiBaseUrl = (): string => {
-  // Primary: Strictly environment-driven configuration
+  // Primary: Strictly environment-driven configuration with robust auto-normalization
   if (process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL;
+    return normalizeApiUrl(process.env.NEXT_PUBLIC_API_URL);
   }
 
   // Browser environment fallback when environment variable is omitted

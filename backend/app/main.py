@@ -45,7 +45,6 @@ app.add_middleware(
 # ── Exception handlers ────────────────────────────────────────────────────────
 register_exception_handlers(app)
 
-# ── Routers ───────────────────────────────────────────────────────────────────
 # Health check (available at /health and /api/v1/health)
 app.include_router(health.router)
 
@@ -58,5 +57,13 @@ app.include_router(expenses.router, prefix=API_V1)
 app.include_router(budgets.router, prefix=API_V1)
 app.include_router(dashboard.router, prefix=API_V1)
 app.include_router(ai.router, prefix=API_V1)
+
+# Root-level aliases (guarantees requests succeed whether /api/v1 prefix is present or omitted)
+app.include_router(auth.router)
+app.include_router(categories.router)
+app.include_router(expenses.router)
+app.include_router(budgets.router)
+app.include_router(dashboard.router)
+app.include_router(ai.router)
 
 
