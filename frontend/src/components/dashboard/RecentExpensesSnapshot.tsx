@@ -42,9 +42,10 @@ export default function RecentExpensesSnapshot({ expenses = [] }: RecentExpenses
 
         <Link
           href="/expenses"
-          className="group text-xs font-bold text-sage hover:text-sage-dark flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-sage/10 transition-all"
+          className="group text-xs font-bold text-sage hover:text-sage-dark flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-sage/10 transition-all shrink-0"
         >
-          <span>View Full Ledger</span>
+          <span className="hidden sm:inline">View Full Ledger</span>
+          <span className="sm:hidden">View All</span>
           <ArrowRight className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
         </Link>
       </div>

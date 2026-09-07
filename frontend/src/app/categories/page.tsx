@@ -125,7 +125,7 @@ export default function CategoriesPage() {
             initial={{ opacity: 0, y: -20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            className={`fixed top-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2.5 text-xs sm:text-sm font-bold border backdrop-blur-md transition-all ${
+            className={`fixed top-20 sm:top-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2.5 text-xs sm:text-sm font-bold border backdrop-blur-md transition-all ${
               toastMessage.type === 'success'
                 ? 'bg-sage-light text-sage border-sage/40 dark:bg-sage/20 dark:text-sage shadow-sage/10'
                 : 'bg-coral-light text-coral border-coral/40 dark:bg-coral/20 dark:text-coral shadow-coral/10'
@@ -228,7 +228,7 @@ export default function CategoriesPage() {
       {/* Add / Edit Category Modal */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 bg-ink/40 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="glass-modal w-full max-w-md rounded-2xl p-6 shadow-2xl relative">
+          <div className="glass-modal w-full max-w-md rounded-2xl p-4 sm:p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-4 border-b border-ink/10 dark:border-white/10">
               <h2 className="font-display font-bold text-lg text-ink">
                 {editingCategory ? 'Rename Category' : 'Create New Category'}
@@ -255,7 +255,7 @@ export default function CategoriesPage() {
                   placeholder="e.g. Subscriptions, Travel, Fitness"
                   value={catName}
                   onChange={(e) => setCatName(capitalizeFirstLetter(e.target.value))}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-white/5 border border-ink/15 dark:border-white/15 text-sm text-ink focus:outline-none focus:border-sage transition-all"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-white/5 border border-ink/15 dark:border-white/15 text-base sm:text-sm text-ink focus:outline-none focus:border-sage transition-all"
                   required
                 />
               </div>

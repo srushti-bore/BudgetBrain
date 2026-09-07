@@ -345,7 +345,7 @@ export default function ExpenseModal({
         initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.96 }}
-        className="glass-modal w-full max-w-lg rounded-2xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto"
+        className="glass-modal w-full max-w-lg rounded-2xl p-4 sm:p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto"
       >
         <div className="flex items-center justify-between pb-4 border-b border-ink/10 dark:border-white/10">
           <h2 className="font-display font-bold text-xl text-ink">
@@ -368,7 +368,7 @@ export default function ExpenseModal({
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           {/* Quick AI Receipt Scanner Bar */}
-          <div className="p-3 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-indigo-500/10 border border-emerald-500/25 flex items-center justify-between gap-3">
+          <div className="p-3 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-indigo-500/10 border border-emerald-500/25 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30">
                 <Camera className="w-4 h-4" />
@@ -379,7 +379,7 @@ export default function ExpenseModal({
               </div>
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-2 self-start sm:self-auto shrink-0 flex-wrap">
               {isScanning ? (
                 <div className="px-3 py-1.5 rounded-xl bg-emerald-600 text-white text-xs font-bold shadow-xs flex items-center gap-1.5">
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -428,7 +428,7 @@ export default function ExpenseModal({
               placeholder="e.g. Swiggy gourmet dinner, Uber airport ride, Rent"
               value={title}
               onChange={(e) => setTitle(capitalizeFirstLetter(e.target.value))}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-white/5 border border-ink/15 dark:border-white/15 text-sm text-ink focus:outline-none focus:border-sage transition-all"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-white/5 border border-ink/15 dark:border-white/15 text-base sm:text-sm text-ink focus:outline-none focus:border-sage transition-all"
               required
             />
 
@@ -490,7 +490,7 @@ export default function ExpenseModal({
                 placeholder="0.00"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className={`w-full px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-white/5 border text-sm font-bold text-ink focus:outline-none transition-all ${
+                className={`w-full px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-white/5 border text-base sm:text-sm font-bold text-ink focus:outline-none transition-all ${
                   isOverMonthly
                     ? 'border-coral ring-2 ring-coral/20'
                     : 'border-ink/15 dark:border-white/15 focus:border-sage'
@@ -508,7 +508,7 @@ export default function ExpenseModal({
                 max={getTodayDateString()}
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-white/5 border border-ink/15 dark:border-white/15 text-sm text-ink focus:outline-none focus:border-sage transition-all"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-white/5 border border-ink/15 dark:border-white/15 text-base sm:text-sm text-ink focus:outline-none focus:border-sage transition-all"
                 required
               />
             </div>
@@ -624,7 +624,7 @@ export default function ExpenseModal({
                 setCategoryId(e.target.value);
                 setHasManuallySelectedCategory(true);
               }}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-white/5 border border-ink/15 dark:border-white/15 text-sm text-ink focus:outline-none focus:border-sage transition-all cursor-pointer"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-white/5 border border-ink/15 dark:border-white/15 text-base sm:text-sm text-ink focus:outline-none focus:border-sage transition-all cursor-pointer"
               required
             >
               <option value="" disabled>
@@ -752,7 +752,7 @@ export default function ExpenseModal({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
-              className="w-full px-3.5 py-2 rounded-xl bg-white/80 dark:bg-white/5 border border-ink/15 dark:border-white/15 text-xs text-ink focus:outline-none focus:border-sage transition-all resize-none"
+              className="w-full px-3.5 py-2 rounded-xl bg-white/80 dark:bg-white/5 border border-ink/15 dark:border-white/15 text-base sm:text-xs text-ink focus:outline-none focus:border-sage transition-all resize-none"
             />
           </div>
 

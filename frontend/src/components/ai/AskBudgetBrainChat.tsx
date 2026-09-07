@@ -387,7 +387,7 @@ export default function AskBudgetBrainChat() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 30, scale: 0.96 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[70] w-[95vw] sm:w-[430px] h-[590px] max-h-[85vh] rounded-2xl shadow-2xl glass-modal border border-emerald-500/25 flex flex-col overflow-hidden bg-white/95 dark:bg-[#121815]/95 backdrop-blur-xl"
+            className="fixed bottom-3 left-3 right-3 sm:left-auto sm:bottom-6 sm:right-6 z-[70] sm:w-[430px] h-[590px] max-h-[85vh] rounded-2xl shadow-2xl glass-modal border border-emerald-500/25 flex flex-col overflow-hidden bg-white/95 dark:bg-[#121815]/95 backdrop-blur-xl"
           >
             {/* Header */}
             <div className="px-4 py-3 bg-gradient-to-r from-emerald-600/15 via-teal-600/10 to-transparent border-b border-ink/10 dark:border-white/10 flex items-center justify-between gap-2">
@@ -722,7 +722,7 @@ export default function AskBudgetBrainChat() {
                     onChange={(e) => setInput(e.target.value)}
                     placeholder="Ask in any language (मराठी, हिंदी, English)..."
                     disabled={isLoading}
-                    className="flex-1 px-3.5 py-2 rounded-xl bg-ink/5 dark:bg-white/10 border border-ink/10 dark:border-white/15 text-xs text-ink dark:text-white focus:outline-none focus:border-emerald-500 transition-all disabled:opacity-50"
+                    className="flex-1 px-3.5 py-2 rounded-xl bg-ink/5 dark:bg-white/10 border border-ink/10 dark:border-white/15 text-base sm:text-xs text-ink dark:text-white focus:outline-none focus:border-emerald-500 transition-all disabled:opacity-50"
                   />
                   <button
                     type="submit"

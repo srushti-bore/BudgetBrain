@@ -225,7 +225,7 @@ function ExpensesContent() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
             transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-            className={`fixed top-6 left-1/2 -translate-x-1/2 z-[100] max-w-md w-[92vw] sm:w-auto px-4 py-3 rounded-2xl shadow-2xl flex items-start gap-3 border backdrop-blur-xl transition-all ${
+            className={`fixed top-20 sm:top-6 left-1/2 -translate-x-1/2 z-[100] max-w-md w-[92vw] sm:w-auto px-4 py-3 rounded-2xl shadow-2xl flex items-start gap-3 border backdrop-blur-xl transition-all ${
               toastMessage.type === 'success'
                 ? 'bg-emerald-950/90 text-white border-emerald-500/40 shadow-emerald-950/40'
                 : toastMessage.type === 'warning'
@@ -437,7 +437,7 @@ function ExpensesContent() {
 
           <button
             onClick={handleResetFilters}
-            className="ml-auto px-3 py-1.5 rounded-lg border border-ink/15 dark:border-white/15 text-ink hover:bg-white/60 dark:hover:bg-white/10 text-xs font-semibold flex items-center gap-1 transition-colors"
+            className="w-full sm:w-auto sm:ml-auto px-3 py-1.5 rounded-lg border border-ink/15 dark:border-white/15 text-ink hover:bg-white/60 dark:hover:bg-white/10 text-xs font-semibold flex items-center justify-center gap-1 transition-colors cursor-pointer"
           >
             <RotateCcw className="w-3.5 h-3.5 text-sage" /> Reset Filters
           </button>
@@ -648,7 +648,7 @@ function ExpensesContent() {
 
         {/* Pagination Footer */}
         {(meta.total ?? 0) > 0 && (
-          <div className="px-6 py-4 border-t border-ink/5 dark:border-white/10 flex items-center justify-between text-xs text-ink-muted">
+          <div className="px-4 sm:px-6 py-4 border-t border-ink/5 dark:border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-ink-muted text-center sm:text-left">
             <span>
               Showing {expenses.length} of {meta.total} transactions
             </span>

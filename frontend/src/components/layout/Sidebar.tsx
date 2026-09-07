@@ -94,7 +94,7 @@ export default function Sidebar() {
       {/* Sidebar Container */}
       <aside
         className={cn(
-          'fixed top-0 bottom-0 left-0 z-50 w-64 bg-white dark:bg-[#16201C] border-r border-ink/5 dark:border-white/10 p-5 flex flex-col justify-between transition-transform duration-300 ease-in-out',
+          'fixed top-0 bottom-0 left-0 z-50 w-64 bg-white dark:bg-[#16201C] border-r border-ink/5 dark:border-white/10 p-5 flex flex-col justify-between overflow-y-auto transition-transform duration-300 ease-in-out',
           isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         )}
       >

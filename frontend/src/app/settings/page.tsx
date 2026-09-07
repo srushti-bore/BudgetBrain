@@ -265,7 +265,7 @@ export default function SettingsPage() {
             initial={{ opacity: 0, y: -20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            className={`fixed top-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2.5 text-xs sm:text-sm font-bold border backdrop-blur-md transition-all ${
+            className={`fixed top-20 sm:top-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2.5 text-xs sm:text-sm font-bold border backdrop-blur-md transition-all ${
               toastMessage.type === 'success'
                 ? 'bg-sage-light text-sage border-sage/40 dark:bg-sage/20 dark:text-sage shadow-sage/10'
                 : 'bg-coral-light text-coral border-coral/40 dark:bg-coral/20 dark:text-coral shadow-coral/10'
@@ -309,7 +309,7 @@ export default function SettingsPage() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                 isActive
                   ? 'bg-white dark:bg-[#17211d] text-sage shadow-sm border border-sage/20'
                   : 'text-ink-muted hover:text-ink dark:hover:text-cream hover:bg-white/50 dark:hover:bg-white/5'
@@ -1086,7 +1086,7 @@ export default function SettingsPage() {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="glass-modal max-w-md w-full p-6 rounded-2xl border border-coral/30 space-y-4 bg-white dark:bg-[#16201c]"
+              className="glass-modal max-w-md w-full p-4 sm:p-6 rounded-2xl border border-coral/30 space-y-4 bg-white dark:bg-[#16201c] max-h-[90vh] overflow-y-auto"
             >
               <div className="flex items-center justify-between text-coral">
                 <div className="flex items-center gap-2 font-display font-bold text-lg">
@@ -1138,7 +1138,7 @@ export default function SettingsPage() {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="glass-modal max-w-md w-full p-6 rounded-2xl border border-honey/30 space-y-4 bg-white dark:bg-[#16201c]"
+              className="glass-modal max-w-md w-full p-4 sm:p-6 rounded-2xl border border-honey/30 space-y-4 bg-white dark:bg-[#16201c] max-h-[90vh] overflow-y-auto"
             >
               <div className="flex items-center justify-between text-honey">
                 <div className="flex items-center gap-2 font-display font-bold text-lg">

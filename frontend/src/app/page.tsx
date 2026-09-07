@@ -227,7 +227,7 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3 self-start md:self-auto">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto justify-between sm:justify-end">
           {/* User Profile Capsule with 3-Dots Dropdown */}
           {user && (
             <div className="relative" ref={topUserMenuRef}>
@@ -235,7 +235,7 @@ export default function DashboardPage() {
                 <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
                   {user.full_name ? user.full_name.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
                 </div>
-                <span className="text-xs font-bold text-ink dark:text-cream max-w-[140px] truncate">
+                <span className="text-xs font-bold text-ink dark:text-cream max-w-[110px] sm:max-w-[140px] truncate">
                   {user.full_name || 'My Account'}
                 </span>
                 <button
@@ -287,7 +287,7 @@ export default function DashboardPage() {
           <div className="flex items-center gap-1.5 p-1 bg-white/80 dark:bg-white/5 border border-ink/10 dark:border-white/10 rounded-2xl shadow-xs">
             {/* Direct Camera Capture (Mobile & Tablet ONLY) */}
             <label
-              className="md:hidden flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-bold shadow-xs cursor-pointer transition-all hover:scale-105 active:scale-95 shrink-0"
+              className="md:hidden flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-bold shadow-xs cursor-pointer transition-all hover:scale-105 active:scale-95 shrink-0"
               title="Snap a bill with camera to auto-add expense with AI"
             >
               <Camera className="w-3.5 h-3.5" />
@@ -303,7 +303,7 @@ export default function DashboardPage() {
 
             {/* Upload from Gallery (Mobile) / Upload Bill File (Laptop/Desktop) */}
             <label
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-teal-50 dark:bg-teal-500/10 hover:bg-teal-100 dark:hover:bg-teal-500/20 text-teal-800 dark:text-teal-300 text-xs font-bold transition-all cursor-pointer hover:scale-105 active:scale-95 shrink-0"
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-teal-50 dark:bg-teal-500/10 hover:bg-teal-100 dark:hover:bg-teal-500/20 text-teal-800 dark:text-teal-300 text-xs font-bold transition-all cursor-pointer hover:scale-105 active:scale-95 shrink-0"
               title="Upload receipt or bill image"
             >
               <Upload className="w-3.5 h-3.5" />
@@ -324,7 +324,7 @@ export default function DashboardPage() {
                 setInitialScanFile(null);
                 setIsExpenseModalOpen(true);
               }}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-sage hover:bg-sage-dark text-white text-xs font-semibold shadow-xs transition-all hover:scale-105 active:scale-95 cursor-pointer shrink-0"
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-sage hover:bg-sage-dark text-white text-xs font-semibold shadow-xs transition-all hover:scale-105 active:scale-95 cursor-pointer shrink-0"
               title="Add expense manually"
             >
               <Plus className="w-3.5 h-3.5" />
@@ -537,7 +537,7 @@ export default function DashboardPage() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -25, scale: 0.95 }}
             transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-            className="fixed top-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-2xl bg-emerald-600/95 text-white shadow-2xl shadow-emerald-600/30 backdrop-blur-md border border-white/20"
+            className="fixed top-20 sm:top-6 right-3 sm:right-6 left-3 sm:left-auto max-w-md z-50 flex items-center gap-3 px-4 py-3 rounded-2xl bg-emerald-600/95 text-white shadow-2xl shadow-emerald-600/30 backdrop-blur-md border border-white/20"
           >
             <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
               <CheckCircle2 className="w-5 h-5 text-white" />
