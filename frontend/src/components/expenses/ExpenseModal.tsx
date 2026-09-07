@@ -234,9 +234,13 @@ export default function ExpenseModal({
         return;
       }
       if (data.title) setTitle(capitalizeFirstLetter(data.title));
-      if (data.amount !== null && data.amount !== undefined) {
-        const viewAmount = convertToView(data.amount);
+      const numAmount = data.amount !== null && data.amount !== undefined ? Number(data.amount) : null;
+      if (numAmount !== null && !isNaN(numAmount) && numAmount > 0) {
+        const viewAmount = convertToView(numAmount);
         setAmount(Number(viewAmount.toFixed(2)).toString());
+      } else {
+        setAmount('');
+        setErrorMsg('Bill scanned! Please verify and enter the total amount if not detected.');
       }
       if (data.date) setDate(data.date);
       if (data.notes) setNotes(data.notes);

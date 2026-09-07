@@ -7,6 +7,7 @@ via official REST API with zero external client dependencies.
 
 import base64
 import json
+import re
 import httpx
 from app.schemas.ai import (
     ChatMessage,
@@ -19,6 +20,42 @@ from app.schemas.ai import (
 from app.schemas.emotional_spending import EmotionalAIAdvice
 from app.services.ai.base import BaseLLMProvider
 from app.services.ai.rules_provider import RulesProvider
+
+
+def _clean_extracted_amount(amt_val, parsed_dict: dict | None = None) -> float | None:
+    """
+    Extracts and validates a positive float amount from AI responses,
+    handling currency symbols (₹, $, Rs.), commas, strings, and fallback to regex scanning.
+    """
+    if amt_val is not None:
+        if isinstance(amt_val, (int, float)):
+            v = float(amt_val)
+            if v > 0:
+                return round(v, 2)
+        elif isinstance(amt_val, str):
+            cleaned = re.sub(r'[₹$€£¥]|(?:Rs\.?|INR|rupees)\s*', '', amt_val, flags=re.IGNORECASE)
+            cleaned = cleaned.replace(',', '').replace('/-', '').strip()
+            m = re.search(r'\d+(?:\.\d{1,2})?', cleaned)
+            if m:
+                try:
+                    v = float(m.group(0))
+                    if v > 0:
+                        return round(v, 2)
+                except ValueError:
+                    pass
+
+    if parsed_dict:
+        combined = f"{parsed_dict.get('notes', '')} {parsed_dict.get('title', '')}"
+        matches = re.findall(r'(?:₹|Rs\.?|INR)?\s*(\d+(?:,\d{3})*(?:\.\d{1,2})?)', combined, re.IGNORECASE)
+        for m in matches:
+            try:
+                v = float(m.replace(',', ''))
+                if v > 0:
+                    return round(v, 2)
+            except ValueError:
+                pass
+
+    return None
 
 
 class GeminiProvider(BaseLLMProvider):
@@ -48,8 +85,10 @@ class GeminiProvider(BaseLLMProvider):
         return "gemini-3.1-flash-lite"
 
     async def _post_content(self, client: httpx.AsyncClient, payload: dict) -> dict | None:
-        models_to_try = [self.model_name]
-        for candidate in ["gemini-3.1-flash-lite", "gemini-3-flash-preview"]:
+        models_to_try = []
+        if self.model_name and self.model_name not in ["gemini-1.5-flash", "gemini-2.5-flash"]:
+            models_to_try.append(self.model_name)
+        for candidate in ["gemini-3.1-flash-lite", "gemini-flash-latest", "gemini-3-flash-preview", "gemini-2.5-flash-lite"]:
             if candidate not in models_to_try:
                 models_to_try.append(candidate)
 
@@ -284,30 +323,32 @@ Return ONLY raw JSON with structure:
             return await self.fallback.scan_receipt(image_bytes, mime_type, available_categories)
 
         b64_image = base64.b64encode(image_bytes).decode("utf-8")
-        prompt = f"""
-You are BudgetBrain AI, an expert receipt, bill, and invoice scanner.
-Extract expense data from this image:
-- title: Merchant or vendor name
-- amount: Total grand total paid as float
-- date: Transaction date YYYY-MM-DD or null
-- category: Best matching category from: {json.dumps(available_categories)}
-- payment_mode: "upi" | "card" | "cash" | "other"
-- mood: "happy" | "normal" | "sad" | "stressed" | "excited"
-- mood_reason: Reason for predicted mood
-- notes: 1-line item summary
+        prompt = f"""You are BudgetBrain AI, an expert multimodal financial OCR scanner specialized in receipts, bills, invoices, and UPI payment screenshots.
+
+Carefully examine all text, numbers, line items, and totals in this image:
+
+1. "title": Merchant / Store / Vendor / Recipient name (e.g. "D-Mart", "Starbucks", "Swiggy", "Uber", "Chai Point", "Apollo Pharmacy", "MSEDCL"). If absent, use main item or "Store Receipt".
+2. "amount": The FINAL TOTAL amount paid or payable as a positive number (float).
+   MANDATORY AMOUNT EXTRACTION RULES:
+   - Identify the grand total: Look for "TOTAL", "Grand Total", "Net Amount", "Net Payable", "Total Due", "Amount Paid", "Bill Amount", "Total (INR)", "₹", "Rs", "INR", or the large central payment amount in UPI screenshots (GPay/PhonePe/Paytm/BHIM).
+   - If there are subtotal and taxes (CGST/SGST/VAT/Tip), always pick the final grand total after taxes, discounts, and round-offs.
+   - If commas exist (e.g. 1,450.00), parse as numeric 1450.00.
+   - Strip all currency symbols (₹, $, Rs) and return strictly a numeric float (e.g. 250.0).
+   - NEVER return 0 or 0.0. If you see any prices or numbers on the bill, pick the largest total transaction amount! Only return null if no numbers exist at all.
+3. "date": Transaction date in YYYY-MM-DD format (if current year missing, infer 2026). If absent, return null.
+4. "category": Best matching category from: {json.dumps(available_categories)}.
+5. "payment_mode": "upi" | "card" | "cash" | "other" (look for UPI ID, GPay, PhonePe, Card last 4 digits, Cash tender).
+6. "notes": Brief 1-line itemized summary or item names.
 
 Return ONLY raw JSON:
 {{
   "title": "Merchant Name",
-  "amount": 100.0,
-  "date": "2026-09-03",
+  "amount": 250.0,
+  "date": "2026-09-08",
   "category": "Food & Dining",
   "payment_mode": "upi",
-  "mood": "normal",
-  "mood_reason": "Everyday groceries",
-  "notes": "Items list"
-}}
-"""
+  "notes": "Items purchased"
+}}"""
         payload = {
             "contents": [
                 {
@@ -329,7 +370,7 @@ Return ONLY raw JSON:
         }
 
         try:
-            async with httpx.AsyncClient(timeout=20.0) as client:
+            async with httpx.AsyncClient(timeout=25.0) as client:
                 data = await self._post_content(client, payload)
                 if data:
                     candidates = data.get("candidates", [])
@@ -346,7 +387,7 @@ Return ONLY raw JSON:
                                 raw = "\n".join(lines).strip()
                             parsed = json.loads(raw)
                             amt = parsed.get("amount")
-                            amt_float = float(amt) if amt is not None else None
+                            amt_float = _clean_extracted_amount(amt, parsed)
                             mode = str(parsed.get("payment_mode", "card")).lower()
                             if mode not in ["cash", "card", "upi", "other"]:
                                 mode = "upi" if "upi" in mode else "card"
@@ -363,7 +404,7 @@ Return ONLY raw JSON:
                                 mood=m,
                                 mood_reason=parsed.get("mood_reason", "AI detected from receipt"),
                                 notes=parsed.get("notes"),
-                                confidence=0.95,
+                                confidence=0.95 if amt_float and amt_float > 0 else 0.8,
                             )
         except Exception as e:
             print(f"[GeminiProvider] scan_receipt warning: {e}, using fallback.")
