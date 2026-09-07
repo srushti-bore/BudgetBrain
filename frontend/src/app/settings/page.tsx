@@ -4,9 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useCurrency } from '@/providers/CurrencyProvider';
-import { useSettings, DateFormatOption, FirstDayOption } from '@/providers/SettingsProvider';
+import { useSettings, DateFormatOption } from '@/providers/SettingsProvider';
 import { useTranslation } from '@/providers/LanguageProvider';
-import { LanguageCode } from '@/lib/translations';
 import { categoryApi, expenseApi, budgetApi, API_BASE_URL } from '@/lib/api';
 import { exportExpensesToCSV, exportFullBackupJSON, validateBackupJSON } from '@/lib/exportUtils';
 import { useAuth } from '@/providers/AuthProvider';
@@ -15,7 +14,6 @@ import {
   Palette,
   Sliders,
   Database,
-  Info,
   Sun,
   Moon,
   Download,
@@ -39,8 +37,8 @@ import {
   Lock,
   Eye,
   EyeOff,
+  LayoutGrid,
 } from 'lucide-react';
-
 
 const starterCategories = [
   'Food & Dining',
@@ -53,6 +51,17 @@ const starterCategories = [
   'Education',
   'Miscellaneous',
 ];
+
+const SECTIONS = [
+  { id: 'all', label: 'All Sections', icon: LayoutGrid },
+  { id: 'display', label: 'Display & Region', icon: Palette },
+  { id: 'budgets', label: 'Budget & Alerts', icon: Sliders },
+  { id: 'account', label: 'Account & Security', icon: ShieldCheck },
+  { id: 'data', label: 'Data & Backup', icon: Database },
+  { id: 'system', label: 'System & Health', icon: Activity },
+] as const;
+
+type SectionId = (typeof SECTIONS)[number]['id'];
 
 export default function SettingsPage() {
   const { theme, toggleTheme } = useTheme();
@@ -71,7 +80,7 @@ export default function SettingsPage() {
   } = useSettings();
   const { t, language, setLanguage, languages } = useTranslation();
 
-  const [activeTab, setActiveTab] = useState<'general' | 'budgets' | 'account' | 'data' | 'about'>('general');
+  const [activeSection, setActiveSection] = useState<SectionId>('all');
   const [isExportingCSV, setIsExportingCSV] = useState(false);
   const [isExportingJSON, setIsExportingJSON] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
@@ -85,8 +94,6 @@ export default function SettingsPage() {
   const [showConfirmNewPass, setShowConfirmNewPass] = useState(false);
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   const [isLoggingOutAll, setIsLoggingOutAll] = useState(false);
-
-
 
   // Health Ping State
   const [healthStatus, setHealthStatus] = useState<{
@@ -148,6 +155,18 @@ export default function SettingsPage() {
   const showToast = (text: string, type: 'success' | 'error' = 'success') => {
     setToastMessage({ text, type });
     setTimeout(() => setToastMessage(null), 4000);
+  };
+
+  const handleSelectSection = (id: SectionId) => {
+    setActiveSection(id);
+    if (id !== 'all') {
+      setTimeout(() => {
+        const el = document.getElementById(`section-${id}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 50);
+    }
   };
 
   // CSV Export Handler
@@ -257,7 +276,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="space-y-7 max-w-5xl mx-auto pb-24">
+    <div className="space-y-7 max-w-6xl mx-auto pb-24">
       {/* Toast Notification (Center Top) */}
       <AnimatePresence>
         {toastMessage && (
@@ -289,275 +308,292 @@ export default function SettingsPage() {
             </h1>
           </div>
           <p className="text-xs md:text-sm text-ink-muted mt-1.5 font-medium">
-            Customize display formats, alert thresholds, export transactions, and manage backups.
+            Manage your regional formats, alert thresholds, account security, database backups, and system connectivity.
           </p>
         </div>
       </div>
 
-      {/* Settings Navigation Tabs */}
-      <div className="flex flex-wrap gap-2 p-1.5 rounded-2xl bg-ink/5 dark:bg-white/5 border border-ink/5 dark:border-white/10">
-        {[
-          { id: 'general', label: 'Display & Regional', icon: Palette },
-          { id: 'budgets', label: 'Budget & Alerts', icon: Sliders },
-          { id: 'account', label: 'Account & Security', icon: ShieldCheck },
-          { id: 'data', label: 'Data & Backup', icon: Database },
-          { id: 'about', label: 'System & Health', icon: Info },
-        ].map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
+      {/* Section Filter & Jump Pills */}
+      <div className="flex flex-wrap gap-2 p-1.5 rounded-2xl bg-ink/5 dark:bg-white/5 border border-ink/5 dark:border-white/10 sticky top-2 z-20 backdrop-blur-md">
+        {SECTIONS.map((sec) => {
+          const Icon = sec.icon;
+          const isActive = activeSection === sec.id;
           return (
             <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              key={sec.id}
+              type="button"
+              onClick={() => handleSelectSection(sec.id)}
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer select-none ${
                 isActive
-                  ? 'bg-white dark:bg-[#17211d] text-sage shadow-sm border border-sage/20'
+                  ? 'bg-white dark:bg-[#17211d] text-sage shadow-xs border border-sage/25 font-bold'
                   : 'text-ink-muted hover:text-ink dark:hover:text-cream hover:bg-white/50 dark:hover:bg-white/5'
               }`}
             >
-              <Icon className={`w-4 h-4 ${isActive ? 'text-sage' : 'text-ink-muted'}`} />
-              <span>{tab.label}</span>
+              <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-sage' : 'text-ink-muted'}`} />
+              <span>{sec.label}</span>
             </button>
           );
         })}
       </div>
 
-
-      {/* Tab 1: Display & Regional Preferences */}
-      {activeTab === 'general' && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-          {/* Appearance Card */}
-          <div className="glass-card p-6 sm:p-7 space-y-6">
-            <div>
-              <h3 className="font-display font-bold text-base text-ink flex items-center gap-2">
-                <Palette className="w-4 h-4 text-sage" />
-                <span>Visual Theme Mode</span>
-              </h3>
-              <p className="text-xs text-ink-muted mt-0.5">Toggle between soft light and soothing dark palettes</p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <button
-                onClick={() => { if (theme !== 'light') toggleTheme(); }}
-                className={`p-4 rounded-xl border flex items-center justify-between transition-all cursor-pointer ${
-                  theme === 'light'
-                    ? 'border-sage bg-sage-light/60 dark:bg-sage/10 text-sage font-bold shadow-xs'
-                    : 'border-ink/10 dark:border-white/10 hover:bg-ink/5 dark:hover:bg-white/5 text-ink'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-honey/15 flex items-center justify-center text-honey">
-                    <Sun className="w-4 h-4" />
-                  </div>
-                  <div className="text-left">
-                    <span className="text-sm block font-bold">Light Mineral Theme</span>
-                    <span className="text-[11px] text-ink-muted font-normal">Warm cream & mineral sage</span>
-                  </div>
+      {/* Main Settings Grid / Card Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        {/* ========================================================================= */}
+        {/* 1. Display & Region Card */}
+        {/* ========================================================================= */}
+        {(activeSection === 'all' || activeSection === 'display') && (
+          <motion.div
+            id="section-display"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="glass-card p-6 sm:p-7 space-y-6 lg:col-span-2 shadow-xs hover:shadow-sm transition-shadow"
+          >
+            {/* Card Section Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-ink/5 dark:border-white/10">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-sage-light dark:bg-sage/15 flex items-center justify-center text-sage border border-sage/20 shrink-0">
+                  <Palette className="w-5 h-5" />
                 </div>
-                {theme === 'light' && <CheckCircle className="w-4 h-4 text-sage" />}
-              </button>
-
-              <button
-                onClick={() => { if (theme !== 'dark') toggleTheme(); }}
-                className={`p-4 rounded-xl border flex items-center justify-between transition-all cursor-pointer ${
-                  theme === 'dark'
-                    ? 'border-sage bg-sage-light/60 dark:bg-sage/10 text-sage font-bold shadow-xs'
-                    : 'border-ink/10 dark:border-white/10 hover:bg-ink/5 dark:hover:bg-white/5 text-ink'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-sky/15 flex items-center justify-center text-sky">
-                    <Moon className="w-4 h-4" />
-                  </div>
-                  <div className="text-left">
-                    <span className="text-sm block font-bold">Dark Slate Theme</span>
-                    <span className="text-[11px] text-ink-muted font-normal">Deep forest & slate green</span>
-                  </div>
+                <div>
+                  <h2 className="font-display font-bold text-base sm:text-lg text-ink">
+                    Display & Region
+                  </h2>
+                  <p className="text-xs text-ink-muted">
+                    Configure visual appearance, interface language, currency, and date formats
+                  </p>
                 </div>
-                {theme === 'dark' && <CheckCircle className="w-4 h-4 text-sage" />}
-              </button>
-            </div>
-          </div>
-
-          {/* Language Selection Card */}
-          <div className="glass-card p-6 sm:p-7 space-y-6">
-            <div>
-              <h3 className="font-display font-bold text-base text-ink flex items-center gap-2">
-                <Globe className="w-4 h-4 text-sage" />
-                <span>{t('language_selection', 'Language / भाषा')}</span>
-              </h3>
-              <p className="text-xs text-ink-muted mt-0.5">
-                {t('language_help', 'Choose your preferred interface language across BudgetBrain.')}
-              </p>
+              </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {languages.map((opt) => {
-                const isSelected = language === opt.code;
-                return (
-                  <button
-                    key={opt.code}
-                    onClick={() => {
-                      setLanguage(opt.code);
-                      showToast(`Language switched to ${opt.nativeName} (${opt.name})`);
-                    }}
-                    className={`p-3.5 rounded-xl border flex items-center justify-between transition-all cursor-pointer ${
-                      isSelected
-                        ? 'border-sage bg-sage-light/60 dark:bg-sage/15 text-sage font-bold shadow-xs'
-                        : 'border-ink/10 dark:border-white/10 hover:bg-ink/5 dark:hover:bg-white/5 text-ink'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <span className="text-xl shrink-0">{opt.flag}</span>
-                      <div className="text-left min-w-0">
-                        <span className="text-xs sm:text-sm font-bold block truncate text-ink dark:text-cream">
-                          {opt.nativeName}
-                        </span>
-                        <span className="text-[10px] text-ink-muted block truncate">{opt.name}</span>
-                      </div>
+            {/* Visual Theme Mode */}
+            <div className="space-y-3">
+              <span className="text-xs font-bold text-ink uppercase tracking-wider block">
+                Visual Theme Mode
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <button
+                  type="button"
+                  onClick={() => { if (theme !== 'light') toggleTheme(); }}
+                  className={`p-4 rounded-xl border flex items-center justify-between transition-all cursor-pointer ${
+                    theme === 'light'
+                      ? 'border-sage bg-sage-light/60 dark:bg-sage/10 text-sage font-bold shadow-xs'
+                      : 'border-ink/10 dark:border-white/10 hover:bg-ink/5 dark:hover:bg-white/5 text-ink'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-honey/15 flex items-center justify-center text-honey">
+                      <Sun className="w-4 h-4" />
                     </div>
-                    {isSelected && <CheckCircle className="w-4 h-4 text-sage shrink-0 ml-1.5" />}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+                    <div className="text-left">
+                      <span className="text-sm block font-bold">Light Mineral Theme</span>
+                      <span className="text-[11px] text-ink-muted font-normal">Warm cream & mineral sage</span>
+                    </div>
+                  </div>
+                  {theme === 'light' && <CheckCircle className="w-4 h-4 text-sage" />}
+                </button>
 
-          {/* Regional Currency & Date Formats Card */}
-          <div className="glass-card p-6 sm:p-7 space-y-6">
-            <div>
-              <h3 className="font-display font-bold text-base text-ink flex items-center gap-2">
-                <Sliders className="w-4 h-4 text-sage" />
-                <span>Regional & Date Preferences</span>
-              </h3>
-              <p className="text-xs text-ink-muted mt-0.5">Configure base active currency and global date formats</p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              {/* Currency Selector */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-ink uppercase tracking-wider block">
-                  Active Display Currency
-                </label>
-                <select
-                  value={currency}
-                  onChange={(e) => setCurrency(e.target.value as any)}
-                  className="w-full p-2.5 rounded-xl border text-sm font-semibold cursor-pointer"
+                <button
+                  type="button"
+                  onClick={() => { if (theme !== 'dark') toggleTheme(); }}
+                  className={`p-4 rounded-xl border flex items-center justify-between transition-all cursor-pointer ${
+                    theme === 'dark'
+                      ? 'border-sage bg-sage-light/60 dark:bg-sage/10 text-sage font-bold shadow-xs'
+                      : 'border-ink/10 dark:border-white/10 hover:bg-ink/5 dark:hover:bg-white/5 text-ink'
+                  }`}
                 >
-                  <option value="INR">INR (₹) — Indian Rupee (Default Base)</option>
-                  <option value="USD">USD ($) — US Dollar</option>
-                  <option value="EUR">EUR (€) — Euro</option>
-                  <option value="GBP">GBP (£) — British Pound</option>
-                </select>
-                <span className="text-[11px] text-ink-muted block">
-                  Live exchange rates fetched dynamically from Open ER-API.
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-sky/15 flex items-center justify-center text-sky">
+                      <Moon className="w-4 h-4" />
+                    </div>
+                    <div className="text-left">
+                      <span className="text-sm block font-bold">Dark Slate Theme</span>
+                      <span className="text-[11px] text-ink-muted font-normal">Deep forest & slate green</span>
+                    </div>
+                  </div>
+                  {theme === 'dark' && <CheckCircle className="w-4 h-4 text-sage" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Language Selection */}
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center gap-2">
+                <Globe className="w-4 h-4 text-sage" />
+                <span className="text-xs font-bold text-ink uppercase tracking-wider">
+                  {t('language_selection', 'Interface Language / भाषा')}
                 </span>
               </div>
-
-              {/* Date Format Selector */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-ink uppercase tracking-wider block">
-                  Date Format
-                </label>
-                <select
-                  value={dateFormat}
-                  onChange={(e) => setDateFormat(e.target.value as DateFormatOption)}
-                  className="w-full p-2.5 rounded-xl border text-sm font-semibold cursor-pointer"
-                >
-                  <option value="DD/MM/YYYY">DD/MM/YYYY — e.g. 29 Aug 2026</option>
-                  <option value="MM/DD/YYYY">MM/DD/YYYY — e.g. Aug 29, 2026</option>
-                  <option value="YYYY-MM-DD">YYYY-MM-DD — e.g. 2026-08-29 (ISO)</option>
-                </select>
-                <span className="text-[11px] text-ink-muted block">
-                  Preview: <strong className="text-ink">{formatCustomDate(new Date().toISOString())}</strong>
-                </span>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {languages.map((opt) => {
+                  const isSelected = language === opt.code;
+                  return (
+                    <button
+                      key={opt.code}
+                      type="button"
+                      onClick={() => {
+                        setLanguage(opt.code);
+                        showToast(`Language switched to ${opt.nativeName} (${opt.name})`);
+                      }}
+                      className={`p-3.5 rounded-xl border flex items-center justify-between transition-all cursor-pointer ${
+                        isSelected
+                          ? 'border-sage bg-sage-light/60 dark:bg-sage/15 text-sage font-bold shadow-xs'
+                          : 'border-ink/10 dark:border-white/10 hover:bg-ink/5 dark:hover:bg-white/5 text-ink'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="text-xl shrink-0">{opt.flag}</span>
+                        <div className="text-left min-w-0">
+                          <span className="text-xs sm:text-sm font-bold block truncate text-ink dark:text-cream">
+                            {opt.nativeName}
+                          </span>
+                          <span className="text-[10px] text-ink-muted block truncate">{opt.name}</span>
+                        </div>
+                      </div>
+                      {isSelected && <CheckCircle className="w-4 h-4 text-sage shrink-0 ml-1.5" />}
+                    </button>
+                  );
+                })}
               </div>
+            </div>
 
-              {/* First Day of Week */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-ink uppercase tracking-wider block">
-                  First Day of Week
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    onClick={() => setFirstDayOfWeek('monday')}
-                    className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-                      firstDayOfWeek === 'monday'
-                        ? 'bg-sage-light text-sage border-sage/40 dark:bg-sage/15'
-                        : 'border-ink/10 dark:border-white/10 hover:bg-ink/5 dark:hover:bg-white/5 text-ink'
-                    }`}
+            {/* Regional Currency & Date Preferences */}
+            <div className="pt-2 border-t border-ink/5 dark:border-white/10">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-2">
+                {/* Active Currency */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-ink uppercase tracking-wider block">
+                    Display Currency
+                  </label>
+                  <select
+                    value={currency}
+                    onChange={(e) => setCurrency(e.target.value as any)}
+                    className="w-full p-2.5 rounded-xl border text-sm font-semibold cursor-pointer bg-white dark:bg-white/5"
                   >
-                    Monday
-                  </button>
-                  <button
-                    onClick={() => setFirstDayOfWeek('sunday')}
-                    className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-                      firstDayOfWeek === 'sunday'
-                        ? 'bg-sage-light text-sage border-sage/40 dark:bg-sage/15'
-                        : 'border-ink/10 dark:border-white/10 hover:bg-ink/5 dark:hover:bg-white/5 text-ink'
-                    }`}
-                  >
-                    Sunday
-                  </button>
+                    <option value="INR">INR (₹) — Indian Rupee</option>
+                    <option value="USD">USD ($) — US Dollar</option>
+                    <option value="EUR">EUR (€) — Euro</option>
+                    <option value="GBP">GBP (£) — British Pound</option>
+                  </select>
+                  <span className="text-[11px] text-ink-muted block">
+                    Automatic dynamic currency conversion.
+                  </span>
                 </div>
-                <span className="text-[11px] text-ink-muted block">
-                  Used for weekly spending aggregation and trend windows.
-                </span>
+
+                {/* Date Format */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-ink uppercase tracking-wider block">
+                    Date Format
+                  </label>
+                  <select
+                    value={dateFormat}
+                    onChange={(e) => setDateFormat(e.target.value as DateFormatOption)}
+                    className="w-full p-2.5 rounded-xl border text-sm font-semibold cursor-pointer bg-white dark:bg-white/5"
+                  >
+                    <option value="DD/MM/YYYY">DD/MM/YYYY — e.g. 29 Aug 2026</option>
+                    <option value="MM/DD/YYYY">MM/DD/YYYY — e.g. Aug 29, 2026</option>
+                    <option value="YYYY-MM-DD">YYYY-MM-DD — e.g. 2026-08-29 (ISO)</option>
+                  </select>
+                  <span className="text-[11px] text-ink-muted block">
+                    Preview: <strong className="text-ink">{formatCustomDate(new Date().toISOString())}</strong>
+                  </span>
+                </div>
+
+                {/* First Day of Week */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-ink uppercase tracking-wider block">
+                    First Day of Week
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setFirstDayOfWeek('monday')}
+                      className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                        firstDayOfWeek === 'monday'
+                          ? 'bg-sage-light text-sage border-sage/40 dark:bg-sage/15 shadow-xs'
+                          : 'border-ink/10 dark:border-white/10 hover:bg-ink/5 dark:hover:bg-white/5 text-ink'
+                      }`}
+                    >
+                      Monday
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFirstDayOfWeek('sunday')}
+                      className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                        firstDayOfWeek === 'sunday'
+                          ? 'bg-sage-light text-sage border-sage/40 dark:bg-sage/15 shadow-xs'
+                          : 'border-ink/10 dark:border-white/10 hover:bg-ink/5 dark:hover:bg-white/5 text-ink'
+                      }`}
+                    >
+                      Sunday
+                    </button>
+                  </div>
+                  <span className="text-[11px] text-ink-muted block">
+                    Used for weekly spending trends.
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
-        </motion.div>
-      )}
+          </motion.div>
+        )}
 
-      {/* Tab 2: Budget & Alert Rules */}
-      {activeTab === 'budgets' && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-          <div className="glass-card p-6 sm:p-7 space-y-6">
-            <div>
-              <h3 className="font-display font-bold text-base text-ink flex items-center gap-2">
-                <Sliders className="w-4 h-4 text-sage" />
-                <span>Budget Status & Alert Thresholds</span>
-              </h3>
-              <p className="text-xs text-ink-muted mt-0.5">Control when budget warnings and color indicators trigger</p>
+        {/* ========================================================================= */}
+        {/* 2. Budget & Alerts Card */}
+        {/* ========================================================================= */}
+        {(activeSection === 'all' || activeSection === 'budgets') && (
+          <motion.div
+            id="section-budgets"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="glass-card p-6 sm:p-7 space-y-6 lg:col-span-1 shadow-xs hover:shadow-sm transition-shadow"
+          >
+            {/* Card Section Header */}
+            <div className="flex items-center gap-3 pb-4 border-b border-ink/5 dark:border-white/10">
+              <div className="w-10 h-10 rounded-2xl bg-amber-500/10 dark:bg-amber-500/15 flex items-center justify-center text-honey border border-amber-500/20 shrink-0">
+                <Sliders className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="font-display font-bold text-base sm:text-lg text-ink">
+                  Budget & Alerts
+                </h2>
+                <p className="text-xs text-ink-muted">
+                  Threshold limits, warning alerts, and dashboard widgets
+                </p>
+              </div>
             </div>
 
-            {/* Custom Editable Threshold Control */}
+            {/* Threshold Slider & Input */}
             <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center justify-between gap-2">
                 <div>
                   <label htmlFor="custom-threshold-input" className="text-xs font-bold text-ink uppercase tracking-wider block">
                     Near Limit Alert Threshold
                   </label>
                   <p className="text-[11px] text-ink-muted mt-0.5">
-                    Set the exact custom percentage when warning badges and alerts trigger
+                    Percentage when warnings and badges trigger
                   </p>
                 </div>
 
-                {/* Direct Number Input & Percentage Display */}
-                <div className="flex items-center gap-2 self-start sm:self-auto">
-                  <div className="relative flex items-center">
-                    <input
-                      id="custom-threshold-input"
-                      type="number"
-                      min={1}
-                      max={99}
-                      value={nearLimitThreshold}
-                      onChange={(e) => {
-                        const val = parseInt(e.target.value);
-                        if (!isNaN(val)) {
-                          const clamped = Math.max(1, Math.min(99, val));
-                          setNearLimitThreshold(clamped);
-                        }
-                      }}
-                      className="w-20 px-3 py-1.5 rounded-xl bg-white dark:bg-white/10 border-2 border-honey/50 text-right font-display font-extrabold text-base text-ink focus:outline-none focus:border-honey transition-all"
-                    />
-                    <span className="ml-1.5 font-bold text-sm text-honey">%</span>
-                  </div>
+                <div className="flex items-center">
+                  <input
+                    id="custom-threshold-input"
+                    type="number"
+                    min={1}
+                    max={99}
+                    value={nearLimitThreshold}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value);
+                      if (!isNaN(val)) {
+                        setNearLimitThreshold(Math.max(1, Math.min(99, val)));
+                      }
+                    }}
+                    className="w-18 px-2.5 py-1.5 rounded-xl bg-white dark:bg-white/10 border-2 border-honey/50 text-right font-display font-bold text-sm text-ink focus:outline-none focus:border-honey"
+                  />
+                  <span className="ml-1.5 font-bold text-sm text-honey">%</span>
                 </div>
               </div>
 
-              {/* Smooth Range Slider */}
-              <div className="space-y-1.5 pt-2">
+              {/* Slider */}
+              <div className="space-y-1.5">
                 <input
                   type="range"
                   min={1}
@@ -567,47 +603,42 @@ export default function SettingsPage() {
                   onChange={(e) => setNearLimitThreshold(Number(e.target.value))}
                   className="w-full h-2 bg-ink/10 dark:bg-white/10 rounded-lg appearance-none cursor-pointer accent-honey"
                 />
-                <div className="flex justify-between text-[10px] text-ink-muted font-bold">
-                  <span>1% (Early Warning)</span>
-                  <span className="text-honey font-bold">Custom Active: {nearLimitThreshold}%</span>
-                  <span>99% (Late Warning)</span>
+                <div className="flex justify-between text-[10px] text-ink-muted font-semibold">
+                  <span>1% (Early)</span>
+                  <span className="text-honey font-bold">Active: {nearLimitThreshold}%</span>
+                  <span>99% (Late)</span>
                 </div>
               </div>
 
-              {/* Quick Preset Options */}
-              <div className="pt-2">
-                <span className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-2">
-                  Quick Presets:
+              {/* Quick Presets */}
+              <div className="space-y-1.5">
+                <span className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block">
+                  Quick Presets
                 </span>
-                <div className="grid grid-cols-5 gap-2">
+                <div className="grid grid-cols-5 gap-1.5">
                   {[50, 65, 75, 80, 90].map((val) => (
                     <button
                       key={val}
                       type="button"
                       onClick={() => setNearLimitThreshold(val)}
-                      className={`py-2 px-1 rounded-xl border text-center transition-all cursor-pointer ${
+                      className={`py-1.5 rounded-lg border text-center transition-all cursor-pointer text-xs ${
                         nearLimitThreshold === val
                           ? 'bg-honey-light text-honey border-honey/50 dark:bg-honey/20 font-bold shadow-xs'
                           : 'border-ink/10 dark:border-white/10 hover:bg-ink/5 dark:hover:bg-white/5 text-ink font-semibold'
                       }`}
                     >
-                      <span className="text-sm block font-display">{val}%</span>
+                      {val}%
                     </button>
                   ))}
                 </div>
               </div>
 
-              {/* Live Preview Card */}
-              <div className="p-3.5 rounded-xl bg-honey-light/40 dark:bg-honey/10 border border-honey/30 space-y-1.5">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-honey shrink-0" />
-                  <span className="text-xs font-bold text-ink">
-                    Live Warning Trigger Preview:
-                  </span>
-                </div>
-                <p className="text-[11px] text-ink-muted leading-relaxed">
-                  When your monthly or daily spending reaches <strong className="text-ink font-bold">{nearLimitThreshold}%</strong>, BudgetBrain will display the <span className="inline-flex items-center gap-1 font-bold text-honey bg-honey-light dark:bg-honey/20 px-2 py-0.5 rounded border border-honey/30 text-[10px]">⚠️ Near Limit (≥{nearLimitThreshold}%)</span> badge and show real-time popup alerts during expense logging.
-                </p>
+              {/* Live Trigger Preview Pill */}
+              <div className="p-3 rounded-xl bg-honey-light/40 dark:bg-honey/10 border border-honey/30 text-[11px] leading-relaxed text-ink-muted flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-honey shrink-0 mt-0.5" />
+                <span>
+                  At <strong className="text-ink font-bold">{nearLimitThreshold}%</strong>, BudgetBrain displays the <span className="inline-flex items-center font-bold text-honey bg-honey-light dark:bg-honey/20 px-1.5 py-0.2 rounded border border-honey/30 text-[10px]">⚠️ Near Limit</span> warning and triggers real-time spending toasts.
+                </span>
               </div>
             </div>
 
@@ -616,467 +647,501 @@ export default function SettingsPage() {
             {/* Predictive Insights Toggle */}
             <div className="flex items-center justify-between gap-4">
               <div>
-                <span className="text-sm font-bold text-ink block flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-honey" />
-                  Predictive Health Widget on Dashboard
+                <span className="text-xs sm:text-sm font-bold text-ink block flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-honey" />
+                  Predictive Health Widget
                 </span>
-                <span className="text-xs text-ink-muted">
-                  Show the monthly spend extrapolation and financial health score widget.
+                <span className="text-[11px] text-ink-muted block mt-0.5">
+                  Show monthly spend extrapolation and financial health score on Dashboard
                 </span>
               </div>
               <button
+                type="button"
                 onClick={() => setShowPredictiveInsights(!showPredictiveInsights)}
                 className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
                   showPredictiveInsights ? 'bg-sage' : 'bg-ink/20 dark:bg-white/20'
                 }`}
               >
                 <span
-                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition duration-200 ease-in-out ${
                     showPredictiveInsights ? 'translate-x-5' : 'translate-x-0'
                   }`}
                 />
               </button>
             </div>
-          </div>
-        </motion.div>
-      )}
+          </motion.div>
+        )}
 
-      {/* Tab: Account & Security */}
-      {activeTab === 'account' && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-          {/* Profile Overview Card */}
-          <div className="glass-card p-6 sm:p-7 space-y-6">
-            <div>
-              <h3 className="font-display font-bold text-base text-ink flex items-center gap-2">
-                <UserIcon className="w-4 h-4 text-sage" />
-                <span>Account Profile</span>
-              </h3>
-              <p className="text-xs text-ink-muted mt-0.5">Your personal credentials and multi-tenant security status</p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="p-4 rounded-xl border border-ink/10 dark:border-white/10 bg-white/60 dark:bg-white/5 space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-ink-muted uppercase tracking-wider block">Email Address</span>
-                  {user?.is_verified ? (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold">
-                      <Check className="w-3 h-3 stroke-[3]" />
-                      Verified ✓
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-600 dark:text-amber-400 text-[10px] font-bold">
-                      Unverified
-                    </span>
-                  )}
+        {/* ========================================================================= */}
+        {/* 5. System & Health Card (Side-by-side with Budget & Alerts on Desktop) */}
+        {/* ========================================================================= */}
+        {(activeSection === 'all' || activeSection === 'system') && (
+          <motion.div
+            id="section-system"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="glass-card p-6 sm:p-7 space-y-6 lg:col-span-1 shadow-xs hover:shadow-sm transition-shadow"
+          >
+            {/* Card Section Header */}
+            <div className="flex items-center justify-between pb-4 border-b border-ink/5 dark:border-white/10">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-sage-light dark:bg-sage/15 flex items-center justify-center text-sage border border-sage/20 shrink-0">
+                  <Activity className="w-5 h-5" />
                 </div>
-                <p className="text-sm font-semibold text-ink font-mono">{user?.email || 'N/A'}</p>
-                <div className="flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 pt-1">
-                  <CheckCircle className="w-3.5 h-3.5" />
-                  <span>{user?.is_verified ? 'Verified Tenant Identity' : 'Pending Email Verification'}</span>
-                </div>
-              </div>
-
-              <div className="p-4 rounded-xl border border-ink/10 dark:border-white/10 bg-white/60 dark:bg-white/5 space-y-1">
-                <span className="text-[11px] font-bold text-ink-muted uppercase tracking-wider block">Full Name</span>
-                <p className="text-sm font-semibold text-ink">{user?.full_name || 'Not Specified'}</p>
-                <p className="text-[11px] text-ink-muted pt-1">Single-tenant isolated sandbox</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Change Password Card */}
-          <div className="glass-card p-6 sm:p-7 space-y-6">
-            <div>
-              <h3 className="font-display font-bold text-base text-ink flex items-center gap-2">
-                <KeyRound className="w-4 h-4 text-sage" />
-                <span>Change Password</span>
-              </h3>
-              <p className="text-xs text-ink-muted mt-0.5">Update your account password using secure BCrypt encryption</p>
-            </div>
-
-            <form
-              onSubmit={async (e) => {
-                e.preventDefault();
-                const hasMin = newPassword.length >= 8;
-                const hasUp = /[A-Z]/.test(newPassword);
-                const hasLow = /[a-z]/.test(newPassword);
-                const hasNum = /[0-9]/.test(newPassword);
-                const isValid = hasMin && hasUp && hasLow && hasNum;
-
-                if (!isValid) {
-                  showToast('Please satisfy all password security requirements.', 'error');
-                  return;
-                }
-                if (newPassword !== confirmNewPassword) {
-                  showToast('New passwords do not match.', 'error');
-                  return;
-                }
-                setIsUpdatingPassword(true);
-                try {
-                  await changePassword(currentPassword, newPassword);
-                  showToast('Password updated successfully! Please sign in again.');
-                  setCurrentPassword('');
-                  setNewPassword('');
-                  setConfirmNewPassword('');
-                } catch (err: any) {
-                  showToast(err.response?.data?.error?.message || err.message || 'Failed to update password.', 'error');
-                } finally {
-                  setIsUpdatingPassword(false);
-                }
-              }}
-              className="space-y-4 max-w-lg"
-            >
-              {/* Current Password */}
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">
-                  Current Password
-                </label>
-                <div className="relative flex items-center">
-                  <Lock className="absolute left-3.5 w-4 h-4 text-ink-muted" />
-                  <input
-                    type={showCurrentPass ? 'text' : 'password'}
-                    required
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-ink/10 dark:border-white/10 text-sm bg-white dark:bg-white/5 focus:outline-none focus:ring-2 focus:ring-sage/40 transition-all"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowCurrentPass(!showCurrentPass)}
-                    className="absolute right-3 text-ink-muted hover:text-ink dark:hover:text-cream focus:outline-none p-1 cursor-pointer"
-                  >
-                    {showCurrentPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              {/* New Password */}
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">
-                  New Password
-                </label>
-                <div className="relative flex items-center">
-                  <Lock className="absolute left-3.5 w-4 h-4 text-ink-muted" />
-                  <input
-                    type={showNewPass ? 'text' : 'password'}
-                    required
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-ink/10 dark:border-white/10 text-sm bg-white dark:bg-white/5 focus:outline-none focus:ring-2 focus:ring-sage/40 transition-all"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowNewPass(!showNewPass)}
-                    className="absolute right-3 text-ink-muted hover:text-ink dark:hover:text-cream focus:outline-none p-1 cursor-pointer"
-                  >
-                    {showNewPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-
-                {/* Password Strength Validation Badges */}
-                {newPassword.length > 0 && (
-                  <div className="mt-2 p-2.5 rounded-xl bg-ink/5 dark:bg-white/5 border border-ink/10 dark:border-white/10 text-[11px] grid grid-cols-2 gap-1.5">
-                    <span className={`flex items-center gap-1 ${newPassword.length >= 8 ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-ink-muted'}`}>
-                      {newPassword.length >= 8 ? <Check className="w-3 h-3 text-emerald-500" /> : <X className="w-3 h-3 text-coral" />} 8+ Characters
-                    </span>
-                    <span className={`flex items-center gap-1 ${/[A-Z]/.test(newPassword) ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-ink-muted'}`}>
-                      {/[A-Z]/.test(newPassword) ? <Check className="w-3 h-3 text-emerald-500" /> : <X className="w-3 h-3 text-coral" />} 1 Uppercase (A-Z)
-                    </span>
-                    <span className={`flex items-center gap-1 ${/[a-z]/.test(newPassword) ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-ink-muted'}`}>
-                      {/[a-z]/.test(newPassword) ? <Check className="w-3 h-3 text-emerald-500" /> : <X className="w-3 h-3 text-coral" />} 1 Lowercase (a-z)
-                    </span>
-                    <span className={`flex items-center gap-1 ${/[0-9]/.test(newPassword) ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-ink-muted'}`}>
-                      {/[0-9]/.test(newPassword) ? <Check className="w-3 h-3 text-emerald-500" /> : <X className="w-3 h-3 text-coral" />} 1 Number (0-9)
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* Confirm New Password */}
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">
-                  Confirm New Password
-                </label>
-                <div className="relative flex items-center">
-                  <Lock className="absolute left-3.5 w-4 h-4 text-ink-muted" />
-                  <input
-                    type={showConfirmNewPass ? 'text' : 'password'}
-                    required
-                    value={confirmNewPassword}
-                    onChange={(e) => setConfirmNewPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-ink/10 dark:border-white/10 text-sm bg-white dark:bg-white/5 focus:outline-none focus:ring-2 focus:ring-sage/40 transition-all"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmNewPass(!showConfirmNewPass)}
-                    className="absolute right-3 text-ink-muted hover:text-ink dark:hover:text-cream focus:outline-none p-1 cursor-pointer"
-                  >
-                    {showConfirmNewPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-                {confirmNewPassword.length > 0 && newPassword !== confirmNewPassword && (
-                  <p className="text-[11px] text-coral mt-1 flex items-center gap-1">
-                    <X className="w-3 h-3" /> Passwords do not match
-                  </p>
-                )}
-              </div>
-
-              <button
-                type="submit"
-                disabled={
-                  isUpdatingPassword ||
-                  !currentPassword ||
-                  newPassword.length < 8 ||
-                  newPassword !== confirmNewPassword
-                }
-                className="px-5 py-2.5 rounded-xl bg-sage hover:bg-sage-dark text-white font-bold text-xs sm:text-sm disabled:opacity-50 transition-all cursor-pointer shadow-sm hover:shadow-md"
-              >
-                {isUpdatingPassword ? 'Updating Password...' : 'Update Password'}
-              </button>
-            </form>
-          </div>
-
-
-          {/* Session Management & Multi-Device Logout Card */}
-          <div className="glass-card p-6 sm:p-7 space-y-6">
-            <div>
-              <h3 className="font-display font-bold text-base text-ink flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-sage" />
-                <span>Session Management & Security</span>
-              </h3>
-              <p className="text-xs text-ink-muted mt-0.5">Control active Refresh Tokens and multi-device access</p>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-3">
-              <button
-                onClick={() => logout()}
-                className="px-4 py-2.5 rounded-xl border border-ink/10 dark:border-white/10 text-xs font-bold text-ink hover:bg-ink/5 dark:hover:bg-white/5 transition-all inline-flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <LogOut className="w-4 h-4 text-ink-muted" />
-                <span>Sign Out from this Device</span>
-              </button>
-
-              <button
-                onClick={async () => {
-                  setIsLoggingOutAll(true);
-                  try {
-                    await logoutAll();
-                    showToast('Logged out from all devices!');
-                  } catch {
-                    showToast('Failed to logout from all devices.', 'error');
-                  } finally {
-                    setIsLoggingOutAll(false);
-                  }
-                }}
-                disabled={isLoggingOutAll}
-                className="px-4 py-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/20 text-xs font-bold transition-all inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-              >
-                <ShieldAlert className="w-4 h-4" />
-                <span>{isLoggingOutAll ? 'Logging Out All...' : 'Sign Out from All Devices'}</span>
-              </button>
-            </div>
-          </div>
-        </motion.div>
-      )}
-
-      {/* Tab 3: Data Management & Backup */}
-      {activeTab === 'data' && (
-
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-          {/* Export & Backup Card */}
-          <div className="glass-card p-6 sm:p-7 space-y-6">
-            <div>
-              <h3 className="font-display font-bold text-base text-ink flex items-center gap-2">
-                <Database className="w-4 h-4 text-sage" />
-                <span>Export & Full Backup</span>
-              </h3>
-              <p className="text-xs text-ink-muted mt-0.5">Download your financial records or create full database backups</p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* CSV Export */}
-              <div className="p-4 rounded-xl border border-ink/10 dark:border-white/10 bg-white/60 dark:bg-white/5 space-y-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-sage-light dark:bg-sage/15 flex items-center justify-center text-sage">
-                    <FileSpreadsheet className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-xs sm:text-sm text-ink">Export Expenses (CSV)</h4>
-                    <span className="text-[11px] text-ink-muted block">For Excel, Sheets, or Numbers</span>
-                  </div>
-                </div>
-                <button
-                  onClick={handleExportCSV}
-                  disabled={isExportingCSV}
-                  className="w-full py-2 bg-sage hover:bg-sage-dark disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>{isExportingCSV ? 'Generating CSV...' : 'Download CSV'}</span>
-                </button>
-              </div>
-
-              {/* JSON Backup */}
-              <div className="p-4 rounded-xl border border-ink/10 dark:border-white/10 bg-white/60 dark:bg-white/5 space-y-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-sky-light dark:bg-sky/15 flex items-center justify-center text-sky">
-                    <Database className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-xs sm:text-sm text-ink">Full Snapshot (JSON)</h4>
-                    <span className="text-[11px] text-ink-muted block">Categories, expenses & budgets</span>
-                  </div>
-                </div>
-                <button
-                  onClick={handleExportJSON}
-                  disabled={isExportingJSON}
-                  className="w-full py-2 bg-sky hover:bg-sky/80 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>{isExportingJSON ? 'Creating Snapshot...' : 'Backup to JSON'}</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Restore from JSON */}
-            <div className="p-4 rounded-xl border border-dashed border-ink/15 dark:border-white/15 bg-ink/2 dark:bg-white/2 space-y-2">
-              <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="font-bold text-xs sm:text-sm text-ink flex items-center gap-1.5">
-                    <Upload className="w-3.5 h-3.5 text-sage" />
-                    <span>Verify / Inspect Backup JSON</span>
-                  </h4>
-                  <span className="text-[11px] text-ink-muted block">
-                    Upload a previously exported BudgetBrain backup file to test validity.
-                  </span>
+                  <h2 className="font-display font-bold text-base sm:text-lg text-ink">
+                    System & Health
+                  </h2>
+                  <p className="text-xs text-ink-muted">
+                    API connectivity status and platform runtime
+                  </p>
                 </div>
-                <label className="px-3 py-1.5 bg-ink/5 dark:bg-white/10 hover:bg-ink/10 text-ink font-semibold text-xs rounded-lg cursor-pointer transition-colors">
-                  <span>Select File</span>
-                  <input type="file" accept=".json" onChange={handleFileUpload} className="hidden" />
-                </label>
-              </div>
-            </div>
-          </div>
-
-          {/* Danger Zone */}
-          <div className="glass-card p-6 sm:p-7 border-coral/30 space-y-4">
-            <div className="flex items-center gap-2 text-coral">
-              <ShieldAlert className="w-5 h-5" />
-              <h3 className="font-display font-bold text-base">Danger Zone</h3>
-            </div>
-            <p className="text-xs text-ink-muted">
-              Irreversible maintenance operations. Please proceed with caution.
-            </p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-              <button
-                onClick={() => setShowClearModal(true)}
-                className="p-3 rounded-xl border border-coral/30 bg-coral-light/20 dark:bg-coral/10 text-coral font-bold text-xs flex items-center justify-center gap-2 hover:bg-coral hover:text-white transition-all cursor-pointer"
-              >
-                <Trash2 className="w-4 h-4" />
-                <span>Clear All Expenses</span>
-              </button>
-
-              <button
-                onClick={() => setShowResetCatModal(true)}
-                className="p-3 rounded-xl border border-honey/30 bg-honey-light/20 dark:bg-honey/10 text-honey font-bold text-xs flex items-center justify-center gap-2 hover:bg-honey hover:text-white transition-all cursor-pointer"
-              >
-                <RotateCcw className="w-4 h-4" />
-                <span>Restore Starter Categories</span>
-              </button>
-            </div>
-          </div>
-        </motion.div>
-      )}
-
-      {/* Tab 4: System & Health Status */}
-      {activeTab === 'about' && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-          {/* Live Health Status Card */}
-          <div className="glass-card p-6 sm:p-7 space-y-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-display font-bold text-base text-ink flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-sage" />
-                  <span>Live System Connectivity</span>
-                </h3>
-                <p className="text-xs text-ink-muted mt-0.5">Real-time status check with FastAPI backend & database</p>
               </div>
               <button
+                type="button"
                 onClick={checkHealth}
                 disabled={isCheckingHealth}
-                className="px-3 py-1.5 rounded-lg bg-ink/5 dark:bg-white/10 hover:bg-ink/10 text-xs font-bold text-ink transition-colors flex items-center gap-1.5 cursor-pointer"
+                className="px-2.5 py-1.5 rounded-lg bg-ink/5 dark:bg-white/10 hover:bg-ink/10 text-xs font-semibold text-ink transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
               >
-                <Wifi className="w-3.5 h-3.5" />
+                <Wifi className={`w-3.5 h-3.5 ${isCheckingHealth ? 'animate-spin' : ''}`} />
                 <span>{isCheckingHealth ? 'Pinging...' : 'Re-Check'}</span>
               </button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="p-3.5 rounded-xl bg-white/70 dark:bg-white/5 border border-ink/5 dark:border-white/10">
-                <span className="text-[10px] text-ink-muted font-bold uppercase tracking-wider block">FastAPI Server</span>
-                <span className="text-sm font-bold text-sage flex items-center gap-1.5 mt-1">
-                  <CheckCircle className="w-4 h-4 text-sage" />
-                  {healthStatus?.status === 'ok' ? 'Operational' : 'Error'}
+            {/* Live Metrics Grid */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="p-3 rounded-xl bg-white/70 dark:bg-white/5 border border-ink/5 dark:border-white/10">
+                <span className="text-[10px] text-ink-muted font-bold uppercase tracking-wider block">Server</span>
+                <span className="text-xs sm:text-sm font-bold text-sage flex items-center gap-1 mt-1">
+                  <CheckCircle className="w-3.5 h-3.5 text-sage shrink-0" />
+                  {healthStatus?.status === 'ok' ? 'Online' : 'Error'}
                 </span>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-white/70 dark:bg-white/5 border border-ink/5 dark:border-white/10">
-                <span className="text-[10px] text-ink-muted font-bold uppercase tracking-wider block">PostgreSQL (Supabase)</span>
-                <span className="text-sm font-bold text-sage flex items-center gap-1.5 mt-1">
-                  <CheckCircle className="w-4 h-4 text-sage" />
-                  {healthStatus?.database === 'ok' ? 'Connected' : 'Offline'}
+              <div className="p-3 rounded-xl bg-white/70 dark:bg-white/5 border border-ink/5 dark:border-white/10">
+                <span className="text-[10px] text-ink-muted font-bold uppercase tracking-wider block">Database</span>
+                <span className="text-xs sm:text-sm font-bold text-sage flex items-center gap-1 mt-1">
+                  <CheckCircle className="w-3.5 h-3.5 text-sage shrink-0" />
+                  {healthStatus?.database === 'connected' || healthStatus?.database === 'ok' ? 'Connected' : 'Offline'}
                 </span>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-white/70 dark:bg-white/5 border border-ink/5 dark:border-white/10">
-                <span className="text-[10px] text-ink-muted font-bold uppercase tracking-wider block">API Latency</span>
-                <span className="text-sm font-bold text-ink block mt-1">
-                  {healthStatus?.latency ? `${healthStatus.latency} ms` : 'N/A'}
+              <div className="p-3 rounded-xl bg-white/70 dark:bg-white/5 border border-ink/5 dark:border-white/10">
+                <span className="text-[10px] text-ink-muted font-bold uppercase tracking-wider block">Latency</span>
+                <span className="text-xs sm:text-sm font-bold text-ink block mt-1">
+                  {healthStatus?.latency !== undefined ? `${healthStatus.latency} ms` : 'N/A'}
                 </span>
               </div>
             </div>
 
-            <div className="text-[11px] text-ink-muted">
-              Backend URL: <code className="bg-ink/5 dark:bg-white/10 px-2 py-0.5 rounded font-mono text-[10px]">{API_BASE_URL}</code>
+            <div className="text-[11px] text-ink-muted break-all">
+              API Base URL: <code className="bg-ink/5 dark:bg-white/10 px-2 py-0.5 rounded font-mono text-[10px]">{API_BASE_URL}</code>
             </div>
-          </div>
 
-          {/* App Info Card */}
-          <div className="glass-card p-6 sm:p-7 space-y-4">
-            <div className="flex items-center justify-between">
+            <hr className="border-ink/5 dark:border-white/10" />
+
+            {/* Platform Stack Snapshot */}
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-ink">BudgetBrain Enterprise</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-sage-light text-sage border border-sage/20 font-bold">
+                  v1.1.0 Multi-Tenant
+                </span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
+                <div className="p-2 rounded-lg bg-ink/5 dark:bg-white/5">
+                  <span className="text-ink-muted text-[10px] block">Frontend</span>
+                  <strong className="text-ink text-[11px]">Next.js 16</strong>
+                </div>
+                <div className="p-2 rounded-lg bg-ink/5 dark:bg-white/5">
+                  <span className="text-ink-muted text-[10px] block">Backend</span>
+                  <strong className="text-ink text-[11px]">FastAPI 3.12</strong>
+                </div>
+                <div className="p-2 rounded-lg bg-ink/5 dark:bg-white/5">
+                  <span className="text-ink-muted text-[10px] block">Database</span>
+                  <strong className="text-ink text-[11px]">PostgreSQL</strong>
+                </div>
+                <div className="p-2 rounded-lg bg-ink/5 dark:bg-white/5">
+                  <span className="text-ink-muted text-[10px] block">AI Engine</span>
+                  <strong className="text-ink text-[11px]">Multi-Model</strong>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* 3. Account & Security Card */}
+        {/* ========================================================================= */}
+        {(activeSection === 'all' || activeSection === 'account') && (
+          <motion.div
+            id="section-account"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="glass-card p-6 sm:p-7 space-y-6 lg:col-span-2 shadow-xs hover:shadow-sm transition-shadow"
+          >
+            {/* Card Section Header */}
+            <div className="flex items-center gap-3 pb-4 border-b border-ink/5 dark:border-white/10">
+              <div className="w-10 h-10 rounded-2xl bg-sage-light dark:bg-sage/15 flex items-center justify-center text-sage border border-sage/20 shrink-0">
+                <ShieldCheck className="w-5 h-5" />
+              </div>
               <div>
-                <h3 className="font-display font-bold text-base text-ink">BudgetBrain Application</h3>
-                <span className="text-xs text-ink-muted">Version 1.1.0 (Production Release)</span>
+                <h2 className="font-display font-bold text-base sm:text-lg text-ink">
+                  Account & Security
+                </h2>
+                <p className="text-xs text-ink-muted">
+                  Tenant profile credentials, BCrypt password updates, and session revocation
+                </p>
               </div>
-              <span className="px-3 py-1 rounded-xl bg-sage-light text-sage border border-sage/25 text-xs font-bold">
-                Private & Auth-Free
-              </span>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 text-center text-xs">
-              <div className="p-2 rounded-lg bg-ink/5 dark:bg-white/5">
-                <span className="text-ink-muted text-[10px] block">Frontend</span>
-                <strong className="text-ink">Next.js 16 + React 19</strong>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Left Column: Profile Overview & Sessions */}
+              <div className="space-y-5">
+                <div className="p-4 rounded-xl border border-ink/10 dark:border-white/10 bg-white/60 dark:bg-white/5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-ink-muted uppercase tracking-wider block">
+                      Account Identity
+                    </span>
+                    {user?.is_verified ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold">
+                        <Check className="w-3 h-3 stroke-[3]" />
+                        Verified ✓
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-600 dark:text-amber-400 text-[10px] font-bold">
+                        Unverified
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm font-bold text-ink font-mono">{user?.email || 'N/A'}</p>
+                  <p className="text-xs text-ink-muted">Name: {user?.full_name || 'Not Specified'}</p>
+                  <div className="flex items-center gap-1.5 text-[11px] text-emerald-600 dark:text-emerald-400 pt-1">
+                    <CheckCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>Multi-Tenant Row-Level Isolated Sandbox</span>
+                  </div>
+                </div>
+
+                {/* Session Management */}
+                <div className="p-4 rounded-xl border border-ink/10 dark:border-white/10 bg-white/60 dark:bg-white/5 space-y-3">
+                  <h3 className="font-bold text-xs uppercase tracking-wider text-ink flex items-center gap-1.5">
+                    <Lock className="w-3.5 h-3.5 text-sage" />
+                    <span>Active Sessions</span>
+                  </h3>
+                  <p className="text-[11px] text-ink-muted">
+                    Sign out from your current browser or revoke all active multi-device sessions immediately.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => logout()}
+                      className="px-3.5 py-2 rounded-xl border border-ink/15 dark:border-white/15 text-xs font-semibold text-ink hover:bg-ink/5 dark:hover:bg-white/5 transition-all inline-flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <LogOut className="w-3.5 h-3.5 text-ink-muted" />
+                      <span>Sign Out</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        setIsLoggingOutAll(true);
+                        try {
+                          await logoutAll();
+                          showToast('Logged out from all devices!');
+                        } catch {
+                          showToast('Failed to logout from all devices.', 'error');
+                        } finally {
+                          setIsLoggingOutAll(false);
+                        }
+                      }}
+                      disabled={isLoggingOutAll}
+                      className="px-3.5 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/20 text-xs font-semibold transition-all inline-flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    >
+                      <ShieldAlert className="w-3.5 h-3.5" />
+                      <span>{isLoggingOutAll ? 'Revoking All...' : 'Sign Out All Devices'}</span>
+                    </button>
+                  </div>
+                </div>
               </div>
-              <div className="p-2 rounded-lg bg-ink/5 dark:bg-white/5">
-                <span className="text-ink-muted text-[10px] block">Backend</span>
-                <strong className="text-ink">FastAPI Python 3.12</strong>
-              </div>
-              <div className="p-2 rounded-lg bg-ink/5 dark:bg-white/5">
-                <span className="text-ink-muted text-[10px] block">Database</span>
-                <strong className="text-ink">PostgreSQL (Supabase)</strong>
-              </div>
-              <div className="p-2 rounded-lg bg-ink/5 dark:bg-white/5">
-                <span className="text-ink-muted text-[10px] block">Deployment</span>
-                <strong className="text-ink">Vercel + Render</strong>
+
+              {/* Right Column: Change Password Form */}
+              <div className="p-5 rounded-xl border border-ink/10 dark:border-white/10 bg-white/60 dark:bg-white/5 space-y-3">
+                <div className="flex items-center gap-2">
+                  <KeyRound className="w-4 h-4 text-sage" />
+                  <h3 className="font-bold text-xs uppercase tracking-wider text-ink">Change Password</h3>
+                </div>
+
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    const hasMin = newPassword.length >= 8;
+                    const hasUp = /[A-Z]/.test(newPassword);
+                    const hasLow = /[a-z]/.test(newPassword);
+                    const hasNum = /[0-9]/.test(newPassword);
+                    const isValid = hasMin && hasUp && hasLow && hasNum;
+
+                    if (!isValid) {
+                      showToast('Please satisfy all password security requirements.', 'error');
+                      return;
+                    }
+                    if (newPassword !== confirmNewPassword) {
+                      showToast('New passwords do not match.', 'error');
+                      return;
+                    }
+                    setIsUpdatingPassword(true);
+                    try {
+                      await changePassword(currentPassword, newPassword);
+                      showToast('Password updated successfully! Please sign in again.');
+                      setCurrentPassword('');
+                      setNewPassword('');
+                      setConfirmNewPassword('');
+                    } catch (err: any) {
+                      showToast(err.response?.data?.error?.message || err.message || 'Failed to update password.', 'error');
+                    } finally {
+                      setIsUpdatingPassword(false);
+                    }
+                  }}
+                  className="space-y-3"
+                >
+                  {/* Current Password */}
+                  <div>
+                    <label className="block text-[11px] font-semibold text-ink-muted mb-1">
+                      Current Password
+                    </label>
+                    <div className="relative flex items-center">
+                      <Lock className="absolute left-3 w-3.5 h-3.5 text-ink-muted" />
+                      <input
+                        type={showCurrentPass ? 'text' : 'password'}
+                        required
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="w-full pl-9 pr-9 py-2 rounded-xl border border-ink/10 dark:border-white/10 text-xs bg-white dark:bg-white/5 focus:outline-none focus:ring-2 focus:ring-sage/40"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowCurrentPass(!showCurrentPass)}
+                        className="absolute right-2.5 text-ink-muted p-1"
+                      >
+                        {showCurrentPass ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* New Password */}
+                  <div>
+                    <label className="block text-[11px] font-semibold text-ink-muted mb-1">
+                      New Password
+                    </label>
+                    <div className="relative flex items-center">
+                      <Lock className="absolute left-3 w-3.5 h-3.5 text-ink-muted" />
+                      <input
+                        type={showNewPass ? 'text' : 'password'}
+                        required
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="w-full pl-9 pr-9 py-2 rounded-xl border border-ink/10 dark:border-white/10 text-xs bg-white dark:bg-white/5 focus:outline-none focus:ring-2 focus:ring-sage/40"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPass(!showNewPass)}
+                        className="absolute right-2.5 text-ink-muted p-1"
+                      >
+                        {showNewPass ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+
+                    {/* Requirements Badges */}
+                    {newPassword.length > 0 && (
+                      <div className="mt-1.5 p-2 rounded-lg bg-ink/5 dark:bg-white/5 text-[10px] grid grid-cols-2 gap-1">
+                        <span className={newPassword.length >= 8 ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-ink-muted'}>
+                          {newPassword.length >= 8 ? '✓' : '•'} 8+ Characters
+                        </span>
+                        <span className={/[A-Z]/.test(newPassword) ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-ink-muted'}>
+                          {/[A-Z]/.test(newPassword) ? '✓' : '•'} Uppercase (A-Z)
+                        </span>
+                        <span className={/[a-z]/.test(newPassword) ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-ink-muted'}>
+                          {/[a-z]/.test(newPassword) ? '✓' : '•'} Lowercase (a-z)
+                        </span>
+                        <span className={/[0-9]/.test(newPassword) ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-ink-muted'}>
+                          {/[0-9]/.test(newPassword) ? '✓' : '•'} Number (0-9)
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Confirm New Password */}
+                  <div>
+                    <label className="block text-[11px] font-semibold text-ink-muted mb-1">
+                      Confirm New Password
+                    </label>
+                    <div className="relative flex items-center">
+                      <Lock className="absolute left-3 w-3.5 h-3.5 text-ink-muted" />
+                      <input
+                        type={showConfirmNewPass ? 'text' : 'password'}
+                        required
+                        value={confirmNewPassword}
+                        onChange={(e) => setConfirmNewPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="w-full pl-9 pr-9 py-2 rounded-xl border border-ink/10 dark:border-white/10 text-xs bg-white dark:bg-white/5 focus:outline-none focus:ring-2 focus:ring-sage/40"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmNewPass(!showConfirmNewPass)}
+                        className="absolute right-2.5 text-ink-muted p-1"
+                      >
+                        {showConfirmNewPass ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={
+                      isUpdatingPassword ||
+                      !currentPassword ||
+                      newPassword.length < 8 ||
+                      newPassword !== confirmNewPassword
+                    }
+                    className="w-full py-2 bg-sage hover:bg-sage-dark text-white font-semibold text-xs rounded-xl shadow-xs transition-all disabled:opacity-50 cursor-pointer btn-subtle-shimmer"
+                  >
+                    {isUpdatingPassword ? 'Updating Password...' : 'Save New Password'}
+                  </button>
+                </form>
               </div>
             </div>
-          </div>
-        </motion.div>
-      )}
+          </motion.div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* 4. Data & Backup Card */}
+        {/* ========================================================================= */}
+        {(activeSection === 'all' || activeSection === 'data') && (
+          <motion.div
+            id="section-data"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="glass-card p-6 sm:p-7 space-y-6 lg:col-span-2 shadow-xs hover:shadow-sm transition-shadow"
+          >
+            {/* Card Section Header */}
+            <div className="flex items-center gap-3 pb-4 border-b border-ink/5 dark:border-white/10">
+              <div className="w-10 h-10 rounded-2xl bg-sky/10 dark:bg-sky/15 flex items-center justify-center text-sky border border-sky/20 shrink-0">
+                <Database className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="font-display font-bold text-base sm:text-lg text-ink">
+                  Data & Backup
+                </h2>
+                <p className="text-xs text-ink-muted">
+                  CSV exports, full JSON database snapshots, backup inspection, and maintenance
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Left Column: Exports & Verification */}
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* CSV Export */}
+                  <div className="p-4 rounded-xl border border-ink/10 dark:border-white/10 bg-white/60 dark:bg-white/5 space-y-2.5">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-sage-light dark:bg-sage/15 flex items-center justify-center text-sage">
+                        <FileSpreadsheet className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-xs text-ink">Expenses CSV</h3>
+                        <span className="text-[10px] text-ink-muted block">Spreadsheet data</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleExportCSV}
+                      disabled={isExportingCSV}
+                      className="w-full py-2 bg-sage hover:bg-sage-dark disabled:opacity-50 text-white font-semibold text-xs rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer btn-subtle-shimmer"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>{isExportingCSV ? 'Generating...' : 'Export CSV'}</span>
+                    </button>
+                  </div>
+
+                  {/* JSON Backup */}
+                  <div className="p-4 rounded-xl border border-ink/10 dark:border-white/10 bg-white/60 dark:bg-white/5 space-y-2.5">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-sky-light dark:bg-sky/15 flex items-center justify-center text-sky">
+                        <Database className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-xs text-ink">Full Snapshot</h3>
+                        <span className="text-[10px] text-ink-muted block">Categories & Budgets</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleExportJSON}
+                      disabled={isExportingJSON}
+                      className="w-full py-2 bg-sage/90 hover:bg-sage-dark disabled:opacity-50 text-white font-semibold text-xs rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer btn-subtle-shimmer"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>{isExportingJSON ? 'Exporting...' : 'Backup JSON'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Inspect / Verify JSON Backup */}
+                <div className="p-3.5 rounded-xl border border-dashed border-ink/15 dark:border-white/15 bg-ink/2 dark:bg-white/2 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-bold text-xs text-ink flex items-center gap-1.5">
+                        <Upload className="w-3.5 h-3.5 text-sage" />
+                        <span>Verify Backup Snapshot</span>
+                      </h4>
+                      <span className="text-[11px] text-ink-muted block">
+                        Upload an exported JSON backup to check integrity.
+                      </span>
+                    </div>
+                    <label className="px-3 py-1.5 bg-ink/5 dark:bg-white/10 hover:bg-ink/10 text-ink font-semibold text-xs rounded-lg cursor-pointer transition-colors shrink-0">
+                      <span>Inspect</span>
+                      <input type="file" accept=".json" onChange={handleFileUpload} className="hidden" />
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column: Danger Zone */}
+              <div className="p-5 rounded-xl border border-coral/30 bg-coral-light/20 dark:bg-coral/5 space-y-3">
+                <div className="flex items-center gap-2 text-coral">
+                  <ShieldAlert className="w-4 h-4 shrink-0" />
+                  <h3 className="font-bold text-xs uppercase tracking-wider">Database Maintenance & Danger Zone</h3>
+                </div>
+                <p className="text-[11px] text-ink-muted leading-relaxed">
+                  Carefully reset test transactions or replenish default categories without altering custom limits.
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowClearModal(true)}
+                    className="p-2.5 rounded-xl border border-coral/30 bg-white/70 dark:bg-white/5 text-coral font-semibold text-xs flex items-center justify-center gap-1.5 hover:bg-coral hover:text-white transition-all cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Clear All Expenses</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowResetCatModal(true)}
+                    className="p-2.5 rounded-xl border border-honey/40 bg-white/70 dark:bg-white/5 text-honey font-semibold text-xs flex items-center justify-center gap-1.5 hover:bg-honey hover:text-white transition-all cursor-pointer"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Restore Starter Categories</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </div>
 
       {/* Danger Zone Modal: Clear All Expenses */}
       <AnimatePresence>
@@ -1093,7 +1158,7 @@ export default function SettingsPage() {
                   <AlertTriangle className="w-5 h-5" />
                   <span>Clear All Expenses?</span>
                 </div>
-                <button onClick={() => setShowClearModal(false)} className="p-1 text-ink-muted hover:text-ink">
+                <button type="button" onClick={() => setShowClearModal(false)} className="p-1 text-ink-muted hover:text-ink">
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -1112,12 +1177,14 @@ export default function SettingsPage() {
               </div>
               <div className="flex gap-2 pt-2">
                 <button
+                  type="button"
                   onClick={() => setShowClearModal(false)}
                   className="flex-1 py-2 rounded-xl border border-ink/10 text-xs font-bold text-ink hover:bg-ink/5"
                 >
                   Cancel
                 </button>
                 <button
+                  type="button"
                   onClick={handleExecuteClearExpenses}
                   disabled={clearInputText !== 'DELETE' || isClearingExpenses}
                   className="flex-1 py-2 bg-coral hover:bg-coral-dark disabled:opacity-40 text-white text-xs font-bold rounded-xl"
@@ -1145,12 +1212,12 @@ export default function SettingsPage() {
                   <RotateCcw className="w-5 h-5" />
                   <span>Restore Starter Categories?</span>
                 </div>
-                <button onClick={() => setShowResetCatModal(false)} className="p-1 text-ink-muted hover:text-ink">
+                <button type="button" onClick={() => setShowResetCatModal(false)} className="p-1 text-ink-muted hover:text-ink">
                   <X className="w-4 h-4" />
                 </button>
               </div>
               <p className="text-xs text-ink-muted leading-relaxed">
-                This will create the 9 default starter categories (Food, Travel, Rent, Utilities, Entertainment, etc.) if any are missing. Existing expenses will not be affected.
+                This will create the default starter categories if any are missing. Existing expenses will not be affected.
               </p>
               <div className="space-y-1.5">
                 <label className="text-[11px] font-bold text-ink">Type &quot;RESET&quot; to confirm:</label>
@@ -1164,12 +1231,14 @@ export default function SettingsPage() {
               </div>
               <div className="flex gap-2 pt-2">
                 <button
+                  type="button"
                   onClick={() => setShowResetCatModal(false)}
                   className="flex-1 py-2 rounded-xl border border-ink/10 text-xs font-bold text-ink hover:bg-ink/5"
                 >
                   Cancel
                 </button>
                 <button
+                  type="button"
                   onClick={handleExecuteResetCategories}
                   disabled={resetCatInputText !== 'RESET' || isResettingCategories}
                   className="flex-1 py-2 bg-honey hover:bg-honey-dark disabled:opacity-40 text-white text-xs font-bold rounded-xl"
