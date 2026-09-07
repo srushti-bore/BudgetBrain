@@ -19,7 +19,6 @@ import EmotionalSpendingWidget from '@/components/dashboard/EmotionalSpendingWid
 import { useFormatCurrency, useCurrency } from '@/providers/CurrencyProvider';
 import { useSettings } from '@/providers/SettingsProvider';
 import { useTranslation } from '@/providers/LanguageProvider';
-import { useAuth } from '@/providers/AuthProvider';
 import {
   Wallet,
   Calendar,
@@ -31,15 +30,11 @@ import {
   CheckCircle2,
   AlertTriangle,
   Flame,
-  MoreVertical,
-  LogOut,
-  Settings as SettingsIcon,
   Camera,
   Upload,
   X,
   Sparkles,
 } from 'lucide-react';
-import Link from 'next/link';
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -61,24 +56,6 @@ const itemVariants: Variants = {
 };
 
 export default function DashboardPage() {
-  const { user, logout } = useAuth();
-  const [showTopUserMenu, setShowTopUserMenu] = useState(false);
-  const topUserMenuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (topUserMenuRef.current && !topUserMenuRef.current.contains(event.target as Node)) {
-        setShowTopUserMenu(false);
-      }
-    }
-    if (showTopUserMenu) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showTopUserMenu]);
-
   const queryClient = useQueryClient();
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
   const [initialScanFile, setInitialScanFile] = useState<File | null>(null);
@@ -227,61 +204,7 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto justify-between sm:justify-end">
-          {/* User Profile Capsule with 3-Dots Dropdown */}
-          {user && (
-            <div className="relative" ref={topUserMenuRef}>
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-ink/5 dark:bg-white/5 border border-ink/10 dark:border-white/10 hover:border-sage/40 transition-all">
-                <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
-                  {user.full_name ? user.full_name.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
-                </div>
-                <span className="text-xs font-bold text-ink dark:text-cream max-w-[110px] sm:max-w-[140px] truncate">
-                  {user.full_name || 'My Account'}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setShowTopUserMenu((prev) => !prev)}
-                  className="p-1 rounded-lg text-ink-muted hover:text-ink dark:hover:text-cream hover:bg-ink/10 dark:hover:bg-white/10 transition-colors cursor-pointer"
-                  title="Account menu"
-                  aria-label="Account menu"
-                >
-                  <MoreVertical className="w-3.5 h-3.5" />
-                </button>
-              </div>
-
-              {/* Top Dropdown Popover */}
-              {showTopUserMenu && (
-                <div className="absolute right-0 top-full mt-2 w-48 p-2 bg-white dark:bg-[#1c2824] rounded-2xl shadow-xl border border-ink/10 dark:border-white/10 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-                  <div className="px-3 py-2 border-b border-ink/5 dark:border-white/5 mb-1">
-                    <p className="text-xs font-bold text-ink dark:text-cream truncate">
-                      {user.full_name || 'My Account'}
-                    </p>
-                    <p className="text-[10px] text-ink-muted truncate">
-                      {user.email}
-                    </p>
-                  </div>
-                  <Link
-                    href="/settings"
-                    onClick={() => setShowTopUserMenu(false)}
-                    className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-ink-muted hover:text-ink dark:hover:text-cream hover:bg-ink/5 dark:hover:bg-white/5 rounded-xl transition-colors"
-                  >
-                    <SettingsIcon className="w-3.5 h-3.5 text-sage" />
-                    <span>Account Settings</span>
-                  </Link>
-                  <button
-                    onClick={() => {
-                      setShowTopUserMenu(false);
-                      logout();
-                    }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-500/10 rounded-xl transition-colors cursor-pointer"
-                  >
-                    <LogOut className="w-3.5 h-3.5 shrink-0" />
-                    <span>Sign Out</span>
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
 
           {/* AI Receipt Scanner Quick Actions Bar */}
           <div className="flex items-center gap-1.5 p-1 bg-white/80 dark:bg-white/5 border border-ink/10 dark:border-white/10 rounded-2xl shadow-xs">
