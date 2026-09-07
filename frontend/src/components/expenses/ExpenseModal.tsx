@@ -387,8 +387,8 @@ export default function ExpenseModal({
                 </div>
               ) : (
                 <>
-                  {/* Capture from Camera */}
-                  <label className="px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer transition-all hover:scale-105 active:scale-95">
+                  {/* Capture from Camera (Mobile/Tablet ONLY) */}
+                  <label className="md:hidden px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer transition-all hover:scale-105 active:scale-95">
                     <Camera className="w-3.5 h-3.5" />
                     <span>Capture</span>
                     <input
@@ -400,11 +400,11 @@ export default function ExpenseModal({
                       className="hidden"
                     />
                   </label>
-                  {/* Upload from Gallery */}
+                  {/* Upload from Gallery (Mobile/Tablet) / File Upload (Laptop/Desktop) */}
                   <label className="px-2.5 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer transition-all hover:scale-105 active:scale-95">
                     <Upload className="w-3.5 h-3.5" />
                     <span className="md:hidden">Gallery</span>
-                    <span className="hidden md:inline">Upload</span>
+                    <span className="hidden md:inline">Upload Bill</span>
                     <input
                       type="file"
                       accept="image/*"

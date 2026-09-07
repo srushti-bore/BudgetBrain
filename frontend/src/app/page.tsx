@@ -285,13 +285,13 @@ export default function DashboardPage() {
 
           {/* AI Receipt Scanner Quick Actions Bar */}
           <div className="flex items-center gap-1.5 p-1 bg-white/80 dark:bg-white/5 border border-ink/10 dark:border-white/10 rounded-2xl shadow-xs">
-            {/* Direct Camera Capture */}
+            {/* Direct Camera Capture (Mobile & Tablet ONLY) */}
             <label
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-bold shadow-xs cursor-pointer transition-all hover:scale-105 active:scale-95 shrink-0"
+              className="md:hidden flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-bold shadow-xs cursor-pointer transition-all hover:scale-105 active:scale-95 shrink-0"
               title="Snap a bill with camera to auto-add expense with AI"
             >
               <Camera className="w-3.5 h-3.5" />
-              <span>Capture Bill</span>
+              <span>Capture</span>
               <input
                 type="file"
                 accept="image/*"
@@ -301,10 +301,10 @@ export default function DashboardPage() {
               />
             </label>
 
-            {/* Direct Gallery / File Upload */}
+            {/* Upload from Gallery (Mobile) / Upload Bill File (Laptop/Desktop) */}
             <label
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-teal-50 dark:bg-teal-500/10 hover:bg-teal-100 dark:hover:bg-teal-500/20 text-teal-800 dark:text-teal-300 text-xs font-bold transition-all cursor-pointer hover:scale-105 active:scale-95 shrink-0"
-              title="Upload receipt or bill from photo gallery"
+              title="Upload receipt or bill image"
             >
               <Upload className="w-3.5 h-3.5" />
               <span className="md:hidden">Gallery</span>
