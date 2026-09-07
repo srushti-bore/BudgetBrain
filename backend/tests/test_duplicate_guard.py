@@ -19,7 +19,6 @@ CHECK_URL = "/api/v1/expenses/check-duplicate"
 def get_unique_amount() -> float:
     return round(float(random.randint(100000, 900000)) / 100.0, 2)
 
-
 def test_exact_duplicate_same_day(client: TestClient):
     suffix = uuid.uuid4().hex[:6]
     title = f"Starbucks Coffee {suffix}"
