@@ -2,7 +2,7 @@
 
 **Project:** BudgetBrain — Personal Expense Tracker  
 **Document Status:** Active / Reference  
-**Last Updated:** August 29, 2026  
+**Last Updated:** September 7, 2026  
 
 ---
 
@@ -323,11 +323,62 @@ The application is designed as a lightweight, single-user expense tracker using 
 
 ---
 
+### TD-36: Actual Semantic Vector Search (RAG) & Supabase pgvector Integration
+- **Context & Architecture**: The conversational financial advisor previously had access only to recent transactions. Large language models hallucinated or lacked grounding for historical spending queries spanning months.
+- **Solution Implemented**:
+  - Implemented actual RAG architecture using Supabase `pgvector` with Google Gemini `gemini-embedding-001` (768-dimensional vectors).
+  - Database schema: `expense_embeddings` table with `VECTOR(768)`, HNSW cosine index `USING hnsw (embedding vector_cosine_ops)`, and PostgreSQL RPC `match_expenses(query_embedding, match_threshold, match_count, filter_user_id)`.
+  - Injected retrieved transactions into LLM system prompts under `### RELEVANT USER TRANSACTIONS (Retrieved via RAG Semantic Vector Search)` with mandatory Marathi/Hindi/English transaction citations.
+  - Added deterministic fallback embedding generation for environments without active external API keys or local PostgreSQL installations lacking the compiled `vector.so` C binary.
+- **Status**: **Resolved & Verified (14/14 RAG tests passing)**.
+
+---
+
+### TD-37: Dual-Route API Gateway Normalization & 100% Environment-Driven URLs
+- **Context & Failure Mode**:
+  - Frontend requests triggered HTTP 404 errors on `/auth/google` and password recovery endpoints because the base URL from environment variables contained or omitted `/api/v1` inconsistently across hosting environments.
+  - Hardcoded fallback domains in client libraries bypassed environment configurations.
+- **Solution Implemented**:
+  - `frontend/src/lib/api.ts`: Added automated URL sanitizer stripping redundant trailing `/api/v1` segments before appending relative API paths; prioritized `NEXT_PUBLIC_API_URL` environment variable for 100% environment-driven deployment.
+  - `backend/app/routers/auth.py`: Registered dual route prefix aliases (`/auth` and `/api/v1/auth`) with unified handler implementations to guarantee zero 404 routing errors regardless of client proxy configurations.
+- **Status**: **Resolved & Tested**.
+
+---
+
+### TD-38: Google Identity Services (GIS) One-Tap Prompt vs Explicit Button Rendering
+- **Context & Failure Mode**: Invoking `window.google.accounts.id.prompt()` without a rendered button frequently failed with `opt_out_or_no_session` or silent dismissal on modern web browsers enforcing strict third-party cookie restrictions or pop-up blockers.
+- **Solution Implemented**:
+  - Refactored `GoogleSignInButton.tsx` to utilize explicit `google.accounts.id.renderButton()` attached to an isolated DOM element.
+  - Configured prompt dismissal and error handlers to prevent unhandled promise rejections and provide user-friendly error banners.
+- **Status**: **Resolved & Verified in browser**.
+
+---
+
+### TD-39: Sliding ±2-Day Window Duplicate Transaction Guard & Debounced Form Validation
+- **Context & Requirement**: Users occasionally log duplicate transactions by accident (e.g. double clicking submit, entering an expense already recorded earlier). The guard needed to warn users proactively without hard-blocking legitimate repeat transactions (e.g. daily coffee).
+- **Solution Implemented**:
+  - Backend: Added `POST /api/v1/expenses/check-duplicate` executing a fast indexed query for transactions matching the user ID, exact amount, and dates in `[date - 2 days, date + 2 days]`, excluding `exclude_id` on edit. Employs multi-tier title matching (exact match, substring match, multi-word token overlap).
+  - Frontend: `ExpenseModal.tsx` debounces input changes by 450ms, rendering an amber glassmorphic warning banner with the existing transaction's details and an **"I Understand, Log Anyway"** acknowledgment button.
+  - Sub-fix: Restored missing `mood` query parameter filtering in `list_expenses` endpoint and repository queries.
+- **Status**: **Resolved & Verified (20/20 expense tests passing, Next.js build clean)**.
+
+---
+
+### TD-40: Device-Adaptive Input Trigger Segregation for Multimodal OCR
+- **Context & UX Inconsistency**: On mobile devices, users need to choose between live camera capture and photo gallery selection. On laptop/desktop systems without cameras, presenting camera capture triggers resulted in broken file dialogs.
+- **Solution Implemented**:
+  - Integrated adaptive viewport & device-type sniffing in `ExpenseModal.tsx`.
+  - Touch/mobile devices render discrete **"Capture"** (`capture="environment"`) and **"Gallery"** buttons.
+  - Desktop/laptop viewports collapse the control into a clean, intuitive **"Upload"** trigger.
+- **Status**: **Resolved & Verified**.
+
+---
+
 ## 3. Maintenance & Code Quality Standards
 
 - **PEP 8 Compliance**: All top-level imports clean; no mid-file or inline module imports.
 - **Configuration Hygiene**: Zero hardcoded credentials or database URLs. All settings resolved dynamically via `app.config.get_settings()`.
-- **Testing Standard**: 100% of new router endpoints or service methods must include corresponding unit/integration test cases in `backend/tests/` (38 / 38 currently passing).
+- **Testing Standard**: 100% of new router endpoints or service methods must include corresponding unit/integration test cases in `backend/tests/` (76 automated tests passing across auth, expenses, categories, budgets, ai, rag, and duplicate guard).
 - **Currency Formatting Standard**: All user-facing monetary values must use `useFormatCurrency()` hook or `formatCurrency()` utility. Never hardcode currency symbols (`₹`, `$`, `€`, `£`) in display components.
 - **Animation Consistency**: All interactive card/button components should use Framer Motion `whileHover` and `whileTap` props with consistent spring physics (`type: "spring", stiffness: 300, damping: 20`).
 - **Confirmation Dialogue Standard**: Destructive actions (deleting expenses, deleting categories, database resets) must ALWAYS use glassmorphic modal confirmation popups with clear impact descriptions; never use native browser `window.confirm()`.

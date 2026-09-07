@@ -2,11 +2,11 @@
 
 **Project:** BudgetBrain — Personal Expense Tracker  
 **Phase:** V1 Feature-Complete + Multilingual Ready + PWA Certified + Production Deployed  
-**Status:** 100% Backend & Frontend Complete, 8 Languages Live, Multi-Currency Live, PWA Installable, Strict Anti-Deficit Guard Active, 3D Animated Logo Live  
+**Status:** 100% Backend & Frontend Complete, RAG Vector Search Live, Duplicate Guard Active, 8 Languages Live, Multi-Currency Live, PWA Installable, 3D Animated Logo Live  
 **Repository:** [https://github.com/srushti-bore/BudgetBrain.git](https://github.com/srushti-bore/BudgetBrain.git)  
 **Live Frontend:** [https://budget-brain-eight.vercel.app/](https://budget-brain-eight.vercel.app/)  
 **Live Backend:** [https://budgetbrain-ojnr.onrender.com/api/v1/health](https://budgetbrain-ojnr.onrender.com/api/v1/health)  
-**Last Updated:** August 31, 2026  
+**Last Updated:** September 7, 2026  
 
 ---
 
@@ -460,6 +460,119 @@ All 13 REST API endpoints across 5 core backend modules are fully functional wit
 - **Automated Verification**:
   - Backend pytest: 55/55 tests passing (100%).
   - Next.js production build: 14/14 routes compiled with 0 errors.
+
+## Phase 42: Adaptive AI Receipt Scanner UX (Capture vs Gallery vs Upload)
+
+- **Problem & Scope**:
+  - Users on mobile devices needed intuitive options to either take a photo with their camera or pick an existing receipt from their gallery.
+  - Users on laptop/desktop PCs without webcams found camera prompts confusing or broken.
+- **Core Implementation**:
+  - `frontend/src/components/expenses/ExpenseModal.tsx`:
+    - Implemented adaptive device detection distinguishing mobile/tablet touch devices from desktop/laptop environments.
+    - Mobile/Tablet: Displays two separate, high-contrast action triggers: **"Capture (Camera)"** with `capture="environment"` attribute, and **"Gallery (Photos)"** for saved images/receipts.
+    - Laptop/Desktop: Dynamically collapses the dual trigger into a clean, intuitive **"Upload Receipt"** action button.
+- **Verification**:
+  - Verified across multiple viewport widths (360px mobile, 768px tablet, 1280px+ desktop).
+
+## Phase 43: Financial Overview Quick Actions & Live Receipt Ingestion
+
+- **Problem & Scope**:
+  - Users had to navigate to the expenses page or open the modal before scanning receipts, creating unnecessary friction.
+- **Core Implementation**:
+  - `frontend/src/app/page.tsx`:
+    - Added AI Receipt Scanner quick action buttons directly inside the **Financial Overview** dashboard header.
+    - Clicking immediately opens the scanner workflow with camera capture or file upload.
+    - Attached instant success toast popup upon OCR/multimodal vision processing, pre-populating parsed title, amount, category, and date.
+
+## Phase 44: Actual RAG with Supabase pgvector & Gemini 768-dim Embeddings
+
+- **Problem & Scope**:
+  - Conversational financial AI previously relied on static recent history or in-memory windowing, unable to retrieve specific past transactions across months or years.
+- **Backend RAG Architecture**:
+  - **Database & Migration**:
+    - Built [`backend/scripts/supabase_rag_setup.sql`](file:///d:/BudgetBrain/backend/scripts/supabase_rag_setup.sql) and Alembic migration `20260907_2100_add_rag_expense_embeddings.py`.
+    - Created `expense_embeddings` table with `VECTOR(768)` column, HNSW cosine index `USING hnsw (embedding vector_cosine_ops)`, and PostgreSQL RPC `match_expenses`.
+  - **Embedding & Orchestration Services**:
+    - Created `backend/app/services/ai/embedding_service.py` generating 768-dimensional embeddings via Google Gemini's `gemini-embedding-001` with deterministic fallback for offline/test environments.
+    - Created `backend/app/services/ai/rag_service.py` providing `index_expense`, `search_similar_expenses`, `sync_all_user_expenses`, and `delete_expense_index`.
+    - Integrated automatic vector indexing into `expense_service.py` mutations (create, update, delete).
+  - **Grounding & Retrieval Prompts**:
+    - Injected retrieved transactions into LLM system prompts under `### RELEVANT USER TRANSACTIONS (Retrieved via RAG Semantic Vector Search)`.
+    - Cites exact amounts, dates, and categories in Marathi, Hindi, and English.
+    - Added endpoints `POST /api/v1/ai/rag/sync` and `GET /api/v1/ai/search`.
+- **Frontend Chat & Citations UI**:
+  - `frontend/src/components/ai/AskBudgetBrainChat.tsx`:
+    - Added **"Sync with AI (Database icon)"** in chat header for 1-click batch backfill of historical expenses.
+    - Added **"📌 Cited Transactions [RAG]"** source badges displayed under AI assistant responses with transaction title, amount, and date.
+- **Automated Verification**:
+  - 14/14 automated RAG and AI unit/integration tests passed (`tests/test_rag.py` & `tests/test_ai.py`).
+
+## Phase 45: Full End-to-End Multi-Device Responsiveness Audit
+
+- **Problem & Scope**:
+  - Header elements, action buttons, and modal dialogs wrapped awkwardly or caused horizontal overflow on narrow mobile screens (320px–375px).
+- **Core Implementation**:
+  - `AppShell.tsx` & `Sidebar.tsx`: Refined mobile padding to `p-4 sm:p-6 md:p-8 lg:p-10 lg:px-12` and added `overflow-y-auto` to the mobile sidebar drawer.
+  - `page.tsx` (Dashboard): Header actions bar configured with `flex-wrap gap-2 sm:gap-3 w-full sm:w-auto justify-between sm:justify-end`. Adjusted toast notifications to `top-20 sm:top-6 right-3 sm:right-6 left-3 sm:left-auto max-w-md`.
+  - `expenses/page.tsx`: Flexible pagination footer (`flex-col sm:flex-row`), "Reset Filters" responsive alignment, and validated touch card view on `< md` vs full table on `≥ md`.
+  - `ExpenseModal.tsx`: Added `p-4 sm:p-6 max-h-[90vh] overflow-y-auto` and configured inputs to `text-base sm:text-sm` (minimum 16px font size on mobile to prevent iOS Safari auto-zoom).
+  - `AskBudgetBrainChat.tsx`: Responsive floating positioning (`bottom-3 left-3 right-3 sm:left-auto sm:bottom-6 sm:right-6 sm:w-[430px]`).
+
+## Phase 46: Google OAuth, GIS Hardening & Dual API Normalization
+
+- **Problem & Scope**:
+  - Google Sign-In failed with 404 or `opt_out_or_no_session` errors in certain browser configurations.
+  - API base URL mismatches occurred when `NEXT_PUBLIC_API_URL` contained or omitted trailing `/api/v1`.
+- **Core Implementation**:
+  - `frontend/src/lib/api.ts`:
+    - Added automatic URL normalization ensuring consistent endpoint routing.
+    - Prioritized `NEXT_PUBLIC_API_URL` environment variable for 100% environment-driven configuration.
+  - `backend/app/routers/auth.py` & `backend/app/main.py`:
+    - Registered dual route aliases (`/api/v1/auth/*` and `/auth/*`) to handle both URL convention variants seamlessly without 404 errors.
+  - `frontend/src/components/auth/GoogleSignInButton.tsx`:
+    - Standardized Google Identity Services initialization using explicit `google.accounts.id.renderButton()`.
+    - Improved error recovery and prompt dismiss handling.
+
+## Phase 47: Header Clutter Cleanup & Capsule Removal
+
+- **Problem & Scope**:
+  - The top user profile pill/capsule on the main dashboard header was redundant with the sidebar profile display and occupied critical header space on mobile.
+- **Core Implementation**:
+  - `frontend/src/app/page.tsx`:
+    - Removed the redundant top user profile capsule.
+    - Cleaned up the header layout to focus on date telemetry and quick action triggers.
+
+## Phase 48: Feature 21 — Duplicate Transaction Guard (±2 Day Window Check)
+
+- **Problem & Scope**:
+  - Users occasionally double-log expenses by accident (e.g. submitting twice, forgetting an expense was already entered yesterday or 2 days ago).
+- **Backend Architecture**:
+  - `backend/app/schemas/expense.py`: Added `DuplicateCheckRequest` (`title`, `amount > 0`, `date`, optional `exclude_id`) and `DuplicateCheckResponse`.
+  - `backend/app/repositories/expense_repository.py`:
+    - Implemented `find_duplicate_candidate`: queries user expenses matching `amount` and `date` in `[date - 2 days, date + 2 days]`, excluding `exclude_id` on edit.
+    - Multi-stage title matching:
+      1. Exact title match (case-insensitive).
+      2. Substring match (either title contains the other).
+      3. Multi-word token overlap (at least 2 matching significant words).
+  - `backend/app/services/expense_service.py`:
+    - Implemented `check_duplicate`: builds localized relative timing strings (*"on the same day"*, *"yesterday"*, *"tomorrow"*, *"X days earlier/later"*).
+  - `backend/app/routers/expenses.py`:
+    - Registered route `POST /api/v1/expenses/check-duplicate`.
+    - Fixed missing `mood` query parameter in `list_expenses` endpoint.
+  - `backend/tests/test_duplicate_guard.py`:
+    - Added 6 automated tests with database isolation and cleanup.
+- **Frontend Architecture**:
+  - `frontend/src/types/index.ts` & `frontend/src/lib/api.ts`: Added `DuplicateCheckRequest`, `DuplicateCheckResponse`, and `expenseApi.checkDuplicate()`.
+  - `frontend/src/components/expenses/ExpenseModal.tsx`:
+    - Debounced check (450ms) watching `title`, `amount`, and `date`.
+    - Amber glassmorphic alert banner with `ShieldAlert`, matching badge (`Exact Match · ±2 Days` or `Similar Title · ±2 Days`), message, and details card.
+    - Non-blocking **"I Understand, Log Anyway"** acknowledgment button.
+    - Auto-reset on input changes.
+    - Submit button guard preventing accidental submission when unacknowledged.
+- **Verification**:
+  - Pytest: 20/20 tests passing (`test_expenses.py` & `test_duplicate_guard.py`).
+  - Next.js production build: 14/14 pages generated cleanly (Exit code 0).
+
 
 
 
