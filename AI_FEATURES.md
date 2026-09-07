@@ -33,15 +33,17 @@ A concise overview of all **Artificial Intelligence & Behavioral Finance** featu
 
 ---
 
-### 4. "Ask BudgetBrain" Conversational Chat (Global Widget)
-- **What it does**: A conversational financial advisor available across all pages.
+### 4. "Ask BudgetBrain" Conversational Chat & Advisor (Global Widget)
+- **What it does**: A conversational financial advisor powered by `gemini-3.1-flash-lite` available across all pages.
 - **Key Capabilities**:
+  - **Multilingual Intelligence**: Full native fluency in **Marathi (मराठी)**, **Hindi (हिंदी)**, Hinglish, and English with automatic language-mirroring prompts.
   - Injects live tenant financial telemetry (current spend, remaining balance, deficit status, top categories).
-  - Answers complex questions like:
-    - *"Can I afford a ₹3,000 dinner tonight?"*
-    - *"Where is most of my money going?"*
-    - *"How do I recover from my ₹2,500 deficit?"*
-  - Floating action trigger with quick suggestion pills and interactive chat history.
+  - Answers complex advisory questions like:
+    - *"मी आज ₹3,000 चे जेवण करू शकतो का?" / "Can I afford a ₹3,000 dinner tonight?"*
+    - *"माझे पैसे सर्वात जास्त कुठे खर्च होत आहेत?" / "Where is most of my money going?"*
+    - *"माझा ₹2,500 चा घाटा कसा भरून काढू?" / "How do I recover from my ₹2,500 deficit?"*
+  - **Interactive Chat History Drawer**: Browse past financial consultations, restore sessions with 1 click, and start fresh threads with tenant isolation via `localStorage`.
+  - Floating action trigger with quick suggestion pills and sidebar quick access.
 - **Endpoint**: `POST /api/v1/ai/chat`
 
 ---
@@ -70,7 +72,10 @@ A concise overview of all **Artificial Intelligence & Behavioral Finance** featu
 ### 7. Multimodal AI Receipt & Bill Scanner (`📸 AI Receipt Scanner`)
 - **What it does**: Automatically extracts expense data from photos of paper receipts, digital bills, and restaurant checks.
 - **Key Capabilities**:
-  - Supports mobile camera capture and desktop image upload (JPEG, PNG, WEBP).
+  - **Device-Adaptive Triggers**:
+    - **Mobile/Tablet**: Discrete **"Capture (Camera)"** (`capture="environment"`) and **"Gallery (Photos)"** buttons for touch devices.
+    - **Desktop/Laptop**: Clean, intuitive **"Upload Receipt"** button.
+  - **Financial Overview Quick Actions**: Instant scanner launch triggers mounted directly on the dashboard header.
   - Multimodal Vision AI (`Gemini 1.5 Flash`, `GPT-4o-mini`, `Claude 3.5 Haiku`) parses:
     - **Merchant / Store Title**
     - **Grand Total Amount**
@@ -79,8 +84,33 @@ A concise overview of all **Artificial Intelligence & Behavioral Finance** featu
     - **Payment Mode** (UPI, Card, Cash)
     - **Detected Mood**
     - **Item Notes**
-  - Auto-fills the entire Expense Modal in 1 click!
+  - Auto-fills the entire Expense Modal in 1 click with success toast notifications!
 - **Endpoint**: `POST /api/v1/ai/scan-receipt`
+
+---
+
+### 8. Actual Semantic Vector Search & RAG Ingestion (Supabase pgvector)
+- **What it does**: Real Retrieval Augmented Generation (RAG) providing deep historical memory over all past user expenses.
+- **Key Capabilities**:
+  - **768-Dim Vector Embeddings**: Uses Google Gemini's `gemini-embedding-001` via direct REST endpoints with deterministic local fallback.
+  - **Supabase pgvector Store**: High-speed HNSW cosine index `USING hnsw (embedding vector_cosine_ops)` with PostgreSQL RPC `match_expenses`.
+  - **Grounded Chat & Cited Sources**: Injects relevant past transactions into LLM prompts and renders interactive **`📌 Cited Transactions [RAG]`** source badges with transaction titles, amounts, and dates under AI chat responses.
+  - **1-Click Sync Engine**: Top database icon in chat header to backfill all historical transactions into the vector store.
+- **Endpoints**:
+  - `POST /api/v1/ai/rag/sync` (Batch backfill & index)
+  - `GET /api/v1/ai/search?q=...&limit=...` (Standalone semantic search)
+
+---
+
+### 9. Duplicate Transaction Guard (±2 Day Sliding Window)
+- **What it does**: Proactively checks prospective expenses against recorded transactions within a sliding ±2 day window (`[date - 2 days, date + 2 days]`) to prevent accidental double-logging.
+- **Key Capabilities**:
+  - **Multi-Tier Matching**: Exact title match, case-insensitive substring match, and multi-word token overlap.
+  - **Relative Timing Telemetry**: Localized relative time messaging (*"on the same day"*, *"yesterday"*, *"tomorrow"*, *"2 days earlier"*, etc.).
+  - **Debounced Interactive UI (450ms)**: Real-time amber glassmorphic warning banner with details card showing the existing transaction's title, amount, and date.
+  - **Non-Blocking Control**: **"I Understand, Log Anyway"** acknowledgment button allows legitimate repeat purchases while blocking accidental duplicate submissions.
+  - **Edit Isolation**: `exclude_id` ensures an expense being modified never warns against itself.
+- **Endpoint**: `POST /api/v1/expenses/check-duplicate`
 
 ---
 
@@ -88,3 +118,4 @@ A concise overview of all **Artificial Intelligence & Behavioral Finance** featu
 - **Environment-Driven**: Active provider is controlled entirely via `AI_PROVIDER=gemini/openai/claude/rules`.
 - **Zero Hardcoding**: All features dynamically adapt to the active model.
 - **Offline / Zero-Cost Fallback**: If no API keys are provided or network errors occur, the built-in mathematical rules engine executes all features without crashing.
+
