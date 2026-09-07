@@ -48,43 +48,46 @@ A concise overview of all **Artificial Intelligence & Behavioral Finance** featu
 
 ---
 
-### 5. Emotion-Aware Spending & Behavioral Insights (`/`)
-- **What it does**: Correlates money and psychology by tracking 5 emotional states: 😊 Happy, 😐 Normal, 😔 Sad, 😰 Stressed, 🤩 Excited.
+### 5. Visual Mood Representation & Animated Mascot ("Brainy") (`/`)
+- **What it does**: Represents financial status visually through an ambient, animated robot brain mascot (**"Brainy"**) on the dashboard, coupled with a 4-zone budget velocity speedometer.
 - **Key Capabilities**:
-  - **Mood Breakdown**: Visual spend distribution across each emotional state.
-  - **Category Dominance**: Maps which categories trigger specific emotions (e.g. *"Stressed: mostly Fast Food"*).
-  - **Impulse Spending Radar**: Automatically flags uncharacteristic high-ticket purchases made under emotional arousal (`stressed`, `sad`, `excited`).
-  - **AI Psychological Guidance Cards**: Advice on 24-hour cooling-off rules and guilt-free celebration budgets.
-- **Endpoint**: `GET /api/v1/dashboard/emotional-spending`
+  - **4 Live Financial Mood States**:
+    - 🥳 **Thriving** (< 60% budget consumed): Cheerful bouncing mascot with particle sparkles, emerald aura, celebrating disciplined spending.
+    - 🧘 **Zen** (60% – 79% budget consumed): Serene floating mascot with breathing animation, teal aura, steady balanced pacing feedback.
+    - ⚡ **Cautious** (80% – 99% budget consumed): Watchful mascot with alert eyes, amber aura, discretionary spend throttling advice.
+    - 😱 **Distressed** (≥ 100% budget consumed / deficit): Alarmed trembling mascot, coral/rose warning pulse, spending freeze recommendation.
+  - **Interactive Tap Feedback**: Tapping Brainy triggers helpful and witty financial quips and tips.
+  - **Budget Velocity Speedometer**: Visual segmented gauge with an animated needle pointing to the exact percentage of budget consumed.
+  - **Safe Daily Run-Rate**: Real-time calculation of safe daily allowance (`safeDailySpend`) across remaining days in the month.
+- **Integration**: Live widget `VisualMoodWidget.tsx` mounted on the main dashboard Bento Grid.
 
 ---
 
-### 6. AI Mood Auto-Detection & Over-Budget Stressed Trigger
-- **What it does**: Eliminates manual mood selection by auto-detecting emotion and dynamically flagging budget risks.
+### 6. Visual Mood Indicators on Budget Cards (`/budgets`)
+- **What it does**: Replaces generic status labels with expressive, color-coded visual mood indicators across all budget goal cards.
 - **Key Capabilities**:
-  - Infers mood from expense title (e.g. Concert/Party -> 🤩 Excited, Hospital/Medicine -> 😰 Stressed, Dining/Spa -> 😊 Happy).
-  - **Over-Budget Trigger**: If a transaction breaches the daily limit or pushes the monthly budget into deficit, AI automatically selects and flags **`😰 Stressed`** with an alert banner.
-  - User can override or clear the mood with one tap.
-- **Integration**: Real-time inside `ExpenseModal.tsx`.
+  - **Master Monthly Budget & Category Cards**:
+    - 😱 **Distressed (Over Budget)** (≥ 100%)
+    - ⚡ **Cautious (≥80%)** (80% – 99%)
+    - 🧘 **Zen (Balanced)** (60% – 79%)
+    - 🥳 **Thriving (On Track)** (< 60%)
+  - **Frictionless Expense Entry**: Decoupled from `ExpenseModal.tsx`—users no longer have to manually select or guess an emotional feeling when logging expenses.
+- **Integration**: Real-time inside `frontend/src/app/budgets/page.tsx`.
 
 ---
 
 ### 7. Multimodal AI Receipt & Bill Scanner (`📸 AI Receipt Scanner`)
-- **What it does**: Automatically extracts expense data from photos of paper receipts, digital bills, and restaurant checks.
+- **What it does**: Automatically extracts expense data from photos of paper receipts, digital bills, restaurant checks, utility bills, and UPI payment screenshots.
 - **Key Capabilities**:
   - **Device-Adaptive Triggers**:
     - **Mobile/Tablet**: Discrete **"Capture (Camera)"** (`capture="environment"`) and **"Gallery (Photos)"** buttons for touch devices.
-    - **Desktop/Laptop**: Clean, intuitive **"Upload Receipt"** button.
-  - **Financial Overview Quick Actions**: Instant scanner launch triggers mounted directly on the dashboard header.
-  - Multimodal Vision AI (`Gemini 1.5 Flash`, `GPT-4o-mini`, `Claude 3.5 Haiku`) parses:
-    - **Merchant / Store Title**
-    - **Grand Total Amount**
-    - **Transaction Date**
-    - **Suggested Category**
-    - **Payment Mode** (UPI, Card, Cash)
-    - **Detected Mood**
-    - **Item Notes**
-  - Auto-fills the entire Expense Modal in 1 click with success toast notifications!
+    - **Desktop/Laptop**: Clean, intuitive **"Upload Bill"** button.
+  - **Enhanced Vision OCR Prompt & Domain Rules**:
+    - Specialized parsing for Indian & global invoices, utility/electricity bills (MSEDCL), supermarket/grocery receipts (D-Mart), restaurant checks (Subtotal, CGST/SGST, Round-off), and UPI payment screenshots (PhonePe, Google Pay, Paytm, BHIM).
+  - **Zero-Amount Elimination & Currency Sanitizer**:
+    - Built-in `_clean_extracted_amount` parser strips currency prefixes (`₹`, `$`, `€`, `Rs.`, `INR`), commas (`1,450.00`), and trailing slashes (`/-`), eliminating `0` amount display bugs.
+    - Strict frontend validation (`numAmount > 0`) prevents populating empty or zero amounts into the form.
+  - **Active Multimodal LLM Engine**: Powered by `gemini-3.1-flash-lite` and `gemini-flash-latest` with fallback to OpenAI and Anthropic.
 - **Endpoint**: `POST /api/v1/ai/scan-receipt`
 
 ---

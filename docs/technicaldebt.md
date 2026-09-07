@@ -391,6 +391,32 @@ The application is designed as a lightweight, single-user expense tracker using 
 
 ---
 
+### TD-42: Separation of Expense Logging from Psychological Mood Tracking (Feature 15)
+- **Context & User Feedback**: Forcing users to select or auto-predict an emotional state (`happy`, `sad`, `stressed`, etc.) inside the core "Log New Expense" modal created unnecessary cognitive overhead and data entry friction.
+- **Architectural Shift**: Decoupled behavioral finance from transaction logging. Rather than requiring subjective emotion inputs per expense, the system evaluates financial health globally via **Visual Mood Representation** (`VisualMoodWidget.tsx`).
+- **Solution Implemented**:
+  - Removed all mood selectors, auto-predict banners, and emotion buttons from `ExpenseModal.tsx`.
+  - Built an ambient, interactive SVG mascot ("Brainy") on the Dashboard that dynamically reflects real-time financial states (🥳 Thriving, 🧘 Zen, ⚡ Cautious, 😱 Distressed) based on monthly run-rate and daily budget velocity.
+  - Extended status badges on `/budgets` to render corresponding visual mood emoji badges.
+- **Status**: **Resolved & Verified**.
+
+---
+
+### TD-43: Multimodal Vision OCR Currency Sanitization & Zero-Amount Guard
+- **Context & Failure Mode**: When scanning receipts, invoices, or UPI payment screenshots, the amount field in `ExpenseModal.tsx` was displaying `0` or failing to extract the total paid.
+- **Root Cause Analysis**:
+  1. Generic vision prompts failed on Indian/global receipt formats where totals are labeled as "Net Payable", "Total Amount", "Paid to", or nested within CGST/SGST/Roundoff line items.
+  2. Currency symbol prefixes (`₹`, `$`, `Rs.`) and commas (`1,450.00`) caused Python `float()` conversions to raise `ValueError`, forcing fallback to the rules provider which returned `amount=None` or `0`.
+  3. Frontend `ExpenseModal.tsx` populated `"0"` directly if `data.amount` returned `0`.
+- **Solution Implemented**:
+  - Engineered domain-specific multimodal OCR prompts across `gemini_provider.py`, `openai_provider.py`, and `anthropic_provider.py` with strict extraction rules for bills, utility checks, and UPI transactions.
+  - Implemented `_clean_extracted_amount`: regex-based sanitizer stripping currency symbols (`₹`, `$`, `€`, `Rs.`, `INR`), commas, and trailing slashes, with fallback to item notes regex.
+  - Configured active `gemini-3.1-flash-lite` and `gemini-flash-latest` models, eliminating 404 latency from deprecated model IDs.
+  - Frontend guard in `ExpenseModal.tsx` strictly validates `numAmount > 0` before populating the form.
+- **Status**: **Resolved & Verified (68/68 backend tests passing, live extraction verified)**.
+
+---
+
 ## 3. Maintenance & Code Quality Standards
 
 - **PEP 8 Compliance**: All top-level imports clean; no mid-file or inline module imports.

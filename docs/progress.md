@@ -590,6 +590,82 @@ All 13 REST API endpoints across 5 core backend modules are fully functional wit
   - Backend pytest: 13/13 auth and AI unit tests passing (100%).
   - Next.js production build: 14/14 static pages generated cleanly with 0 compiler errors (`npm run build`).
 
+## Phase 50: Settings Modular Navigation Tabs & Display Region Panel
+
+- **Problem & Scope**:
+  - The Settings & Preferences page (`/settings`) was rendered as a long, unorganized view lacking section-level navigation.
+- **Frontend Architecture**:
+  - `frontend/src/components/settings/SettingsTabs.tsx`: Built an interactive horizontal pill-style navigation tab bar with icon + label badges:
+    1. All Sections (`LayoutGrid`)
+    2. Display & Region (`Palette`)
+    3. Budget & Alerts (`Sliders`)
+    4. Account & Security (`ShieldCheck`)
+    5. Data & Backup (`Database`)
+    6. System & Health (`Activity`)
+  - `frontend/src/components/settings/DisplayRegionPanel.tsx`: Dedicated preferences panel featuring:
+    - Primary Currency selector (INR, USD, EUR, GBP, JPY, CAD, AUD) with live conversion rate indicators.
+    - App Language selector (8 languages with native scripts).
+    - Theme appearance modes (System, Dark, Light).
+    - Date formatting preferences (DD/MM/YYYY, MM/DD/YYYY, YYYY-MM-DD).
+  - `frontend/src/app/settings/page.tsx`: Integrated `SettingsTabs` and swap logic for dynamic tab switching without page reload.
+- **Verification**:
+  - TypeScript validation: 0 errors (`npx tsc --noEmit`).
+  - Next.js production build: Clean compile (`npm run build`).
+
+## Phase 51: Natural Low-Intensity Button Shimmer Styling & Floating FAB Fix
+
+- **Problem & Scope**:
+  - Action buttons had excessive neon glow and saturation. The floating **"Ask BudgetBrain"** button was occasionally obscured or hidden beneath dashboard content on smaller viewports.
+- **Frontend Architecture**:
+  - `frontend/src/app/globals.css`: Created `.btn-subtle-shimmer` with natural, low-intensity keyframe animations (`rgba(255,255,255,0.06)`), soft shadows, and organic transitions across both light and dark themes.
+  - `frontend/src/components/chat/AskBudgetBrainChat.tsx`: Permanently anchored the chat trigger FAB to the viewport bottom-right (`position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 50;`) to prevent layout clipping and overlap issues.
+
+## Phase 52: Feature 15 — Visual Mood Representation & Animated Mascot ("Brainy")
+
+- **Problem & Scope**:
+  - Per-expense mood tracking in the "Log New Expense" modal (Feature 11) created user friction during quick expense entry. The user requested replacing this with Feature 15: **Visual Mood Representation** on the Dashboard and Budget cards.
+- **Frontend Architecture**:
+  - `frontend/src/components/expenses/ExpenseModal.tsx`:
+    - Completely removed the `"How did you feel? (AI Auto-detected)"` selector, over-budget stressed alert banner, and the 5 emotion buttons (`happy`, `normal`, `sad`, `stressed`, `excited`).
+    - Streamlined expense creation into a clean, rapid form focused strictly on title, amount, category, date, payment mode, recurring check, and receipt scan.
+  - `frontend/src/components/dashboard/VisualMoodWidget.tsx`:
+    - Created an interactive, animated SVG robot brain mascot (**"Brainy"**) displaying dynamic real-time financial states:
+      - 🥳 **Thriving** (< 60% budget consumed): Joyful bouncing mascot with particle sparkles, emerald aura, speech bubble praising budget discipline.
+      - 🧘 **Zen** (60% – 79% budget consumed): Meditating levitation with breathing animation, teal aura, calm balanced pacing guidance.
+      - ⚡ **Cautious** (80% – 99% budget consumed): Vigilant alert mascot with warning aura, advice to curb discretionary splurges.
+      - 😱 **Distressed** (≥ 100% budget consumed / deficit): Alarmed trembling mascot, coral/rose emergency pulse, spending pause advisory.
+    - Interactive Tap: Clicking/tapping Brainy cycles humorous and insightful financial quips.
+    - 4-Zone Speedometer Track: Visual track with an animated needle pointing to the exact percentage of budget consumed.
+    - Real-Time Pacing Metrics: Displays safe daily run rate (`safeDailySpend`) for remaining days in the month and remaining budget cushion.
+  - `frontend/src/app/page.tsx`:
+    - Replaced `<EmotionalSpendingWidget />` with `<VisualMoodWidget />` in the dashboard hierarchy.
+  - `frontend/src/app/budgets/page.tsx`:
+    - Updated `getStatusBadge` across both Master Monthly Budget and Category Budget cards to display visual mood emoji badges: `😱 Distressed (Over Budget)`, `⚡ Cautious (≥80%)`, `🧘 Zen (Balanced)`, and `🥳 Thriving (On Track)`.
+
+## Phase 53: Multimodal Receipt Vision OCR Optimization & Zero-Amount Display Fix
+
+- **Problem & Scope**:
+  - When scanning receipts or bill photos, the amount input box was displaying `0` or failing to extract the total amount paid.
+- **Root Cause Analysis**:
+  1. Ambiguous Vision Prompt: The previous prompt (`"amount": Total grand total paid as float`) caused multimodal LLMs to output `0.0` on real Indian invoices, utility bills, and UPI screenshots when a line was not explicitly labeled "Grand Total".
+  2. Currency Symbol & Comma Crash: When models returned strings like `"₹450.00"`, `"1,250.00"`, or `"Rs. 350/-"`, Python's `float()` threw a `ValueError`, triggering fallback to rules provider which returned `amount=None` or `0`.
+  3. Frontend Zero Population: `ExpenseModal.tsx` checked `if (data.amount !== null && data.amount !== undefined)` and populated `"0"` directly into the input box if the backend returned `0`.
+  4. Deprecated Model Identifier: `backend/.env` was set to `AI_MODEL=gemini-1.5-flash` which returned HTTP 404 on Google Generative Language v1beta API.
+- **Backend Architecture**:
+  - `backend/app/services/ai/gemini_provider.py`, `openai_provider.py`, `anthropic_provider.py`:
+    - Engineered high-precision OCR prompts with explicit rules for Indian & global invoices, utility bills (MSEDCL), restaurant bills (CGST/SGST/Roundoff), and UPI payment screenshots (PhonePe, Google Pay, Paytm, BHIM).
+    - Implemented `_clean_extracted_amount`: extracts clean float values, strips currency symbols (`₹`, `$`, `€`, `Rs.`, `INR`), removes commas and trailing slashes, and falls back to regex scanning of item notes if amount was omitted.
+    - Updated `_post_content` to skip deprecated models and prioritize `gemini-3.1-flash-lite`, `gemini-flash-latest`.
+  - `backend/.env`: Updated `AI_MODEL=gemini-3.1-flash-lite`.
+- **Frontend Architecture**:
+  - `frontend/src/components/expenses/ExpenseModal.tsx`:
+    - Updated `processReceiptFile`: validates `numAmount !== null && !isNaN(numAmount) && numAmount > 0`. If valid, formats and sets view amount; if 0 or null, sets empty string (`setAmount('')`) and displays a clear message asking the user to verify the total amount.
+- **Verification**:
+  - Tested live OCR extraction on PhonePe UPI screenshots (`₹ 2,459` → `2459.0`) and MSEDCL electricity bills (`1,762.00` → `1762.0`).
+  - Pytest: 68/68 backend tests passing (100%).
+  - Next.js production build: 14/14 static pages generated cleanly (`npm run build`).
+
+
 
 
 
