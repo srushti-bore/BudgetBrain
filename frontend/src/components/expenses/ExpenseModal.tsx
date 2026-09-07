@@ -27,6 +27,7 @@ interface ExpenseModalProps {
   initialData?: Expense | null;
   categories: Category[];
   onCategoryCreated?: (newCategory: Category) => void;
+  initialScanFile?: File | null;
 }
 
 export default function ExpenseModal({
@@ -36,6 +37,7 @@ export default function ExpenseModal({
   initialData,
   categories,
   onCategoryCreated,
+  initialScanFile,
 }: ExpenseModalProps) {
   const formatCurrency = useFormatCurrency();
   const { currency, convertToView, convertToBase } = useCurrency();
@@ -177,9 +179,7 @@ export default function ExpenseModal({
     }
   };
 
-  const handleScanReceipt = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const processReceiptFile = async (file: File) => {
     setIsScanning(true);
     setErrorMsg('');
     try {
@@ -220,9 +220,21 @@ export default function ExpenseModal({
       setErrorMsg(err?.response?.data?.error?.message || 'Failed to scan receipt image.');
     } finally {
       setIsScanning(false);
-      e.target.value = '';
     }
   };
+
+  const handleScanReceipt = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    await processReceiptFile(file);
+    e.target.value = '';
+  };
+
+  useEffect(() => {
+    if (initialScanFile && isOpen) {
+      processReceiptFile(initialScanFile);
+    }
+  }, [initialScanFile, isOpen]);
 
   if (!isOpen) return null;
 

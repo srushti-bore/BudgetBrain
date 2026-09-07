@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { motion, Variants } from 'framer-motion';
-import { dashboardApi, API_BASE_URL } from '@/lib/api';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { motion, AnimatePresence, Variants } from 'framer-motion';
+import { dashboardApi, expenseApi, categoryApi, API_BASE_URL } from '@/lib/api';
+import ExpenseModal from '@/components/expenses/ExpenseModal';
+import { MilestoneFeedback } from '@/lib/spendMilestoneAi';
 import BudgetRing from '@/components/dashboard/BudgetRing';
 import CategoryDonutChart from '@/components/dashboard/CategoryDonutChart';
 import SpendTrendChart from '@/components/dashboard/SpendTrendChart';
@@ -18,7 +20,25 @@ import { useFormatCurrency, useCurrency } from '@/providers/CurrencyProvider';
 import { useSettings } from '@/providers/SettingsProvider';
 import { useTranslation } from '@/providers/LanguageProvider';
 import { useAuth } from '@/providers/AuthProvider';
-import { Wallet, Calendar, PlusCircle, AlertCircle, Target, CheckCircle, AlertTriangle, Flame, MoreVertical, LogOut, Settings as SettingsIcon } from 'lucide-react';
+import {
+  Wallet,
+  Calendar,
+  PlusCircle,
+  Plus,
+  AlertCircle,
+  Target,
+  CheckCircle,
+  CheckCircle2,
+  AlertTriangle,
+  Flame,
+  MoreVertical,
+  LogOut,
+  Settings as SettingsIcon,
+  Camera,
+  Upload,
+  X,
+  Sparkles,
+} from 'lucide-react';
 import Link from 'next/link';
 
 const containerVariants: Variants = {
@@ -58,6 +78,50 @@ export default function DashboardPage() {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showTopUserMenu]);
+
+  const queryClient = useQueryClient();
+  const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+  const [initialScanFile, setInitialScanFile] = useState<File | null>(null);
+  const [toastMessage, setToastMessage] = useState<{ message: string; title?: string } | null>(null);
+
+  // Fetch categories for modal dropdown & AI categorization
+  const { data: categories = [] } = useQuery({
+    queryKey: ['categories'],
+    queryFn: categoryApi.list,
+  });
+
+  const createExpenseMutation = useMutation({
+    mutationFn: expenseApi.create,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dashboardSummary'] });
+      queryClient.invalidateQueries({ queryKey: ['expenses'] });
+      queryClient.invalidateQueries({ queryKey: ['categorySpend'] });
+      queryClient.invalidateQueries({ queryKey: ['spendTrend'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardRecentExpenses'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardMonthComparison'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardInsights'] });
+      queryClient.invalidateQueries({ queryKey: ['emotionalSpending'] });
+    },
+  });
+
+  const handleDirectReceiptScan = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setInitialScanFile(file);
+    setIsExpenseModalOpen(true);
+    e.target.value = '';
+  };
+
+  const handleSaveExpense = async (formData: any, milestone?: MilestoneFeedback) => {
+    await createExpenseMutation.mutateAsync(formData);
+    setIsExpenseModalOpen(false);
+    setInitialScanFile(null);
+    setToastMessage({
+      title: milestone?.title || 'Expense Added!',
+      message: milestone?.message || 'Expense added successfully! (खर्च यशस्वीरित्या जोडला गेला)',
+    });
+    setTimeout(() => setToastMessage(null), 5000);
+  };
 
   const formatCurrency = useFormatCurrency();
   const { currency } = useCurrency();
@@ -219,13 +283,55 @@ export default function DashboardPage() {
             </div>
           )}
 
-          <Link
-            href="/expenses?action=new"
-            className="group inline-flex items-center gap-2 px-5 py-2.5 bg-sage hover:bg-sage-dark text-white font-semibold text-xs md:text-sm rounded-xl shadow-md shadow-sage/20 hover:shadow-lg hover:shadow-sage/30 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
-          >
-            <PlusCircle className="w-4 h-4 transition-transform duration-200 group-hover:rotate-90" />
-            <span>{t('log_expense', 'Log Expense')}</span>
-          </Link>
+          {/* AI Receipt Scanner Quick Actions Bar */}
+          <div className="flex items-center gap-1.5 p-1 bg-white/80 dark:bg-white/5 border border-ink/10 dark:border-white/10 rounded-2xl shadow-xs">
+            {/* Direct Camera Capture */}
+            <label
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-bold shadow-xs cursor-pointer transition-all hover:scale-105 active:scale-95 shrink-0"
+              title="Snap a bill with camera to auto-add expense with AI"
+            >
+              <Camera className="w-3.5 h-3.5" />
+              <span>Capture Bill</span>
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handleDirectReceiptScan}
+                className="hidden"
+              />
+            </label>
+
+            {/* Direct Gallery / File Upload */}
+            <label
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-teal-50 dark:bg-teal-500/10 hover:bg-teal-100 dark:hover:bg-teal-500/20 text-teal-800 dark:text-teal-300 text-xs font-bold transition-all cursor-pointer hover:scale-105 active:scale-95 shrink-0"
+              title="Upload receipt or bill from photo gallery"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              <span className="md:hidden">Gallery</span>
+              <span className="hidden md:inline">Upload Bill</span>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleDirectReceiptScan}
+                className="hidden"
+              />
+            </label>
+
+            {/* Manual Add Expense Button */}
+            <button
+              type="button"
+              onClick={() => {
+                setInitialScanFile(null);
+                setIsExpenseModalOpen(true);
+              }}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-sage hover:bg-sage-dark text-white text-xs font-semibold shadow-xs transition-all hover:scale-105 active:scale-95 cursor-pointer shrink-0"
+              title="Add expense manually"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">{t('log_expense', 'Log Expense')}</span>
+              <span className="sm:hidden">Add</span>
+            </button>
+          </div>
         </div>
       </motion.div>
 
@@ -422,6 +528,49 @@ export default function DashboardPage() {
       <motion.div variants={itemVariants}>
         <RecentExpensesSnapshot expenses={summary?.recent_expenses || []} />
       </motion.div>
+
+      {/* Pop-up Toast Message */}
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: -25, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -25, scale: 0.95 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+            className="fixed top-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-2xl bg-emerald-600/95 text-white shadow-2xl shadow-emerald-600/30 backdrop-blur-md border border-white/20"
+          >
+            <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+              <CheckCircle2 className="w-5 h-5 text-white" />
+            </div>
+            <div className="min-w-0 pr-1">
+              <p className="font-bold text-xs">{toastMessage.title || 'Expense Added'}</p>
+              <p className="text-[11px] text-white/90">{toastMessage.message}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setToastMessage(null)}
+              className="p-1 hover:bg-white/20 rounded-lg text-white/80 hover:text-white transition-colors ml-1 cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Expense Modal with AI Receipt Scanner */}
+      <ExpenseModal
+        isOpen={isExpenseModalOpen}
+        onClose={() => {
+          setIsExpenseModalOpen(false);
+          setInitialScanFile(null);
+        }}
+        onSubmit={handleSaveExpense}
+        categories={categories}
+        initialScanFile={initialScanFile}
+        onCategoryCreated={() => {
+          queryClient.invalidateQueries({ queryKey: ['categories'] });
+        }}
+      />
     </motion.div>
   );
 }
