@@ -19,6 +19,8 @@ import {
   DuplicateCheckResponse,
 } from '@/types';
 
+export type { DuplicateCheckRequest, DuplicateCheckResponse };
+
 const DEFAULT_PRODUCTION_API_URL = 'https://budgetbrain-ojnr.onrender.com/api/v1';
 
 export const normalizeApiUrl = (rawUrl?: string): string => {

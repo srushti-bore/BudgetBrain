@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Expense, Category, PaymentMode, ExpenseMood } from '@/types';
+import { Expense, Category, PaymentMode, ExpenseMood, DuplicateCheckResponse } from '@/types';
 import { getTodayDateString, capitalizeFirstLetter } from '@/lib/utils';
 import { X, Plus, AlertCircle, Repeat, Flame, AlertTriangle, ShieldCheck, ShieldAlert, Sparkles, Wand2, Camera, Upload, Loader2 } from 'lucide-react';
-import { categoryApi, dashboardApi, aiApi, expenseApi, SuggestCategoryResponse, ScanReceiptResponse, DuplicateCheckResponse } from '@/lib/api';
+import { categoryApi, dashboardApi, aiApi, expenseApi, SuggestCategoryResponse, ScanReceiptResponse } from '@/lib/api';
 import { useCurrency, useFormatCurrency } from '@/providers/CurrencyProvider';
 import { useSettings } from '@/providers/SettingsProvider';
 import { useQuery } from '@tanstack/react-query';
