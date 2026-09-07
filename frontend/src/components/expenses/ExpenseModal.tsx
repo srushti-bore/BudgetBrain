@@ -391,7 +391,8 @@ export default function ExpenseModal({
                   {/* Upload from Gallery */}
                   <label className="px-2.5 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer transition-all hover:scale-105 active:scale-95">
                     <Upload className="w-3.5 h-3.5" />
-                    <span>Gallery</span>
+                    <span className="md:hidden">Gallery</span>
+                    <span className="hidden md:inline">Upload</span>
                     <input
                       type="file"
                       accept="image/*"
