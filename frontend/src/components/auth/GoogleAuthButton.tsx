@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/providers/AuthProvider';
 
@@ -26,7 +26,14 @@ declare global {
               logo_alignment?: 'left' | 'center';
             }
           ) => void;
-          prompt: (notification?: (n: unknown) => void) => void;
+          prompt: (notification?: (n: {
+            isNotDisplayed: () => boolean;
+            getNotDisplayedReason: () => string;
+            isSkippedMoment: () => boolean;
+            getSkippedReason: () => string;
+            isDismissedMoment: () => boolean;
+            getDismissedReason: () => string;
+          }) => void) => void;
         };
       };
     };
@@ -47,57 +54,64 @@ export default function GoogleAuthButton({ text = 'continue_with', onError }: Go
 
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
 
+  const handleCredentialResponse = useCallback(
+    async (response: { credential: string }) => {
+      if (!response.credential) return;
+      try {
+        setIsLoading(true);
+        await googleLogin(response.credential);
+        router.push('/');
+      } catch (err: unknown) {
+        const apiError = err as { response?: { data?: { error?: { message?: string } } }; message?: string };
+        const msg = apiError.response?.data?.error?.message || apiError.message || 'Google authentication failed.';
+        onError?.(msg);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [googleLogin, router, onError]
+  );
+
   useEffect(() => {
     if (!googleClientId) return;
 
-    // Load Google Identity Services SDK script dynamically
+    let isSubscribed = true;
     const scriptId = 'google-gsi-client';
-    let script = document.getElementById(scriptId) as HTMLScriptElement | null;
 
-    const initGsi = () => {
-      if (!window.google?.accounts?.id || !googleBtnRef.current) return;
+    const renderGoogleBtn = () => {
+      if (!window.google?.accounts?.id || !googleBtnRef.current || !isSubscribed) return;
 
       try {
         window.google.accounts.id.initialize({
           client_id: googleClientId,
-          callback: async (response: { credential: string }) => {
-            if (response.credential) {
-              try {
-                setIsLoading(true);
-                await googleLogin(response.credential);
-                router.push('/');
-              } catch (err: unknown) {
-                const apiError = err as { response?: { data?: { error?: { message?: string } } }; message?: string };
-                const msg = apiError.response?.data?.error?.message || apiError.message || 'Google authentication failed.';
-                onError?.(msg);
-              } finally {
-                setIsLoading(false);
-              }
-            }
-          },
+          callback: handleCredentialResponse,
         });
 
-        // Clear existing children before rendering
-        if (googleBtnRef.current) {
-          googleBtnRef.current.innerHTML = '';
-          const computedWidth = typeof window !== 'undefined'
-            ? Math.min(360, Math.max(240, Math.floor(window.innerWidth - 64)))
-            : 340;
-          window.google.accounts.id.renderButton(googleBtnRef.current, {
-            theme: 'outline',
-            size: 'large',
-            text: text,
-            shape: 'pill',
-            width: computedWidth,
-            logo_alignment: 'left',
-          });
+        // Ensure container is clean
+        googleBtnRef.current.innerHTML = '';
+
+        // Compute a responsive width that fits neatly inside container
+        const containerWidth = googleBtnRef.current.parentElement?.clientWidth || 320;
+        const buttonWidth = Math.min(360, Math.max(240, Math.floor(containerWidth)));
+
+        window.google.accounts.id.renderButton(googleBtnRef.current, {
+          theme: 'outline',
+          size: 'large',
+          text: text,
+          shape: 'pill',
+          width: buttonWidth,
+          logo_alignment: 'left',
+        });
+
+        if (isSubscribed) {
+          setIsGsiLoaded(true);
         }
-        setIsGsiLoaded(true);
       } catch (e: unknown) {
         console.error('Error initializing Google Sign-In:', e);
       }
     };
 
+    let script = document.getElementById(scriptId) as HTMLScriptElement | null;
     if (!script) {
       script = document.createElement('script');
       script.id = scriptId;
@@ -105,44 +119,77 @@ export default function GoogleAuthButton({ text = 'continue_with', onError }: Go
       script.async = true;
       script.defer = true;
       script.onload = () => {
-        initGsi();
+        renderGoogleBtn();
       };
       document.head.appendChild(script);
     } else {
-      initGsi();
+      renderGoogleBtn();
     }
-  }, [googleClientId, googleLogin, router, text, onError]);
+
+    const handleResize = () => {
+      if (window.google?.accounts?.id && googleBtnRef.current) {
+        renderGoogleBtn();
+      }
+    };
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      isSubscribed = false;
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [googleClientId, handleCredentialResponse, text]);
 
   const handleManualClick = () => {
     if (!googleClientId) {
       onError?.(
-        'NEXT_PUBLIC_GOOGLE_CLIENT_ID is not configured. Please add your Google OAuth Client ID to your environment variables.'
+        'Google Client ID is not configured. Please verify NEXT_PUBLIC_GOOGLE_CLIENT_ID in your environment.'
       );
       return;
     }
 
     if (window.google?.accounts?.id) {
-      window.google.accounts.id.prompt();
+      window.google.accounts.id.prompt((notification) => {
+        if (notification?.isNotDisplayed?.()) {
+          const reason = notification.getNotDisplayedReason();
+          console.warn('Google prompt not displayed:', reason);
+          if (reason === 'unregistered_origin') {
+            onError?.(
+              'Google Sign-In error: The current website domain is not added to "Authorized JavaScript origins" in your Google Cloud Console project.'
+            );
+          } else if (reason === 'opt_out_or_no_session') {
+            onError?.(
+              'No active Google session found. Please sign in to Google in your browser first or use email/password.'
+            );
+          } else if (reason === 'suppressed_by_user') {
+            onError?.(
+              'Google prompt was dismissed recently. Please wait a moment or sign in using email/password.'
+            );
+          } else {
+            onError?.(`Google prompt not displayed: ${reason}`);
+          }
+        }
+      });
     } else {
-      onError?.('Google Identity Services is initializing. Please click again in a moment.');
+      onError?.('Google Sign-In is initializing. Please try again in a few seconds.');
     }
   };
 
   return (
-    <div className="w-full flex flex-col items-center justify-center">
-      {/* Container where Google SDK renders official iframe button */}
+    <div className="w-full flex flex-col items-center justify-center min-h-[44px] relative">
+      {/* Official Google button rendered by Google SDK */}
       <div
         ref={googleBtnRef}
-        className={`w-full flex justify-center ${isGsiLoaded ? 'block' : 'hidden'}`}
+        className="w-full flex justify-center items-center overflow-hidden"
+        style={{ minHeight: '44px' }}
       />
 
-      {/* Fallback button when Google script is loading or Client ID is not yet configured */}
+      {/* Fallback button when Google script is loading or Client ID is missing */}
       {!isGsiLoaded && (
         <button
           type="button"
           onClick={handleManualClick}
           disabled={isLoading}
-          className="w-full py-2.5 px-4 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] hover:bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] font-medium text-sm flex items-center justify-center gap-3 transition-all shadow-xs cursor-pointer disabled:opacity-60"
+          className="w-full py-2.5 px-4 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] hover:bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] font-medium text-sm flex items-center justify-center gap-3 transition-all shadow-xs cursor-pointer disabled:opacity-60 absolute inset-0"
         >
           {isLoading ? (
             <span className="w-4 h-4 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin" />
@@ -166,7 +213,13 @@ export default function GoogleAuthButton({ text = 'continue_with', onError }: Go
               />
             </svg>
           )}
-          <span>{isLoading ? 'Connecting to Google...' : text === 'signup_with' ? 'Sign up with Google' : 'Sign in with Google'}</span>
+          <span>
+            {isLoading
+              ? 'Connecting to Google...'
+              : text === 'signup_with'
+              ? 'Sign up with Google'
+              : 'Sign in with Google'}
+          </span>
         </button>
       )}
     </div>
