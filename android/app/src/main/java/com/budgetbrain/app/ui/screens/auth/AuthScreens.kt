@@ -189,26 +189,37 @@ fun LoginScreen(
                     fontWeight = FontWeight.SemiBold
                 )
                 Divider(modifier = Modifier.weight(1f), color = CardBorder)
-            }
-
             Spacer(modifier = Modifier.height(16.dp))
 
             // Google Sign-In Button
             val context = LocalContext.current
             val googleAuthHelper = remember { com.budgetbrain.app.util.GoogleAuthHelper(context, authRepository) }
-
-            OutlinedButton(
-                onClick = {
+            val googleSignInLauncher = rememberLauncherForActivityResult(
+                contract = ActivityResultContracts.StartActivityForResult()
+            ) { result ->
+                if (result.resultCode == android.app.Activity.RESULT_OK) {
                     isLoading = true
                     errorMessage = null
                     scope.launch {
-                        val result = googleAuthHelper.signIn()
+                        val res = googleAuthHelper.handleSignInResult(result.data)
                         isLoading = false
-                        result.fold(
+                        res.fold(
                             onSuccess = { onLoginSuccess() },
                             onFailure = { errorMessage = it.message ?: "Google Sign-In failed" }
                         )
                     }
+                } else {
+                    isLoading = false
+                }
+            }
+
+            OutlinedButton(
+                onClick = {
+                    val intentRes = googleAuthHelper.getSignInIntent()
+                    intentRes.fold(
+                        onSuccess = { googleSignInLauncher.launch(it) },
+                        onFailure = { errorMessage = it.message }
+                    )
                 },
                 enabled = !isLoading,
                 shape = RoundedCornerShape(12.dp),
@@ -258,6 +269,24 @@ fun RegisterScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val googleAuthHelper = remember { com.budgetbrain.app.util.GoogleAuthHelper(context, authRepository) }
+    val googleSignUpLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            isLoading = true
+            errorMessage = null
+            scope.launch {
+                val res = googleAuthHelper.handleSignInResult(result.data)
+                isLoading = false
+                res.fold(
+                    onSuccess = { onGoogleSuccess() },
+                    onFailure = { errorMessage = it.message ?: "Google Sign-In failed" }
+                )
+            }
+        } else {
+            isLoading = false
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -307,7 +336,7 @@ fun RegisterScreen(
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // Name
+            // Full Name
             OutlinedTextField(
                 value = fullName,
                 onValueChange = { fullName = it; errorMessage = null },
@@ -400,16 +429,11 @@ fun RegisterScreen(
             // Google Sign-Up Button
             OutlinedButton(
                 onClick = {
-                    isLoading = true
-                    errorMessage = null
-                    scope.launch {
-                        val result = googleAuthHelper.signIn()
-                        isLoading = false
-                        result.fold(
-                            onSuccess = { onGoogleSuccess() },
-                            onFailure = { errorMessage = it.message ?: "Google Sign-In failed" }
-                        )
-                    }
+                    val intentRes = googleAuthHelper.getSignInIntent()
+                    intentRes.fold(
+                        onSuccess = { googleSignUpLauncher.launch(it) },
+                        onFailure = { errorMessage = it.message }
+                    )
                 },
                 enabled = !isLoading,
                 shape = RoundedCornerShape(12.dp),

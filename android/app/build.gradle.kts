@@ -108,12 +108,10 @@ dependencies {
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
 
     // Biometric Authentication (Fingerprint & Face Unlock)
-    implementation("androidx.biometric:biometric:1.2.0-alpha05")
+    implementation("androidx.biometric:biometric:1.1.0")
 
-    // Google Credential Manager (Native Google Sign-In)
-    implementation("androidx.credentials:credentials:1.2.1")
-    implementation("androidx.credentials:credentials-play-services-auth:1.2.1")
-    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.0")
+    // Google Sign-In (Play Services Auth)
+    implementation("com.google.android.gms:play-services-auth:20.7.0")
 
     // Background Work & Notifications
     implementation("androidx.work:work-runtime-ktx:2.9.0")
