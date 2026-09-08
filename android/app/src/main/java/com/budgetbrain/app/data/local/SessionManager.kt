@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import com.budgetbrain.app.BuildConfig
 import com.budgetbrain.app.data.model.User
 import com.google.gson.Gson
 
@@ -31,8 +32,9 @@ class SessionManager(context: Context) {
         private const val KEY_USER = "current_user"
         private const val KEY_CURRENCY = "view_currency"
         private const val KEY_BASE_URL = "api_base_url"
-
-        const val DEFAULT_BASE_URL = "https://budgetbrain-ojnr.onrender.com/api/v1/"
+        private const val KEY_BIOMETRIC_ENABLED = "biometric_lock_enabled"
+        private const val KEY_DAILY_REMINDER_TIME = "daily_reminder_time"
+        private const val KEY_SPEND_ALERT_ENABLED = "spend_alert_enabled"
     }
 
     fun saveToken(token: String) {
@@ -66,12 +68,41 @@ class SessionManager(context: Context) {
     }
 
     fun getBaseUrl(): String {
-        return prefs.getString(KEY_BASE_URL, DEFAULT_BASE_URL) ?: DEFAULT_BASE_URL
+        val defaultUrl = try {
+            BuildConfig.BASE_URL
+        } catch (e: Exception) {
+            "https://budgetbrain-ojnr.onrender.com/api/v1/"
+        }
+        return prefs.getString(KEY_BASE_URL, defaultUrl) ?: defaultUrl
     }
 
     fun setBaseUrl(url: String) {
         val formattedUrl = if (url.endsWith("/")) url else "$url/"
         prefs.edit().putString(KEY_BASE_URL, formattedUrl).apply()
+    }
+
+    fun isBiometricEnabled(): Boolean {
+        return prefs.getBoolean(KEY_BIOMETRIC_ENABLED, false)
+    }
+
+    fun setBiometricEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_BIOMETRIC_ENABLED, enabled).apply()
+    }
+
+    fun getDailyReminderTime(): String {
+        return prefs.getString(KEY_DAILY_REMINDER_TIME, "21:00") ?: "21:00"
+    }
+
+    fun setDailyReminderTime(time: String) {
+        prefs.edit().putString(KEY_DAILY_REMINDER_TIME, time).apply()
+    }
+
+    fun isSpendAlertEnabled(): Boolean {
+        return prefs.getBoolean(KEY_SPEND_ALERT_ENABLED, true)
+    }
+
+    fun setSpendAlertEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_SPEND_ALERT_ENABLED, enabled).apply()
     }
 
     fun isLoggedIn(): Boolean {
@@ -85,3 +116,4 @@ class SessionManager(context: Context) {
             .apply()
     }
 }
+

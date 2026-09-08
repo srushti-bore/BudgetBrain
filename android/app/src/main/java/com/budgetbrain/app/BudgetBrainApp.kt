@@ -3,6 +3,7 @@ package com.budgetbrain.app
 import android.app.Application
 import com.budgetbrain.app.data.local.SessionManager
 import com.budgetbrain.app.data.remote.RetrofitClient
+import com.budgetbrain.app.notification.NotificationHelper
 import com.budgetbrain.app.repository.*
 
 class BudgetBrainApp : Application() {
@@ -27,5 +28,14 @@ class BudgetBrainApp : Application() {
         budgetRepository = BudgetRepository(apiService)
         categoryRepository = CategoryRepository(apiService)
         aiRepository = AiRepository(apiService)
+
+        // Initialize Notification Channels and Daily Work Scheduler
+        try {
+            NotificationHelper.createNotificationChannels(this)
+            NotificationHelper.scheduleDailyReminder(this)
+        } catch (e: Exception) {
+            // Notification setup failure should not block app startup
+        }
     }
 }
+

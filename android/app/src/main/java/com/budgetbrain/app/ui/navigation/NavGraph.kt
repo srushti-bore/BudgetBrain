@@ -84,6 +84,11 @@ fun NavGraph(
                     },
                     onNavigateToLogin = {
                         navController.popBackStack()
+                    },
+                    onGoogleSuccess = {
+                        navController.navigate(Screen.Dashboard.route) {
+                            popUpTo(Screen.Login.route) { inclusive = true }
+                        }
                     }
                 )
             }

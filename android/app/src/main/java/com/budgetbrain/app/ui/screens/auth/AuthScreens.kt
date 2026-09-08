@@ -194,11 +194,23 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             // Google Sign-In Button
+            val context = LocalContext.current
+            val googleAuthHelper = remember { com.budgetbrain.app.util.GoogleAuthHelper(context, authRepository) }
+
             OutlinedButton(
                 onClick = {
-                    errorMessage = "Google One-Tap is connecting to secure cloud account..."
-                    // Connects to Google ID Token / Auth endpoint
+                    isLoading = true
+                    errorMessage = null
+                    scope.launch {
+                        val result = googleAuthHelper.signIn()
+                        isLoading = false
+                        result.fold(
+                            onSuccess = { onLoginSuccess() },
+                            onFailure = { errorMessage = it.message ?: "Google Sign-In failed" }
+                        )
+                    }
                 },
+                enabled = !isLoading,
                 shape = RoundedCornerShape(12.dp),
                 border = ButtonDefaults.outlinedButtonBorder.copy(brush = androidx.compose.ui.graphics.SolidColor(CardBorder)),
                 colors = ButtonDefaults.outlinedButtonColors(containerColor = CardSurface),
@@ -235,7 +247,8 @@ fun LoginScreen(
 fun RegisterScreen(
     authRepository: AuthRepository,
     onRegisterSuccess: (email: String) -> Unit,
-    onNavigateToLogin: () -> Unit
+    onNavigateToLogin: () -> Unit,
+    onGoogleSuccess: () -> Unit = onNavigateToLogin
 ) {
     var fullName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -243,6 +256,8 @@ fun RegisterScreen(
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val googleAuthHelper = remember { com.budgetbrain.app.util.GoogleAuthHelper(context, authRepository) }
 
     Box(
         modifier = Modifier
@@ -258,13 +273,13 @@ fun RegisterScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Create Account",
-                fontSize = 26.sp,
+                text = "Join BudgetBrain",
+                fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
                 color = TextPrimary
             )
             Text(
-                text = "Join BudgetBrain and automate your finances",
+                text = "Smart AI tracking, zero financial stress",
                 fontSize = 13.sp,
                 color = TextSecondary,
                 textAlign = TextAlign.Center
@@ -295,7 +310,7 @@ fun RegisterScreen(
             // Name
             OutlinedTextField(
                 value = fullName,
-                onValueChange = { fullName = it },
+                onValueChange = { fullName = it; errorMessage = null },
                 label = { Text("Full Name (Optional)") },
                 leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = EmeraldLight) },
                 singleLine = true,
@@ -385,8 +400,18 @@ fun RegisterScreen(
             // Google Sign-Up Button
             OutlinedButton(
                 onClick = {
-                    errorMessage = "Google One-Tap is connecting to secure cloud account..."
+                    isLoading = true
+                    errorMessage = null
+                    scope.launch {
+                        val result = googleAuthHelper.signIn()
+                        isLoading = false
+                        result.fold(
+                            onSuccess = { onGoogleSuccess() },
+                            onFailure = { errorMessage = it.message ?: "Google Sign-In failed" }
+                        )
+                    }
                 },
+                enabled = !isLoading,
                 shape = RoundedCornerShape(12.dp),
                 border = ButtonDefaults.outlinedButtonBorder.copy(brush = androidx.compose.ui.graphics.SolidColor(CardBorder)),
                 colors = ButtonDefaults.outlinedButtonColors(containerColor = CardSurface),
