@@ -1,5 +1,8 @@
 package com.budgetbrain.app.ui.screens.expenses
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -8,9 +11,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -19,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -30,9 +36,12 @@ import com.budgetbrain.app.repository.CategoryRepository
 import com.budgetbrain.app.repository.ExpenseRepository
 import com.budgetbrain.app.ui.components.BudgetBrainTopBar
 import com.budgetbrain.app.ui.theme.*
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -326,6 +335,7 @@ fun AddExpenseForm(
     expenseRepository: ExpenseRepository,
     onSuccess: () -> Unit
 ) {
+    val context = LocalContext.current
     var title by remember { mutableStateOf("") }
     var amountText by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf<Category?>(categories.firstOrNull()) }
@@ -337,10 +347,73 @@ fun AddExpenseForm(
     var duplicateExistingExpense by remember { mutableStateOf<Expense?>(null) }
     var isDuplicateAcknowledged by remember { mutableStateOf(false) }
     var isSubmitting by remember { mutableStateOf(false) }
+    var isScanningReceipt by remember { mutableStateOf(false) }
+    var scanFeedback by remember { mutableStateOf<String?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     val scope = rememberCoroutineScope()
     var searchJob by remember { mutableStateOf<Job?>(null) }
+
+    // AI Receipt Scanner Launcher
+    val receiptPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            isScanningReceipt = true
+            scanFeedback = null
+            errorMessage = null
+            scope.launch(Dispatchers.IO) {
+                try {
+                    val tempFile = File(context.cacheDir, "receipt_${System.currentTimeMillis()}.jpg")
+                    context.contentResolver.openInputStream(uri)?.use { input ->
+                        tempFile.outputStream().use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+                    val result = aiRepository.scanReceipt(tempFile)
+                    withContext(Dispatchers.Main) {
+                        isScanningReceipt = false
+                        result.fold(
+                            onSuccess = { scanData ->
+                                if (!scanData.title.isNullOrBlank()) {
+                                    title = scanData.title
+                                }
+                                if (scanData.amount != null && scanData.amount > 0) {
+                                    amountText = if (scanData.amount % 1.0 == 0.0) {
+                                        scanData.amount.toInt().toString()
+                                    } else {
+                                        scanData.amount.toString()
+                                    }
+                                }
+                                if (!scanData.date.isNullOrBlank()) {
+                                    dateText = scanData.date
+                                }
+                                if (!scanData.categoryName.isNullOrBlank()) {
+                                    val match = categories.find { it.name.equals(scanData.categoryName, ignoreCase = true) }
+                                    if (match != null) {
+                                        selectedCategory = match
+                                        suggestedCategoryName = match.name
+                                    }
+                                }
+                                if (!scanData.paymentMode.isNullOrBlank()) {
+                                    paymentMode = scanData.paymentMode
+                                }
+                                scanFeedback = "✨ AI Extracted: ${scanData.title ?: "Receipt"} (₹${scanData.amount ?: 0.0})"
+                            },
+                            onFailure = {
+                                errorMessage = "Receipt scan failed: ${it.message ?: "Unable to read image"}"
+                            }
+                        )
+                    }
+                } catch (e: Exception) {
+                    withContext(Dispatchers.Main) {
+                        isScanningReceipt = false
+                        errorMessage = "Error opening image: ${e.message}"
+                    }
+                }
+            }
+        }
+    }
 
     // Real-time Category Suggestion & Duplicate Check (Debounced 400ms)
     fun triggerAiCheck(currentTitle: String, currentAmountStr: String) {
@@ -372,18 +445,93 @@ fun AddExpenseForm(
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
             .padding(20.dp)
             .padding(bottom = 24.dp)
     ) {
-        Text("Log New Expense", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-        Spacer(modifier = Modifier.height(16.dp))
-
-        if (errorMessage != null) {
-            Text(text = errorMessage!!, color = CoralAlert, fontSize = 13.sp)
-            Spacer(modifier = Modifier.height(8.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Log New Expense", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
         }
 
-        // Title
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // AI Receipt Scan Button Card
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(enabled = !isScanningReceipt) {
+                    receiptPickerLauncher.launch("image/*")
+                },
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(containerColor = EmeraldGlow),
+            border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(EmeraldPrimary))
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                if (isScanningReceipt) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = EmeraldLight,
+                        strokeWidth = 2.dp
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        "AI is reading receipt...",
+                        color = EmeraldLight,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 14.sp
+                    )
+                } else {
+                    Icon(
+                        Icons.Default.CameraAlt,
+                        contentDescription = "Scan Receipt",
+                        tint = EmeraldLight,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "📸 AI Scan Receipt / Bill",
+                        color = TextPrimary,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
+                    )
+                }
+            }
+        }
+
+        // AI Scan Feedback Banner
+        AnimatedVisibility(visible = scanFeedback != null) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 10.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color(0xFF064E3B).copy(alpha = 0.6f))
+                    .border(1.dp, EmeraldPrimary, RoundedCornerShape(8.dp))
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(scanFeedback ?: "", fontSize = 12.sp, color = EmeraldLight, fontWeight = FontWeight.SemiBold)
+            }
+        }
+
+        if (errorMessage != null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(text = errorMessage!!, color = CoralAlert, fontSize = 13.sp)
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // Title Input
         OutlinedTextField(
             value = title,
             onValueChange = {
@@ -396,13 +544,14 @@ fun AddExpenseForm(
                 focusedBorderColor = EmeraldPrimary,
                 unfocusedBorderColor = CardBorder,
                 focusedTextColor = TextPrimary,
-                unfocusedTextColor = TextPrimary
+                unfocusedTextColor = TextPrimary,
+                focusedLabelColor = EmeraldLight
             ),
             modifier = Modifier.fillMaxWidth()
         )
 
         // AI Category Prediction Banner
-        AnimatedVisibility(visible = suggestedCategoryName != null) {
+        AnimatedVisibility(visible = suggestedCategoryName != null && scanFeedback == null) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -419,7 +568,7 @@ fun AddExpenseForm(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // Amount
+        // Amount Input
         OutlinedTextField(
             value = amountText,
             onValueChange = {
@@ -434,7 +583,76 @@ fun AddExpenseForm(
                 focusedBorderColor = EmeraldPrimary,
                 unfocusedBorderColor = CardBorder,
                 focusedTextColor = TextPrimary,
-                unfocusedTextColor = TextPrimary
+                unfocusedTextColor = TextPrimary,
+                focusedLabelColor = EmeraldLight
+            ),
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // Category Selector Chips
+        Text("Category", fontSize = 13.sp, color = TextSecondary, fontWeight = FontWeight.Medium)
+        Spacer(modifier = Modifier.height(6.dp))
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            items(categories) { cat ->
+                FilterChip(
+                    selected = selectedCategory?.id == cat.id,
+                    onClick = { selectedCategory = cat },
+                    label = { Text(cat.name, fontSize = 12.sp) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = EmeraldPrimary,
+                        selectedLabelColor = TextPrimary,
+                        containerColor = CardSurface,
+                        labelColor = TextSecondary
+                    )
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Payment Mode Chips
+        Text("Payment Mode", fontSize = 13.sp, color = TextSecondary, fontWeight = FontWeight.Medium)
+        Spacer(modifier = Modifier.height(6.dp))
+        val paymentModes = listOf("UPI", "Cash", "Card", "Net Banking")
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            paymentModes.forEach { mode ->
+                FilterChip(
+                    selected = paymentMode.equals(mode, ignoreCase = true),
+                    onClick = { paymentMode = mode },
+                    label = { Text(mode, fontSize = 12.sp) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = EmeraldPrimary,
+                        selectedLabelColor = TextPrimary,
+                        containerColor = CardSurface,
+                        labelColor = TextSecondary
+                    )
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Date Input
+        OutlinedTextField(
+            value = dateText,
+            onValueChange = { dateText = it },
+            label = { Text("Date (YYYY-MM-DD)") },
+            leadingIcon = { Icon(Icons.Default.DateRange, contentDescription = null, tint = EmeraldLight) },
+            singleLine = true,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = EmeraldPrimary,
+                unfocusedBorderColor = CardBorder,
+                focusedTextColor = TextPrimary,
+                unfocusedTextColor = TextPrimary,
+                focusedLabelColor = EmeraldLight
             ),
             modifier = Modifier.fillMaxWidth()
         )
@@ -444,7 +662,7 @@ fun AddExpenseForm(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 8.dp),
+                    .padding(vertical = 10.dp),
                 shape = RoundedCornerShape(10.dp),
                 colors = CardDefaults.cardColors(containerColor = CardSurface),
                 border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(GoldAccent))
@@ -469,7 +687,7 @@ fun AddExpenseForm(
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(18.dp))
 
         // Submit Button
         Button(
@@ -513,3 +731,4 @@ fun AddExpenseForm(
         }
     }
 }
+
