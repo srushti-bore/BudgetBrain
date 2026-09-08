@@ -655,8 +655,6 @@ All 13 REST API endpoints across 5 core backend modules are fully functional wit
   - `backend/app/services/ai/gemini_provider.py`, `openai_provider.py`, `anthropic_provider.py`:
     - Engineered high-precision OCR prompts with explicit rules for Indian & global invoices, utility bills (MSEDCL), restaurant bills (CGST/SGST/Roundoff), and UPI payment screenshots (PhonePe, Google Pay, Paytm, BHIM).
     - Implemented `_clean_extracted_amount`: extracts clean float values, strips currency symbols (`₹`, `$`, `€`, `Rs.`, `INR`), removes commas and trailing slashes, and falls back to regex scanning of item notes if amount was omitted.
-    - Updated `_post_content` to skip deprecated models and prioritize `gemini-3.1-flash-lite`, `gemini-flash-latest`.
-  - `backend/.env`: Updated `AI_MODEL=gemini-3.1-flash-lite`.
 ## Phase 54: Native Android Application (Kotlin + Jetpack Compose) & Cloud CI/CD Pipeline
 
 - **Problem & Scope**:
@@ -678,6 +676,52 @@ All 13 REST API endpoints across 5 core backend modules are fully functional wit
 - **Cloud CI/CD Build Pipeline (Zero Local Installation)**:
   - Created `.github/workflows/build-apk.yml` running on GitHub Actions `ubuntu-latest` with Temurin Java 17 and Gradle.
   - Automatically compiles and produces downloadable `BudgetBrain-Debug-APK` (`app-debug.apk`) on every push to `main`/`master` without needing Android Studio or SDK tools installed on the user's computer.
+
+## Phase 55: Mobile AI Receipt & Bill Scanner (Jetpack Compose + Gemini Vision)
+
+- **Problem & Scope**:
+  - Android mobile users needed to scan physical receipts, grocery bills, and UPI transaction screenshots directly from their phone camera or gallery to auto-fill expense forms.
+- **Mobile Architecture & OCR Ingestion**:
+  - `android/app/src/main/java/com/budgetbrain/app/ui/screens/ExpensesScreen.kt`:
+    - Integrated `rememberLauncherForActivityResult(ActivityResultContracts.GetContent())` in `AddExpenseForm`.
+    - Streams selected image files directly to `aiRepository.scanReceipt(file)` which dispatches multipart payload to `POST /api/v1/ai/scan-receipt`.
+    - Auto-populates Title, Amount, Date, Category, and Payment Mode with real-time feedback banner and instant auto-categorization.
+    - Added category chips and payment method selector UI with validation.
+
+## Phase 56: 100% Environment-Driven Architecture, Biometrics, Google Play Services Auth & WorkManager Notifications
+
+- **Problem & Scope**:
+  - Required absolute decoupling of configuration settings (Zero hardcoding), stable Google Sign-In on Android, fingerprint/PIN app security, and daily background spending reminders.
+- **100% Environment-Driven Gradle Architecture**:
+  - `android/app/build.gradle.kts`:
+    - Enabled `buildFeatures { buildConfig = true }`.
+    - Dynamic injection of `BuildConfig.BASE_URL`, `BuildConfig.GOOGLE_WEB_CLIENT_ID`, and `BuildConfig.ENABLE_BIOMETRIC_LOCK` from `local.properties` or environment variables with `.ifBlank { null }` fallback protection.
+    - Added template files [`android/local.properties.example`](file:///d:/BudgetBrain/android/local.properties.example) and [`android/env.android.example`](file:///d:/BudgetBrain/android/env.android.example).
+- **Native Google Sign-In & Security**:
+  - `com.budgetbrain.app.auth.GoogleAuthHelper.kt`: Implemented using stable `com.google.android.gms:play-services-auth:20.7.0`, bypassing alpha Credential Manager dependencies for rock-solid stability across all Android OS versions (API 26+).
+  - `AuthScreens.kt`: Added interactive "Continue with Google" button with graceful fallback if client ID is omitted.
+- **Biometric App Lock**:
+  - `com.budgetbrain.app.auth.BiometricHelper.kt`: Implemented using `androidx.biometric:biometric:1.1.0`.
+  - `MainActivity.kt`: Extended `FragmentActivity` and added fingerprint/device credential prompt on app launch whenever enabled in user session settings.
+- **Background Scheduled Notifications**:
+  - `com.budgetbrain.app.notifications.NotificationHelper.kt`: Configured notification channels for Daily Reminders and Near-Limit Spending Alerts.
+  - `com.budgetbrain.app.notifications.DailyReminderWorker.kt`: Scheduled 9:00 PM daily check-in with `WorkManager` using `ExistingPeriodicWorkPolicy.KEEP`.
+
+## Phase 57: 1-Click Developer Mode ADB Installer & Direct Backend APK Distribution
+
+- **Problem & Scope**:
+  - Users enabling Android Developer Options via USB or Wi-Fi needed a frictionless 1-click script to install and launch the updated BudgetBrain APK on their phone.
+- **1-Click ADB Automation**:
+  - Created [`Install-BudgetBrain.bat`](file:///d:/BudgetBrain/Install-BudgetBrain.bat) and placed copy in user Downloads (`C:\Users\bores\Downloads\Install-BudgetBrain.bat`).
+  - Automated ADB device connection verification, APK package installation (`adb install -r`), and immediate auto-launch of `com.budgetbrain.app/.MainActivity` on the connected smartphone screen.
+- **Backend APK Landing Page & Direct Redirect**:
+  - `backend/app/main.py`:
+    - Added `GET /app` serving a responsive HTML landing page with QR code, feature overview, and direct APK download link.
+    - Added `GET /app.apk` redirecting (HTTP 302) to the latest GitHub Release APK binary.
+- **Cloud CI/CD Build Matrix & Gradle Wrapper**:
+  - Committed official Gradle 8.5 wrapper (`gradle-wrapper.jar` and `gradle-wrapper.properties`).
+  - Updated `.github/workflows/build-apk.yml` with automated APK compilation and release distribution.
+
 
 
 

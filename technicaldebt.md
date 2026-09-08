@@ -423,7 +423,32 @@ The application is designed as a lightweight, single-user expense tracker using 
   - Built standalone `android/` project using Kotlin 1.9.22, Gradle 8.5, Jetpack Compose, Material Design 3, and Retrofit 2 communicating directly with the production FastAPI REST backend (`https://budgetbrain-ojnr.onrender.com/api/v1/`).
   - Stored access tokens securely via `EncryptedSharedPreferences` (AES-256-GCM) with automatic OkHttp Bearer interceptors.
   - Implemented `.github/workflows/build-apk.yml` compiling debug APKs via GitHub Actions Cloud runners on Ubuntu with Java 17, making `BudgetBrain-Debug-APK` directly downloadable from GitHub without local SDK dependencies.
-- **Status**: **Resolved & Configured**.
+### TD-45: 100% Environment-Driven Mobile Architecture & Stable Play Services Auth vs Alpha CredentialManager
+- **Context & Failure Mode**:
+  1. Alpha dependencies (`androidx.credentials:1.2.1` and `googleid:1.1.0`) caused transitive dependency conflicts, namespace collision with Jetpack Compose Material 3, and unpredictable runtime failures across varied Android API levels.
+  2. Mobile apps often suffer from hardcoded API URLs and client secrets, which violates security best practices and prevents seamless switching between staging, local development, and production environments.
+- **Solution Implemented**:
+  - Standardized on `com.google.android.gms:play-services-auth:20.7.0` in `GoogleAuthHelper.kt` for native Google Sign-In with automatic fallback when `GOOGLE_WEB_CLIENT_ID` is unset.
+  - Enabled `buildFeatures { buildConfig = true }` in `android/app/build.gradle.kts` and dynamically injected `BuildConfig.BASE_URL`, `BuildConfig.GOOGLE_WEB_CLIENT_ID`, and `BuildConfig.ENABLE_BIOMETRIC_LOCK` parsed from `local.properties` or system environment variables.
+  - Provided example environment templates (`android/local.properties.example` and `android/env.android.example`).
+- **Status**: **Resolved & Feature-Complete**.
+
+---
+
+### TD-46: CI/CD Empty String Variable Fallbacks in Kotlin Gradle DSL
+- **Context & Failure Mode**: In GitHub Actions workflows, undefined secrets (`${{ secrets.BUDGETBRAIN_GOOGLE_WEB_CLIENT_ID }}`) evaluate to empty strings (`""`) rather than `null`. In Kotlin Gradle DSL, `System.getenv(...) ?: "fallback"` evaluated the empty string as non-null, causing `BuildConfig.BASE_URL` to be generated as `""` and crashing mobile API requests with `IllegalArgumentException: Expected URL scheme 'http' or 'https' but no colon was found`.
+- **Solution Implemented**: Replaced simple Elvis null checks with Kotlin's `.ifBlank { null }` fallback chain:
+  `val rawBaseUrl = (localProperties.getProperty("BASE_URL")?.ifBlank { null } ?: System.getenv("BUDGETBRAIN_API_BASE_URL")?.ifBlank { null } ?: "https://budgetbrain-ojnr.onrender.com/api/v1/")`.
+- **Status**: **Resolved & Verified in GitHub Actions CI/CD**.
+
+---
+
+### TD-47: 1-Click Developer Mode ADB Automation & Direct Mobile Distribution Gateways
+- **Context & UX Inconsistency**: Users sideloading mobile APKs via USB or Wi-Fi debugging had to manually navigate command lines, locate ADB binaries, type package flags, and find the launcher activity. Additionally, users sharing the app needed a web landing page with QR codes and direct APK redirection.
+- **Solution Implemented**:
+  - Authored standalone batch script [`Install-BudgetBrain.bat`](file:///d:/BudgetBrain/Install-BudgetBrain.bat) that verifies ADB connectivity, installs `BudgetBrain-app.apk`, and auto-launches `com.budgetbrain.app/.MainActivity` directly on the connected smartphone screen.
+  - Added `GET /app` (responsive HTML landing page with QR codes and installation instructions) and `GET /app.apk` (HTTP 302 redirect to latest GitHub Release APK) in `backend/app/main.py`.
+- **Status**: **Resolved & Deployed**.
 
 ---
 
