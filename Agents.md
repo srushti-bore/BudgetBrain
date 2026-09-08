@@ -18,11 +18,14 @@
    - **Layered Pattern**: Strictly isolated `Router → Service → Repository`. No business logic in routers.
    - **Security**: JWT access tokens (15-min expiry), HttpOnly refresh cookies, SHA-256 hashed 6-digit OTP verification, and Google Identity Services (GIS) One-Tap login.
    - **Multi-Tenancy**: All models (`Expense`, `Budget`, `Category`, `RefreshToken`) strictly isolate data by authenticated `user_id`.
-2. **Frontend**:
+2. **Frontend (Web & PWA)**:
    - **Framework**: Next.js 14 App Router, TypeScript, React 18.
    - **Styling & Animation**: Tailwind CSS, Framer Motion springs, Lucide React icons, Glassmorphism aesthetic.
    - **PWA**: Service Worker caching, offline support, installable mobile/desktop app.
-3. **AI Architecture**:
+3. **Native Android Application (`android/`)**:
+   - **Framework**: Kotlin 1.9.22, Jetpack Compose, Material Design 3, Retrofit 2, Coroutines, EncryptedSharedPreferences.
+   - **Cloud CI/CD**: Automated `.apk` compilation on push via `.github/workflows/build-apk.yml`.
+4. **AI Architecture**:
    - **Design**: Abstract `BaseLLMProvider` contract driven dynamically by `AI_PROVIDER` environment variable (`gemini`, `openai`, `anthropic`, or offline mathematical `rules`).
    - **Primary Model**: `gemini-3.1-flash-lite` (sub-second latency, generous quota headroom, fluent Indic multilingual generation).
    - **Multilingual Understanding**: Native Devanagari script and Latin transliteration parsing for Marathi (मराठी & Marathinglish), Hindi (हिंदी & Hinglish), and English.

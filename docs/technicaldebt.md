@@ -417,6 +417,16 @@ The application is designed as a lightweight, single-user expense tracker using 
 
 ---
 
+### TD-44: Decoupled Native Android Mobile Architecture & Cloud CI/CD Compilation
+- **Context & Requirement**: Users wanted a true native Android app (smooth 120Hz scrolling, biometric readiness, native notifications, camera OCR) without incurring the disk footprint and memory drain of installing local Android Studio on developer laptops.
+- **Solution Implemented**:
+  - Built standalone `android/` project using Kotlin 1.9.22, Gradle 8.5, Jetpack Compose, Material Design 3, and Retrofit 2 communicating directly with the production FastAPI REST backend (`https://budgetbrain-ojnr.onrender.com/api/v1/`).
+  - Stored access tokens securely via `EncryptedSharedPreferences` (AES-256-GCM) with automatic OkHttp Bearer interceptors.
+  - Implemented `.github/workflows/build-apk.yml` compiling debug APKs via GitHub Actions Cloud runners on Ubuntu with Java 17, making `BudgetBrain-Debug-APK` directly downloadable from GitHub without local SDK dependencies.
+- **Status**: **Resolved & Configured**.
+
+---
+
 ## 3. Maintenance & Code Quality Standards
 
 - **PEP 8 Compliance**: All top-level imports clean; no mid-file or inline module imports.

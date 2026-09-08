@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg_dark">#121916</color>
+    <color name="surface_dark">#16201C</color>
+    <color name="surface_card">#1B2823</color>
+    <color name="emerald_primary">#3E7259</color>
+    <color name="emerald_glow">#4E8D6F</color>
+    <color name="gold_accent">#C68A28</color>
+    <color name="coral_alert">#C85A48</color>
+    <color name="text_primary">#F6F8F6</color>
+    <color name="text_secondary">#9EABA2</color>
+</resources>

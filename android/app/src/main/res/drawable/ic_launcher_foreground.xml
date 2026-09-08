@@ -1,0 +1,24 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:scaleX="0.6"
+        android:scaleY="0.6"
+        android:translateX="21.6"
+        android:translateY="21.6">
+        <!-- Emerald Glowing Squircle Base -->
+        <path
+            android:fillColor="#3E7259"
+            android:pathData="M30,14 C18,14 14,18 14,30 L14,78 C14,90 18,94 30,94 L78,94 C90,94 94,90 94,78 L94,30 C94,18 90,14 78,14 Z" />
+        <!-- Brain Lobes & Synaptic Circuit Nodes -->
+        <path
+            android:fillColor="#F6F8F6"
+            android:pathData="M42,32 C35,32 30,37 30,44 C30,48 32,51 35,53 C32,55 30,59 30,64 C30,71 35,76 42,76 C46,76 50,73 52,70 C54,73 58,76 62,76 C69,76 74,71 74,64 C74,59 72,55 69,53 C72,51 74,48 74,44 C74,37 69,32 62,32 C58,32 54,35 52,38 C50,35 46,32 42,32 Z" />
+        <!-- Glowing Gold Node Beacon -->
+        <path
+            android:fillColor="#C68A28"
+            android:pathData="M52,48 m-6,0 a6,6 0 1,0 12,0 a6,6 0 1,0 -12,0" />
+    </group>
+</vector>
