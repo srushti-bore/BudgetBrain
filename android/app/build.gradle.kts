@@ -3,16 +3,16 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
-val envBaseUrl: String = (project.findProperty("BUDGETBRAIN_API_BASE_URL") as String?)
-    ?: System.getenv("BUDGETBRAIN_API_BASE_URL")
+val envBaseUrl: String = (project.findProperty("BUDGETBRAIN_API_BASE_URL") as String?)?.ifBlank { null }
+    ?: System.getenv("BUDGETBRAIN_API_BASE_URL")?.ifBlank { null }
     ?: "https://budgetbrain-ojnr.onrender.com/api/v1/"
 
-val envGoogleClientId: String = (project.findProperty("GOOGLE_WEB_CLIENT_ID") as String?)
-    ?: System.getenv("GOOGLE_WEB_CLIENT_ID")
+val envGoogleClientId: String = (project.findProperty("GOOGLE_WEB_CLIENT_ID") as String?)?.ifBlank { null }
+    ?: System.getenv("GOOGLE_WEB_CLIENT_ID")?.ifBlank { null }
     ?: ""
 
-val envBiometricEnabled: Boolean = ((project.findProperty("ENABLE_BIOMETRIC_LOCK") as String?)
-    ?: System.getenv("ENABLE_BIOMETRIC_LOCK")
+val envBiometricEnabled: Boolean = ((project.findProperty("ENABLE_BIOMETRIC_LOCK") as String?)?.ifBlank { null }
+    ?: System.getenv("ENABLE_BIOMETRIC_LOCK")?.ifBlank { null }
     ?: "true").toBoolean()
 
 android {
