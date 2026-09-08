@@ -115,18 +115,17 @@ object NotificationHelper {
 
         val timeDiff = dueDate.timeInMillis - currentDate.timeInMillis
 
-        val dailyWorkRequest = PeriodicWorkRequestBuilder<DailyReminderWorker>(24, TimeUnit.HOURS)
+        val dailyWorkRequest = PeriodicWorkRequest.Builder(
+            DailyReminderWorker::class.java,
+            24,
+            TimeUnit.HOURS
+        )
             .setInitialDelay(timeDiff, TimeUnit.MILLISECONDS)
-            .setConstraints(
-                Constraints.Builder()
-                    .setRequiresBatteryNotLow(false)
-                    .build()
-            )
             .build()
 
         WorkManager.getInstance(context).enqueueUniquePeriodicWork(
             "budgetbrain_daily_reminder_work",
-            ExistingPeriodicWorkPolicy.UPDATE,
+            ExistingPeriodicWorkPolicy.KEEP,
             dailyWorkRequest
         )
     }

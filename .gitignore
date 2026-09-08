@@ -59,3 +59,12 @@ coverage.xml
 # OS generated files
 .DS_Store
 Thumbs.db
+
+# Android
+.gradle/
+android/.gradle/
+android/app/build/
+android/local.properties
+android/*.iml
+android/.idea/
+
