@@ -45,8 +45,8 @@ class GoogleAuthHelper(
                 .build()
 
             val response = credentialManager.getCredential(
-                context = context,
-                request = request
+                request = request,
+                context = context
             )
 
             val credential = response.credential
