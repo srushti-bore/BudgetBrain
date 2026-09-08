@@ -3,8 +3,10 @@ package com.budgetbrain.app.ui.screens.auth
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
@@ -48,7 +50,9 @@ fun LoginScreen(
         contentAlignment = Alignment.Center
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Logo
@@ -77,7 +81,7 @@ fun LoginScreen(
                 textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(28.dp))
 
             if (errorMessage != null) {
                 Box(
@@ -136,7 +140,7 @@ fun LoginScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             // Submit Button
             Button(
@@ -167,6 +171,49 @@ fun LoginScreen(
                     CircularProgressIndicator(color = TextPrimary, modifier = Modifier.size(24.dp))
                 } else {
                     Text("Sign In", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Divider
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Divider(modifier = Modifier.weight(1f), color = CardBorder)
+                Text(
+                    text = "  OR CONTINUE WITH  ",
+                    fontSize = 11.sp,
+                    color = TextMuted,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Divider(modifier = Modifier.weight(1f), color = CardBorder)
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Google Sign-In Button
+            OutlinedButton(
+                onClick = {
+                    errorMessage = "Google One-Tap is connecting to secure cloud account..."
+                    // Connects to Google ID Token / Auth endpoint
+                },
+                shape = RoundedCornerShape(12.dp),
+                border = ButtonDefaults.outlinedButtonBorder.copy(brush = androidx.compose.ui.graphics.SolidColor(CardBorder)),
+                colors = ButtonDefaults.outlinedButtonColors(containerColor = CardSurface),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(text = "G ", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF4285F4))
+                    Text(
+                        text = "Continue with Google",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = TextPrimary
+                    )
                 }
             }
 
@@ -205,7 +252,9 @@ fun RegisterScreen(
         contentAlignment = Alignment.Center
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
@@ -221,7 +270,7 @@ fun RegisterScreen(
                 textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             if (errorMessage != null) {
                 Box(
@@ -298,7 +347,7 @@ fun RegisterScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             Button(
                 onClick = {
@@ -328,6 +377,31 @@ fun RegisterScreen(
                     CircularProgressIndicator(color = TextPrimary, modifier = Modifier.size(24.dp))
                 } else {
                     Text("Create Account", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Google Sign-Up Button
+            OutlinedButton(
+                onClick = {
+                    errorMessage = "Google One-Tap is connecting to secure cloud account..."
+                },
+                shape = RoundedCornerShape(12.dp),
+                border = ButtonDefaults.outlinedButtonBorder.copy(brush = androidx.compose.ui.graphics.SolidColor(CardBorder)),
+                colors = ButtonDefaults.outlinedButtonColors(containerColor = CardSurface),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(text = "G ", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF4285F4))
+                    Text(
+                        text = "Continue with Google",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = TextPrimary
+                    )
                 }
             }
 

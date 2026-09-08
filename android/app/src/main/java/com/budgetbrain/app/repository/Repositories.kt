@@ -29,6 +29,23 @@ class AuthRepository(
         }
     }
 
+    suspend fun googleLogin(idToken: String): Result<TokenResponse> {
+        return try {
+            val response = apiService.googleLogin(GoogleLoginRequest(idToken))
+            if (response.isSuccessful && response.body() != null) {
+                val tokenData = response.body()!!.data
+                sessionManager.saveToken(tokenData.accessToken)
+                sessionManager.saveUser(tokenData.user)
+                Result.success(tokenData)
+            } else {
+                val errMsg = response.errorBody()?.string() ?: "Google Sign-In failed"
+                Result.failure(Exception(errMsg))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun register(email: String, pass: String, fullName: String?): Result<RegisterResponse> {
         return try {
             val response = apiService.register(UserRegisterRequest(email, pass, fullName))
@@ -101,7 +118,7 @@ class ExpenseRepository(private val apiService: BudgetBrainApiService) {
         page: Int = 1,
         categoryId: String? = null,
         search: String? = null
-    ): Result<ExpenseListResponse> {
+    ): Result<List<Expense>> {
         return try {
             val response = apiService.listExpenses(page = page, categoryId = categoryId, search = search)
             if (response.isSuccessful && response.body() != null) {
@@ -158,24 +175,37 @@ class ExpenseRepository(private val apiService: BudgetBrainApiService) {
 class BudgetRepository(private val apiService: BudgetBrainApiService) {
     suspend fun getActiveBudget(): Result<Budget?> {
         return try {
-            val response = apiService.getActiveBudget()
-            if (response.isSuccessful) {
-                Result.success(response.body()?.data)
+            val response = apiService.listBudgets()
+            if (response.isSuccessful && response.body() != null) {
+                val overall = response.body()!!.data.find { it.categoryId == null }
+                Result.success(overall)
             } else {
-                Result.failure(Exception("Failed to load active budget"))
+                Result.success(null)
             }
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.success(null)
         }
     }
 
     suspend fun saveBudget(limit: Double, dailyLimit: Double?): Result<Budget> {
         return try {
-            val response = apiService.setOverallBudget(BudgetCreateOrUpdate(limit, dailyLimit))
-            if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!.data)
+            val activeRes = getActiveBudget()
+            val existing = activeRes.getOrNull()
+
+            if (existing != null) {
+                val patchRes = apiService.updateBudget(existing.id, BudgetUpdate(limit, dailyLimit))
+                if (patchRes.isSuccessful && patchRes.body() != null) {
+                    Result.success(patchRes.body()!!.data)
+                } else {
+                    Result.failure(Exception("Failed to update budget limit"))
+                }
             } else {
-                Result.failure(Exception("Failed to save budget"))
+                val createRes = apiService.createBudget(BudgetCreate(limitAmount = limit, dailyLimit = dailyLimit))
+                if (createRes.isSuccessful && createRes.body() != null) {
+                    Result.success(createRes.body()!!.data)
+                } else {
+                    Result.failure(Exception("Failed to create budget goal"))
+                }
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -199,7 +229,7 @@ class CategoryRepository(private val apiService: BudgetBrainApiService) {
 }
 
 class AiRepository(private val apiService: BudgetBrainApiService) {
-    suspend fun getInsights(): Result<List<AiInsight>> {
+    suspend fun getInsights(): Result<List<FinancialInsight>> {
         return try {
             val response = apiService.getAiInsights()
             if (response.isSuccessful && response.body() != null) {
@@ -240,7 +270,8 @@ class AiRepository(private val apiService: BudgetBrainApiService) {
 
     suspend fun chat(message: String, history: List<ChatMessage>): Result<ChatResponse> {
         return try {
-            val response = apiService.chatWithBudgetBrain(ChatRequest(message, history))
+            val allMessages = history + ChatMessage(role = "user", content = message)
+            val response = apiService.chatWithBudgetBrain(ChatRequest(allMessages))
             if (response.isSuccessful && response.body() != null) {
                 Result.success(response.body()!!.data)
             } else {

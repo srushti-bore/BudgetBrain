@@ -23,7 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.budgetbrain.app.data.model.ChatMessage
-import com.budgetbrain.app.data.model.CitedTransaction
+import com.budgetbrain.app.data.model.RagSource
 import com.budgetbrain.app.repository.AiRepository
 import com.budgetbrain.app.ui.components.BudgetBrainTopBar
 import com.budgetbrain.app.ui.theme.*
@@ -31,7 +31,7 @@ import kotlinx.coroutines.launch
 
 data class UiChatMessage(
     val message: ChatMessage,
-    val citedExpenses: List<CitedTransaction> = emptyList()
+    val citedExpenses: List<RagSource> = emptyList()
 )
 
 @Composable
@@ -66,23 +66,24 @@ fun AskBudgetBrainChatScreen(
     fun sendMessage(textToSend: String) {
         if (textToSend.isBlank() || isThinking) return
         val userMsg = ChatMessage(role = "user", content = textToSend.trim())
-        messages = messages + UiChatMessage(userMsg)
+        val updatedMessages = messages + UiChatMessage(userMsg)
+        messages = updatedMessages
         inputText = ""
         isThinking = true
 
         scope.launch {
             listState.animateScrollToItem(messages.size - 1)
-            val history = messages.map { it.message }
+            val history = updatedMessages.map { it.message }
             val res = aiRepository.chat(textToSend.trim(), history)
             isThinking = false
             res.fold(
                 onSuccess = { replyData ->
                     val assistantMsg = ChatMessage(role = "assistant", content = replyData.reply)
-                    messages = messages + UiChatMessage(assistantMsg, replyData.citedExpenses)
+                    messages = messages + UiChatMessage(assistantMsg, replyData.sources)
                     listState.animateScrollToItem(messages.size - 1)
                 },
                 onFailure = {
-                    val err = ChatMessage(role = "assistant", content = "Sorry, I could not process your request right now. Please try again.")
+                    val err = ChatMessage(role = "assistant", content = "Sorry, I could not process your request right now. Please check your network and try again.")
                     messages = messages + UiChatMessage(err)
                 }
             )

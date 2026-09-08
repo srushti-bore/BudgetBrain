@@ -18,7 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.budgetbrain.app.data.model.AiInsight
+import com.budgetbrain.app.data.model.FinancialInsight
 import com.budgetbrain.app.data.model.DashboardSummary
 import com.budgetbrain.app.repository.AiRepository
 import com.budgetbrain.app.repository.AuthRepository
@@ -42,7 +42,7 @@ fun DashboardScreen(
     onLogout: () -> Unit
 ) {
     var summary by remember { mutableStateOf<DashboardSummary?>(null) }
-    var aiInsights by remember { mutableStateOf<List<AiInsight>>(emptyList()) }
+    var aiInsights by remember { mutableStateOf<List<FinancialInsight>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     val scope = rememberCoroutineScope()
 
@@ -88,8 +88,8 @@ fun DashboardScreen(
         } else {
             val budgetData = summary?.budget
             val limit = budgetData?.limitAmount ?: 0.0
-            val spent = budgetData?.spentAmount ?: summary?.totalSpentMonth ?: 0.0
-            val remaining = budgetData?.remainingAmount ?: (limit - spent)
+            val spent = budgetData?.spentAmount ?: summary?.totalSpent ?: 0.0
+            val remaining = if (limit > 0) (limit - spent) else 0.0
             val percentage = if (limit > 0) (spent / limit) * 100.0 else 0.0
 
             val cal = Calendar.getInstance()
@@ -177,7 +177,7 @@ fun DashboardScreen(
                 // 3. Daily Budget Spending Card
                 item {
                     val dailyLimit = budgetData?.dailyLimit
-                    val todaySpent = budgetData?.todaySpent ?: summary?.totalSpentToday ?: 0.0
+                    val todaySpent = summary?.todaySpent ?: 0.0
 
                     if (dailyLimit != null && dailyLimit > 0) {
                         val dailyRatio = todaySpent / dailyLimit
@@ -247,7 +247,7 @@ fun DashboardScreen(
                         )
                         StatCard(
                             title = "Transactions",
-                            value = "${summary?.totalExpensesCount ?: 0}",
+                            value = "${summary?.expenseCount ?: 0}",
                             subtitle = "Total logged",
                             icon = Icons.Default.ReceiptLong,
                             accentColor = GoldAccent,
@@ -295,7 +295,7 @@ fun DashboardScreen(
                                 }
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Text(
-                                    text = insight.content,
+                                    text = insight.message,
                                     fontSize = 13.sp,
                                     color = TextSecondary
                                 )

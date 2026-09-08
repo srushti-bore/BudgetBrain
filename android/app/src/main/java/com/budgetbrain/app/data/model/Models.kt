@@ -2,10 +2,17 @@ package com.budgetbrain.app.data.model
 
 import com.google.gson.annotations.SerializedName
 
-// Generic API Envelope DataResponse<T>
+// Generic API Envelope DataResponse<T> & PaginatedResponse<T>
 data class DataResponse<T>(
     @SerializedName("data") val data: T,
-    @SerializedName("meta") val meta: Map<String, Any>? = null
+    @SerializedName("meta") val meta: Map<String, Any>? = null,
+    @SerializedName("error") val error: ApiError? = null
+)
+
+data class ApiError(
+    @SerializedName("code") val code: String? = null,
+    @SerializedName("message") val message: String? = null,
+    @SerializedName("field") val field: String? = null
 )
 
 // Auth Models
@@ -53,19 +60,20 @@ data class ResendOtpRequest(
     @SerializedName("email") val email: String
 )
 
+data class GoogleLoginRequest(
+    @SerializedName("id_token") val idToken: String
+)
+
 // Category Models
 data class Category(
     @SerializedName("id") val id: String,
     @SerializedName("name") val name: String,
-    @SerializedName("icon") val icon: String? = "Tag",
-    @SerializedName("color") val color: String? = "#3E7259",
-    @SerializedName("is_default") val isDefault: Boolean = false
+    @SerializedName("is_system") val isSystem: Boolean = false,
+    @SerializedName("expense_count") val expenseCount: Int = 0
 )
 
 data class CategoryCreate(
-    @SerializedName("name") val name: String,
-    @SerializedName("icon") val icon: String? = "Tag",
-    @SerializedName("color") val color: String? = "#3E7259"
+    @SerializedName("name") val name: String
 )
 
 // Expense Models
@@ -76,9 +84,7 @@ data class Expense(
     @SerializedName("date") val date: String,
     @SerializedName("category_id") val categoryId: String? = null,
     @SerializedName("category_name") val categoryName: String? = null,
-    @SerializedName("category_icon") val categoryIcon: String? = null,
-    @SerializedName("category_color") val categoryColor: String? = null,
-    @SerializedName("payment_mode") val paymentMode: String = "UPI",
+    @SerializedName("payment_mode") val paymentMode: String? = "UPI",
     @SerializedName("notes") val notes: String? = null,
     @SerializedName("is_recurring") val isRecurring: Boolean = false,
     @SerializedName("mood") val mood: String? = null
@@ -87,27 +93,21 @@ data class Expense(
 data class ExpenseCreate(
     @SerializedName("title") val title: String,
     @SerializedName("amount") val amount: Double,
+    @SerializedName("category_id") val categoryId: String,
     @SerializedName("date") val date: String,
-    @SerializedName("category_id") val categoryId: String? = null,
-    @SerializedName("payment_mode") val paymentMode: String = "UPI",
     @SerializedName("notes") val notes: String? = null,
+    @SerializedName("payment_mode") val paymentMode: String? = "UPI",
     @SerializedName("is_recurring") val isRecurring: Boolean = false
 )
 
 data class ExpenseUpdate(
     @SerializedName("title") val title: String? = null,
     @SerializedName("amount") val amount: Double? = null,
-    @SerializedName("date") val date: String? = null,
     @SerializedName("category_id") val categoryId: String? = null,
-    @SerializedName("payment_mode") val paymentMode: String? = null,
+    @SerializedName("date") val date: String? = null,
     @SerializedName("notes") val notes: String? = null,
+    @SerializedName("payment_mode") val paymentMode: String? = null,
     @SerializedName("is_recurring") val isRecurring: Boolean? = null
-)
-
-data class ExpenseListResponse(
-    @SerializedName("items") val items: List<Expense>,
-    @SerializedName("total_count") val totalCount: Int,
-    @SerializedName("total_amount") val totalAmount: Double
 )
 
 data class DuplicateCheckRequest(
@@ -117,36 +117,40 @@ data class DuplicateCheckRequest(
     @SerializedName("exclude_id") val excludeId: String? = null
 )
 
-data class DuplicateCandidate(
-    @SerializedName("id") val id: String,
-    @SerializedName("title") val title: String,
-    @SerializedName("amount") val amount: Double,
-    @SerializedName("date") val date: String,
-    @SerializedName("category_name") val categoryName: String? = null,
-    @SerializedName("match_reason") val matchReason: String? = null
-)
-
 data class DuplicateCheckResponse(
     @SerializedName("is_duplicate") val isDuplicate: Boolean,
-    @SerializedName("candidate") val candidate: DuplicateCandidate? = null,
+    @SerializedName("match_type") val matchType: String? = null,
+    @SerializedName("existing_expense") val existingExpense: Expense? = null,
+    @SerializedName("days_difference") val daysDifference: Int? = null,
     @SerializedName("message") val message: String? = null
 )
 
 // Budget Models
 data class Budget(
     @SerializedName("id") val id: String,
-    @SerializedName("period_type") val periodType: String = "month",
-    @SerializedName("period_start") val periodStart: String,
-    @SerializedName("limit_amount") val limitAmount: Double,
+    @SerializedName("category_id") val categoryId: String? = null,
+    @SerializedName("category_name") val categoryName: String? = null,
+    @SerializedName("period_type") val periodType: String = "monthly",
+    @SerializedName("period_start") val periodStart: String? = null,
+    @SerializedName("limit_amount") val limitAmount: Double = 0.0,
     @SerializedName("daily_limit") val dailyLimit: Double? = null,
-    @SerializedName("category_id") val categoryId: String? = null
+    @SerializedName("spent_amount") val spentAmount: Double = 0.0,
+    @SerializedName("remaining_amount") val remainingAmount: Double = 0.0,
+    @SerializedName("percentage_used") val percentageUsed: Double = 0.0,
+    @SerializedName("status") val status: String = "on_track"
 )
 
-data class BudgetCreateOrUpdate(
+data class BudgetCreate(
+    @SerializedName("category_id") val categoryId: String? = null,
+    @SerializedName("period_type") val periodType: String = "monthly",
+    @SerializedName("period_start") val periodStart: String? = null,
     @SerializedName("limit_amount") val limitAmount: Double,
-    @SerializedName("daily_limit") val dailyLimit: Double? = null,
-    @SerializedName("period_type") val periodType: String = "month",
-    @SerializedName("period_start") val periodStart: String? = null
+    @SerializedName("daily_limit") val dailyLimit: Double? = null
+)
+
+data class BudgetUpdate(
+    @SerializedName("limit_amount") val limitAmount: Double? = null,
+    @SerializedName("daily_limit") val dailyLimit: Double? = null
 )
 
 // Dashboard Summary Models
@@ -154,42 +158,37 @@ data class BudgetSummaryData(
     @SerializedName("limit_amount") val limitAmount: Double = 0.0,
     @SerializedName("spent_amount") val spentAmount: Double = 0.0,
     @SerializedName("remaining_amount") val remainingAmount: Double = 0.0,
-    @SerializedName("percentage_used") val percentageUsed: Double = 0.0,
     @SerializedName("daily_limit") val dailyLimit: Double? = null,
-    @SerializedName("today_spent") val todaySpent: Double = 0.0,
-    @SerializedName("today_remaining") val todayRemaining: Double? = null,
-    @SerializedName("is_over_budget") val isOverBudget: Boolean = false
-)
-
-data class CategoryBreakdown(
-    @SerializedName("category_id") val categoryId: String? = null,
-    @SerializedName("category_name") val categoryName: String,
-    @SerializedName("color") val color: String? = "#3E7259",
-    @SerializedName("total_spent") val totalSpent: Double,
-    @SerializedName("percentage") val percentage: Double
+    @SerializedName("status") val status: String = "no_budget"
 )
 
 data class DashboardSummary(
-    @SerializedName("total_spent_month") val totalSpentMonth: Double = 0.0,
-    @SerializedName("total_spent_today") val totalSpentToday: Double = 0.0,
-    @SerializedName("total_expenses_count") val totalExpensesCount: Int = 0,
+    @SerializedName("total_spent") val totalSpent: Double = 0.0,
+    @SerializedName("today_spent") val todaySpent: Double = 0.0,
     @SerializedName("average_daily_spent") val averageDailySpent: Double = 0.0,
+    @SerializedName("expense_count") val expenseCount: Int = 0,
+    @SerializedName("period_start") val periodStart: String? = null,
+    @SerializedName("period_end") val periodEnd: String? = null,
     @SerializedName("budget") val budget: BudgetSummaryData? = null,
-    @SerializedName("top_categories") val topCategories: List<CategoryBreakdown> = emptyList(),
     @SerializedName("recent_expenses") val recentExpenses: List<Expense> = emptyList()
 )
 
 // AI Models
-data class AiInsight(
+data class FinancialInsight(
+    @SerializedName("id") val id: String? = null,
+    @SerializedName("type") val type: String = "saving_tip",
     @SerializedName("title") val title: String,
-    @SerializedName("content") val content: String,
-    @SerializedName("type") val type: String = "tip", // tip, alert, velocity
-    @SerializedName("action_url") val actionUrl: String? = null
+    @SerializedName("message") val message: String,
+    @SerializedName("icon") val icon: String? = "lightbulb",
+    @SerializedName("severity") val severity: String? = "info",
+    @SerializedName("metric") val metric: String? = null
 )
 
-data class AiInsightsResponse(
+data class InsightsResponse(
     @SerializedName("provider") val provider: String = "gemini",
-    @SerializedName("insights") val insights: List<AiInsight> = emptyList()
+    @SerializedName("model") val model: String? = null,
+    @SerializedName("insights") val insights: List<FinancialInsight> = emptyList(),
+    @SerializedName("summary") val summary: String? = null
 )
 
 data class SuggestCategoryRequest(
@@ -198,40 +197,41 @@ data class SuggestCategoryRequest(
 )
 
 data class SuggestCategoryResponse(
-    @SerializedName("category_name") val categoryName: String,
-    @SerializedName("category_id") val categoryId: String? = null,
+    @SerializedName("suggested_category") val suggestedCategory: String,
     @SerializedName("confidence") val confidence: Double = 0.9,
-    @SerializedName("payment_mode") val paymentMode: String? = "UPI"
+    @SerializedName("suggested_payment_mode") val suggestedPaymentMode: String? = "UPI",
+    @SerializedName("suggested_mood") val suggestedMood: String? = null,
+    @SerializedName("reasoning") val reasoning: String? = null
 )
 
 data class SuggestBudgetResponse(
-    @SerializedName("suggested_monthly_limit") val suggestedMonthlyLimit: Double,
-    @SerializedName("suggested_daily_limit") val suggestedDailyLimit: Double,
-    @SerializedName("savings_target_percentage") val savingsTargetPercentage: Double = 20.0,
-    @SerializedName("reasoning") val reasoning: String
+    @SerializedName("recommended_monthly_limit") val recommendedMonthlyLimit: Double,
+    @SerializedName("recommended_daily_limit") val recommendedDailyLimit: Double,
+    @SerializedName("estimated_savings_rate") val estimatedSavingsRate: Double = 20.0,
+    @SerializedName("rationale") val rationale: String
 )
 
 data class ChatMessage(
-    @SerializedName("role") val role: String, // "user" or "assistant"
-    @SerializedName("content") val content: String,
-    @SerializedName("timestamp") val timestamp: Long = System.currentTimeMillis()
-)
-
-data class CitedTransaction(
-    @SerializedName("title") val title: String,
-    @SerializedName("amount") val amount: Double,
-    @SerializedName("date") val date: String,
-    @SerializedName("category") val category: String? = null
+    @SerializedName("role") val role: String, // "user", "assistant", "system"
+    @SerializedName("content") val content: String
 )
 
 data class ChatRequest(
-    @SerializedName("message") val message: String,
-    @SerializedName("history") val history: List<ChatMessage> = emptyList()
+    @SerializedName("messages") val messages: List<ChatMessage>
+)
+
+data class RagSource(
+    @SerializedName("expense_id") val expenseId: String,
+    @SerializedName("title") val title: String,
+    @SerializedName("amount") val amount: Double,
+    @SerializedName("date") val date: String,
+    @SerializedName("category_name") val categoryName: String? = null
 )
 
 data class ChatResponse(
     @SerializedName("reply") val reply: String,
-    @SerializedName("cited_expenses") val citedExpenses: List<CitedTransaction> = emptyList()
+    @SerializedName("sources") val sources: List<RagSource> = emptyList(),
+    @SerializedName("provider") val provider: String? = null
 )
 
 data class ScanReceiptResponse(

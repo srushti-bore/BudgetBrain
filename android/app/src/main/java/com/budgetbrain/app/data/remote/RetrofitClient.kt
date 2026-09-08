@@ -2,6 +2,7 @@ package com.budgetbrain.app.data.remote
 
 import android.content.Context
 import com.budgetbrain.app.data.local.SessionManager
+import com.google.gson.GsonBuilder
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -32,10 +33,14 @@ object RetrofitClient {
                 .writeTimeout(30, TimeUnit.SECONDS)
                 .build()
 
+            val gson = GsonBuilder()
+                .setLenient()
+                .create()
+
             val retrofit = Retrofit.Builder()
                 .baseUrl(baseUrl)
                 .client(okHttpClient)
-                .addConverterFactory(GsonConverterFactory.create())
+                .addConverterFactory(GsonConverterFactory.create(gson))
                 .build()
 
             apiService = retrofit.create(BudgetBrainApiService::class.java)

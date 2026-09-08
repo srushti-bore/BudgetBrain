@@ -13,6 +13,11 @@ interface BudgetBrainApiService {
         @Body request: UserLoginRequest
     ): Response<DataResponse<TokenResponse>>
 
+    @POST("auth/google")
+    suspend fun googleLogin(
+        @Body request: GoogleLoginRequest
+    ): Response<DataResponse<TokenResponse>>
+
     @POST("auth/register")
     suspend fun register(
         @Body request: UserRegisterRequest
@@ -44,7 +49,7 @@ interface BudgetBrainApiService {
         @Query("search") search: String? = null,
         @Query("sort_by") sortBy: String = "date",
         @Query("sort_order") sortOrder: String = "desc"
-    ): Response<DataResponse<ExpenseListResponse>>
+    ): Response<DataResponse<List<Expense>>>
 
     @POST("expenses")
     suspend fun createExpense(
@@ -68,12 +73,20 @@ interface BudgetBrainApiService {
     ): Response<DataResponse<DuplicateCheckResponse>>
 
     // ---------------- BUDGETS ENDPOINTS ----------------
-    @GET("budgets/active")
-    suspend fun getActiveBudget(): Response<DataResponse<Budget?>>
+    @GET("budgets")
+    suspend fun listBudgets(
+        @Query("period_start") periodStart: String? = null
+    ): Response<DataResponse<List<Budget>>>
 
-    @POST("budgets/overall")
-    suspend fun setOverallBudget(
-        @Body request: BudgetCreateOrUpdate
+    @POST("budgets")
+    suspend fun createBudget(
+        @Body request: BudgetCreate
+    ): Response<DataResponse<Budget>>
+
+    @PATCH("budgets/{id}")
+    suspend fun updateBudget(
+        @Path("id") id: String,
+        @Body request: BudgetUpdate
     ): Response<DataResponse<Budget>>
 
     // ---------------- CATEGORIES ENDPOINTS ----------------
@@ -87,7 +100,7 @@ interface BudgetBrainApiService {
 
     // ---------------- AI ENDPOINTS ----------------
     @GET("ai/insights")
-    suspend fun getAiInsights(): Response<DataResponse<AiInsightsResponse>>
+    suspend fun getAiInsights(): Response<DataResponse<InsightsResponse>>
 
     @POST("ai/suggest-category")
     suspend fun suggestCategory(

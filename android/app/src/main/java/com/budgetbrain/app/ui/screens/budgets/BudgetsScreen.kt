@@ -129,22 +129,22 @@ fun BudgetsScreen(
                             }
                             Spacer(modifier = Modifier.height(10.dp))
                             Text(
-                                text = "Suggested Monthly Cap: ₹${String.format("%,.0f", aiRecommendation!!.suggestedMonthlyLimit)} (₹${String.format("%,.0f", aiRecommendation!!.suggestedDailyLimit)}/day)",
+                                text = "Suggested Monthly Cap: ₹${String.format("%,.0f", aiRecommendation!!.recommendedMonthlyLimit)} (₹${String.format("%,.0f", aiRecommendation!!.recommendedDailyLimit)}/day)",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = EmeraldLight
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = aiRecommendation!!.reasoning,
+                                text = aiRecommendation!!.rationale,
                                 fontSize = 12.sp,
                                 color = TextSecondary
                             )
                             Spacer(modifier = Modifier.height(12.dp))
                             Button(
                                 onClick = {
-                                    monthlyLimitText = aiRecommendation!!.suggestedMonthlyLimit.toInt().toString()
-                                    dailyLimitText = aiRecommendation!!.suggestedDailyLimit.toInt().toString()
+                                    monthlyLimitText = aiRecommendation!!.recommendedMonthlyLimit.toInt().toString()
+                                    dailyLimitText = aiRecommendation!!.recommendedDailyLimit.toInt().toString()
                                     successMsg = "Applied AI suggestions! Tap 'Save Budget' below."
                                 },
                                 colors = ButtonDefaults.buttonColors(containerColor = EmeraldPrimary.copy(alpha = 0.2f)),

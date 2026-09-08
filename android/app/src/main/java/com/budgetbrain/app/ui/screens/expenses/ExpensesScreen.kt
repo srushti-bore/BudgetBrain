@@ -62,7 +62,7 @@ fun ExpensesScreen(
                 categoryId = selectedCategoryId,
                 search = searchQuery.ifBlank { null }
             )
-            res.onSuccess { expenses = it.items }
+            res.onSuccess { expenses = it }
             isLoading = false
         }
     }
@@ -334,7 +334,7 @@ fun AddExpenseForm(
     var dateText by remember { mutableStateOf(today) }
 
     var suggestedCategoryName by remember { mutableStateOf<String?>(null) }
-    var duplicateCandidate by remember { mutableStateOf<DuplicateCandidate?>(null) }
+    var duplicateExistingExpense by remember { mutableStateOf<Expense?>(null) }
     var isDuplicateAcknowledged by remember { mutableStateOf(false) }
     var isSubmitting by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -350,19 +350,19 @@ fun AddExpenseForm(
             val amt = currentAmountStr.toDoubleOrNull()
             if (currentTitle.length >= 3) {
                 aiRepository.suggestCategory(currentTitle, amt).onSuccess { res ->
-                    suggestedCategoryName = res.categoryName
-                    val match = categories.find { it.name.equals(res.categoryName, ignoreCase = true) }
+                    suggestedCategoryName = res.suggestedCategory
+                    val match = categories.find { it.name.equals(res.suggestedCategory, ignoreCase = true) }
                     if (match != null) selectedCategory = match
-                    if (res.paymentMode != null) paymentMode = res.paymentMode
+                    if (res.suggestedPaymentMode != null) paymentMode = res.suggestedPaymentMode
                 }
             }
             if (amt != null && amt > 0 && currentTitle.length >= 3) {
                 expenseRepository.checkDuplicate(DuplicateCheckRequest(currentTitle, amt, dateText)).onSuccess { dupRes ->
-                    if (dupRes.isDuplicate) {
-                        duplicateCandidate = dupRes.candidate
+                    if (dupRes.isDuplicate && dupRes.existingExpense != null) {
+                        duplicateExistingExpense = dupRes.existingExpense
                         isDuplicateAcknowledged = false
                     } else {
-                        duplicateCandidate = null
+                        duplicateExistingExpense = null
                     }
                 }
             }
@@ -440,7 +440,7 @@ fun AddExpenseForm(
         )
 
         // Duplicate Transaction Guard Alert Banner
-        AnimatedVisibility(visible = duplicateCandidate != null && !isDuplicateAcknowledged) {
+        AnimatedVisibility(visible = duplicateExistingExpense != null && !isDuplicateAcknowledged) {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -455,7 +455,7 @@ fun AddExpenseForm(
                     }
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        "Found matching \"${duplicateCandidate?.title}\" (₹${String.format("%,.0f", duplicateCandidate?.amount ?: 0.0)}) on ${duplicateCandidate?.date}.",
+                        "Found matching \"${duplicateExistingExpense?.title}\" (₹${String.format("%,.0f", duplicateExistingExpense?.amount ?: 0.0)}) on ${duplicateExistingExpense?.date}.",
                         color = TextSecondary,
                         fontSize = 12.sp
                     )
@@ -475,8 +475,9 @@ fun AddExpenseForm(
         Button(
             onClick = {
                 val amt = amountText.toDoubleOrNull()
-                if (title.isBlank() || amt == null || amt <= 0) {
-                    errorMessage = "Please enter valid title and amount"
+                val catId = selectedCategory?.id ?: categories.firstOrNull()?.id
+                if (title.isBlank() || amt == null || amt <= 0 || catId == null) {
+                    errorMessage = "Please enter valid title, amount, and category"
                     return@Button
                 }
                 isSubmitting = true
@@ -485,8 +486,8 @@ fun AddExpenseForm(
                         ExpenseCreate(
                             title = title.trim(),
                             amount = amt,
+                            categoryId = catId,
                             date = dateText,
-                            categoryId = selectedCategory?.id,
                             paymentMode = paymentMode
                         )
                     )
@@ -497,7 +498,7 @@ fun AddExpenseForm(
                     )
                 }
             },
-            enabled = !isSubmitting && (duplicateCandidate == null || isDuplicateAcknowledged),
+            enabled = !isSubmitting && (duplicateExistingExpense == null || isDuplicateAcknowledged),
             colors = ButtonDefaults.buttonColors(containerColor = EmeraldPrimary),
             shape = RoundedCornerShape(12.dp),
             modifier = Modifier
